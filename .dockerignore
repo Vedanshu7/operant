@@ -1,0 +1,8 @@
+.git
+.venv
+web/node_modules
+web/dist
+evidence
+state
+**/__pycache__
+.env

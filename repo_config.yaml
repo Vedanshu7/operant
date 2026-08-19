@@ -1,0 +1,19 @@
+# Configuration the vendored amp tooling reads (repo_config_utils searches
+# upward from the CWD, so this root copy applies when running `i` and tests).
+repo_info:
+  repo_name: operant
+  github_repo_account: ""
+  github_host_name: github.com
+  invalid_words:
+  issue_prefix: OperantTask
+  enable_git_commit_hook: True
+
+docker_info:
+  docker_image_name: operant
+  use_sibling_container_in_unit_tests: False
+  release_team: dev_system
+
+runnable_dir_info:
+  use_helpers_as_nested_module: False
+  venv_tag: operant
+  dir_suffix: operant

@@ -1,0 +1,119 @@
+[project]
+name = "operant"
+version = "0.1.0"
+description = "Computer-use automation: an LLM discovers a task once, the system compiles it into a versioned capability, and replays it deterministically under human-approved guardrails."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.21.0",
+    "alembic>=1.16.0",
+    "fastapi>=0.141.1",
+    "filelock>=3.18.0",
+    "httpx>=0.28.0",
+    "litellm>=1.97.0",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.10.0",
+    "python-dotenv>=1.2.3",
+    "sqlalchemy[asyncio]>=2.0.41",
+    "sse-starlette>=2.3.0",
+    "typer>=0.16.0",
+    "uvicorn>=0.52.3",
+]
+
+[project.optional-dependencies]
+macos = [
+    "mss>=10.2.0",
+    "xa11y>=0.13.0",
+]
+capture = [
+    "openadapt-capture>=1.2.2",
+]
+
+[project.scripts]
+operant = "operant.cli.main:main"
+# The task runner is called `i` (e.g. `i lint`); this shim makes it exist.
+i = "invoke.main:program.run"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.0",
+    "pre-commit>=4.2.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.1.0",
+    # Vendored amp linter (src/operant/dev/linters): the driver shells out to
+    # one binary per action and imports joblib/libcst/more-itertools directly.
+    "autoflake",
+    "black",
+    "docformatter",
+    "flake8",
+    "invoke",
+    "isort",
+    "joblib",
+    "libcst",
+    "more-itertools",
+    "pydocstyle",
+    "pylint",
+    "pyment",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/operant"]
+
+# Coding standard is the vendored amp linter (src/operant/dev/linters), run
+# via `i lint`; it shells out to black/isort/flake8/pylint/mypy/docformatter.
+# Line length matches the linter: black at 82, isort at 82.
+[tool.black]
+line-length = 82
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 82
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+known-first-party = ["operant", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "ANN", "S101", "PLR0915"]
+"src/operant/infra/db/migrations/**" = ["D", "ANN"]
+"src/operant/cli/**" = ["T20", "B006", "B008", "PLR0915"]
+"scripts/**" = ["T20"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+packages = ["operant"]
+mypy_path = "src"
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["xa11y", "xa11y.*", "mss", "mss.*", "litellm", "litellm.*", "openadapt_capture", "openadapt_capture.*", "sse_starlette", "sse_starlette.*"]
+ignore_missing_imports = true
+
+# The macOS adapters drive xa11y, whose type stubs are incomplete: element
+# handles come back as Any (making None-guards look unreachable), bounds are
+# untyped, and children() is not seen as iterable. These are false positives
+# from partial third-party stubs, not defects, and this layer is exercised
+# live on macOS rather than in CI. Scope the affected codes to it only.
+[[tool.mypy.overrides]]
+module = ["operant.adapters.macos.*"]
+disable_error_code = ["unreachable", "no-any-return", "attr-defined"]
+warn_unreachable = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --strict-markers"
+markers = [
+    "macos: needs the macOS accessibility stack",
+    "live: drives a real application; excluded from CI",
+]
+asyncio_mode = "auto"

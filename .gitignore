@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+.DS_Store
+state/*
+!state/.gitkeep
+evidence/*
+!evidence/.gitkeep
+web/node_modules/
+web/dist/
+
+linter_warnings.txt
