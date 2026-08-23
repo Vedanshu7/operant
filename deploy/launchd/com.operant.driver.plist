@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Runs the Operant driver daemon as a LaunchAgent so it owns the macOS
+  Accessibility / Screen Recording grants across logins.
+
+  Install:
+    sed "s#__ROOT__#$PWD#g" deploy/launchd/com.operant.driver.plist \
+      > ~/Library/LaunchAgents/com.operant.driver.plist
+    launchctl load ~/Library/LaunchAgents/com.operant.driver.plist
+  Grant Accessibility + Screen Recording to the `python` binary inside
+  __ROOT__/.venv when macOS prompts.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.operant.driver</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__ROOT__/.venv/bin/operant</string>
+    <string>serve-driver</string>
+    <string>--host</string>
+    <string>0.0.0.0</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__ROOT__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>OPERANT_PATHS__ROOT</key>
+    <string>__ROOT__</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>__ROOT__/state/driver.log</string>
+  <key>StandardErrorPath</key>
+  <string>__ROOT__/state/driver.log</string>
+</dict>
+</plist>

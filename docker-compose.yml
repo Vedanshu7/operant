@@ -1,0 +1,52 @@
+# One entry point: `docker compose up` starts the Operant server (API + UI)
+# and the ParaBank demo tenants. The driver daemon is the only host-side
+# process - macOS grants Accessibility / Screen Recording to the launching
+# app, so it cannot run in a container. Start it with `operant serve-driver`
+# (or `operant up`, which does both) and the server reaches it through
+# host.docker.internal.
+
+services:
+  operant:
+    build: .
+    container_name: operant-server
+    ports:
+      - "7080:7080"
+    env_file:
+      - .env
+    environment:
+      OPERANT_DRIVER__URL: http://host.docker.internal:7411
+      OPERANT_SERVER__CORS_ORIGINS: '["http://localhost:7080","http://localhost:5173"]'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./policies:/data/policies
+      - ./graphs:/data/graphs
+      - ./artifacts:/data/artifacts
+      - ./evidence:/data/evidence
+      - ./state:/data/state
+    depends_on:
+      parabank-b:
+        condition: service_started
+
+  parabank-a:
+    image: parasoft/parabank:latest
+    container_name: operant-parabank-a
+    platform: linux/amd64
+    ports:
+      - "8080:8080"
+    profiles: ["tenant-a"]
+
+  parabank-b:
+    image: parasoft/parabank:latest
+    container_name: operant-parabank-b
+    platform: linux/amd64
+    ports:
+      - "8081:8080"
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: operant-jaeger
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    profiles: ["tracing"]
