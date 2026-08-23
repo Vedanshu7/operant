@@ -1,0 +1,76 @@
+{
+  "schema_version": "2.3",
+  "id": "savings-balance",
+  "name": "savings-balance",
+  "description": "Log in and tell me the current balance of my savings account.",
+  "version": 4,
+  "status": "draft",
+  "vendor_id": "parabank",
+  "graph_version": 3,
+  "tenants": {
+    "tenant-a": {
+      "base_url": "http://localhost:8080/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    },
+    "tenant-b": {
+      "base_url": "http://localhost:8081/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    }
+  },
+  "default_tenant": "tenant-b",
+  "inputs": {
+    "savingsAccountNumber": {
+      "type": "string",
+      "description": "task input \"savingsAccountNumber\" (from discovery goal)",
+      "required": false,
+      "sensitive": true,
+      "data_class": "financial"
+    }
+  },
+  "outputs": {
+    "savingsAccountBalance": {
+      "type": "string",
+      "description": "extracted savingsAccountBalance",
+      "data_class": "financial"
+    }
+  },
+  "start_node": "parabank-welcome-online-banking",
+  "goal_node": "parabank-accounts-overview",
+  "extract_at_node": "parabank-accounts-overview",
+  "extract": [
+    {
+      "output": "savingsAccountBalance",
+      "pattern": "12900\\s+(\\$[\\d,]+\\.\\d{2})"
+    }
+  ],
+  "compiled_path": [
+    "edge-1",
+    "edge-2",
+    "edge-3",
+    "edge-4"
+  ],
+  "policy_scope": {
+    "policy_id": "parabank",
+    "required_action_kinds": [
+      "click",
+      "fill",
+      "launch"
+    ],
+    "touches_mutating_edges": false
+  },
+  "provenance": {
+    "discovery_run_id": "discovery-20260824-024305-8e1b",
+    "model": "anthropic/claude-haiku-4-5",
+    "recorded_at": "2026-08-24T02:44:18.375601+00:00",
+    "goal": "Log in and tell me the current balance of my savings account."
+  },
+  "stability": null
+}

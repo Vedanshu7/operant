@@ -1,0 +1,34 @@
+{
+  "chains": {
+    "observe": [
+      "xa11y-digest"
+    ],
+    "launch": [
+      "app-launcher"
+    ],
+    "click": [
+      "ax-action",
+      "se-press",
+      "os-input",
+      "coordinate-click"
+    ],
+    "fill": [
+      "ax-action",
+      "applescript-keys",
+      "clipboard-paste",
+      "os-input"
+    ],
+    "press": [
+      "applescript-keys",
+      "os-input"
+    ],
+    "select": [
+      "ax-select",
+      "se-select"
+    ],
+    "scroll": [
+      "ax-scroll",
+      "os-input-scroll"
+    ]
+  }
+}

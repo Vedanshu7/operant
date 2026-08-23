@@ -1,0 +1,77 @@
+{
+  "schema_version": "2.1",
+  "id": "create-standup-note",
+  "name": "create-standup-note",
+  "description": "Open the Notes app, create a new note with the title Standup and the body 'blocked on X', then read back the note's title",
+  "version": 1,
+  "status": "draft",
+  "vendor_id": "notes",
+  "graph_version": 1,
+  "tenants": {
+    "default": {
+      "base_url": "",
+      "secret_refs": {}
+    }
+  },
+  "default_tenant": "default",
+  "inputs": {
+    "noteTitle": {
+      "type": "string",
+      "description": "task input \"noteTitle\" (from discovery goal)",
+      "required": true,
+      "sensitive": false
+    },
+    "noteBody": {
+      "type": "string",
+      "description": "task input \"noteBody\" (from discovery goal)",
+      "required": true,
+      "sensitive": false
+    }
+  },
+  "outputs": {
+    "noteTitle": {
+      "type": "string",
+      "description": "extracted noteTitle"
+    },
+    "readNoteTitle": {
+      "type": "string",
+      "description": "extracted readNoteTitle"
+    }
+  },
+  "start_node": "search-no-results",
+  "goal_node": "notes-99-notes",
+  "extract_at_node": "notes-99-notes",
+  "extract": [
+    {
+      "output": "noteTitle",
+      "pattern": "^(\\w+)"
+    },
+    {
+      "output": "readNoteTitle",
+      "pattern": "Standup"
+    }
+  ],
+  "compiled_path": [
+    "edge-1",
+    "edge-2",
+    "edge-3",
+    "edge-4",
+    "edge-5"
+  ],
+  "policy_scope": {
+    "policy_id": "notes",
+    "required_action_kinds": [
+      "click",
+      "fill",
+      "launch"
+    ],
+    "touches_mutating_edges": false
+  },
+  "provenance": {
+    "discovery_run_id": "discovery-20260819-195901",
+    "model": "anthropic/claude-haiku-4-5",
+    "recorded_at": "2026-08-19T20:00:56.261816+00:00",
+    "goal": "Open the Notes app, create a new note with the title Standup and the body 'blocked on X', then read back the note's title"
+  },
+  "stability": null
+}

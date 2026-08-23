@@ -1,0 +1,92 @@
+{
+  "schema_version": "2.1",
+  "id": "goalnative",
+  "name": "goalnative",
+  "description": "Log in and read the current balance and the account type of account 13344",
+  "version": 2,
+  "status": "approved",
+  "vendor_id": "parabank",
+  "graph_version": 2,
+  "tenants": {
+    "tenant-a": {
+      "base_url": "http://localhost:8080/parabank",
+      "secret_refs": {
+        "username": "PARABANK_USERNAME",
+        "password": "PARABANK_PASSWORD"
+      }
+    },
+    "tenant-b": {
+      "base_url": "http://localhost:8081/parabank",
+      "secret_refs": {
+        "username": "PARABANK_USERNAME",
+        "password": "PARABANK_PASSWORD"
+      }
+    }
+  },
+  "default_tenant": "tenant-a",
+  "inputs": {
+    "accountId": {
+      "type": "string",
+      "description": "task input \"accountId\" (from discovery goal)",
+      "required": true,
+      "sensitive": false,
+      "data_class": "none"
+    }
+  },
+  "outputs": {
+    "currentBalance": {
+      "type": "string",
+      "description": "extracted currentBalance",
+      "data_class": "none"
+    },
+    "accountType": {
+      "type": "string",
+      "description": "extracted accountType",
+      "data_class": "none"
+    }
+  },
+  "start_node": "parabank-welcome-online-banking",
+  "goal_node": "parabank-account-activity",
+  "extract_at_node": "parabank-account-activity",
+  "extract": [
+    {
+      "output": "currentBalance",
+      "pattern": "Balance:\\s*\\$([0-9,]+\\.[0-9]{2})"
+    },
+    {
+      "output": "accountType",
+      "pattern": "Account Type:\\s*(\\w+)"
+    }
+  ],
+  "compiled_path": [
+    "edge-1",
+    "edge-2-2",
+    "edge-3-2",
+    "edge-3",
+    "edge-5-2",
+    "edge-6",
+    "edge-7",
+    "edge-8",
+    "edge-5"
+  ],
+  "policy_scope": {
+    "policy_id": "parabank",
+    "required_action_kinds": [
+      "click",
+      "fill",
+      "launch"
+    ],
+    "touches_mutating_edges": false
+  },
+  "provenance": {
+    "discovery_run_id": "discovery-20260819-180647",
+    "model": "anthropic/claude-haiku-4-5",
+    "recorded_at": "2026-08-19T18:10:07.195602+00:00",
+    "goal": "Log in and read the current balance and the account type of account 13344"
+  },
+  "stability": {
+    "runs": 16,
+    "successes": 10,
+    "last_run_at": "2026-08-23T04:29:14.669441+00:00"
+  }
+}

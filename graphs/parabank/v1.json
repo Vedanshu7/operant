@@ -1,0 +1,296 @@
+{
+  "schema_version": "2.0",
+  "vendor_id": "parabank",
+  "graph_version": 1,
+  "app_name": "Google Chrome",
+  "window_title_pattern": "ParaBank",
+  "nodes": [
+    {
+      "id": "parabank-welcome-online-banking",
+      "description": "entry screen",
+      "checks": [
+        {
+          "kind": "titleMatches",
+          "pattern": "ParaBank\\ \\|\\ Welcome\\ \\|\\ Online\\ Banking"
+        }
+      ]
+    },
+    {
+      "id": "parabank-accounts-overview",
+      "description": "Click the Log In button to submit credentials",
+      "checks": [
+        {
+          "kind": "titleMatches",
+          "pattern": "ParaBank\\ \\|\\ Accounts\\ Overview"
+        }
+      ]
+    },
+    {
+      "id": "parabank-account-activity",
+      "description": "Click on account 13344 to view details",
+      "checks": [
+        {
+          "kind": "titleMatches",
+          "pattern": "ParaBank\\ \\|\\ Account\\ Activity"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "parabank-welcome-online-banking",
+      "to": "parabank-welcome-online-banking",
+      "description": "open parabank in Google Chrome",
+      "action": {
+        "kind": "launch",
+        "app": "Google Chrome",
+        "url": "/index.htm",
+        "key": null,
+        "value": null,
+        "graph_ref": null
+      },
+      "target": null,
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe",
+      "extract": []
+    },
+    {
+      "id": "edge-2",
+      "from": "parabank-welcome-online-banking",
+      "to": "parabank-welcome-online-banking",
+      "description": "Fill the username field with the credential placeholder",
+      "action": {
+        "kind": "fill",
+        "app": null,
+        "url": null,
+        "key": null,
+        "value": {
+          "literal": null,
+          "param": null,
+          "secret_ref": "username"
+        },
+        "graph_ref": null
+      },
+      "target": {
+        "strategies": [
+          {
+            "kind": "labelProximity",
+            "anchor_text": "Username",
+            "role": "text_field"
+          },
+          {
+            "kind": "structural",
+            "path": "content>group:0>group:2>group:0>group:0>group:0>group:1>text_field:0"
+          },
+          {
+            "kind": "region",
+            "role": "text_field",
+            "x": 0.2991898148148148,
+            "y": 0.36162361623616235,
+            "w": 0.08449074074074074,
+            "h": 0.016605166051660517,
+            "tolerance": 0.08
+          }
+        ],
+        "reasoning": "anchored to adjacent text \"Username\" (legacy layouts); a11y tree path as fallback when semantics are absent; window-relative geometry as last resort"
+      },
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe",
+      "extract": []
+    },
+    {
+      "id": "edge-3",
+      "from": "parabank-welcome-online-banking",
+      "to": "parabank-welcome-online-banking",
+      "description": "Fill the password field with the credential placeholder",
+      "action": {
+        "kind": "fill",
+        "app": null,
+        "url": null,
+        "key": null,
+        "value": {
+          "literal": null,
+          "param": null,
+          "secret_ref": "password"
+        },
+        "graph_ref": null
+      },
+      "target": {
+        "strategies": [
+          {
+            "kind": "labelProximity",
+            "anchor_text": "Password",
+            "role": "text_field"
+          },
+          {
+            "kind": "structural",
+            "path": "content>group:0>group:2>group:0>group:0>group:0>group:3>text_field:0"
+          },
+          {
+            "kind": "region",
+            "role": "text_field",
+            "x": 0.2991898148148148,
+            "y": 0.4059040590405904,
+            "w": 0.08449074074074074,
+            "h": 0.016605166051660517,
+            "tolerance": 0.08
+          }
+        ],
+        "reasoning": "anchored to adjacent text \"Password\" (legacy layouts); a11y tree path as fallback when semantics are absent; window-relative geometry as last resort"
+      },
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe",
+      "extract": []
+    },
+    {
+      "id": "edge-4",
+      "from": "parabank-welcome-online-banking",
+      "to": "parabank-accounts-overview",
+      "description": "Click the Log In button to submit credentials",
+      "action": {
+        "kind": "click",
+        "app": null,
+        "url": null,
+        "key": null,
+        "value": null,
+        "graph_ref": null
+      },
+      "target": {
+        "strategies": [
+          {
+            "kind": "role",
+            "role": "button",
+            "name": "Log In"
+          },
+          {
+            "kind": "labelProximity",
+            "anchor_text": "Password",
+            "role": "button"
+          },
+          {
+            "kind": "structural",
+            "path": "content>group:0>group:2>group:0>group:0>group:0>group:4>button:0"
+          },
+          {
+            "kind": "region",
+            "role": "button",
+            "x": 0.2991898148148148,
+            "y": 0.4326568265682657,
+            "w": 0.03819444444444445,
+            "h": 0.01845018450184502,
+            "tolerance": 0.08
+          }
+        ],
+        "reasoning": "accessible name \"Log In\" is user-facing and survives restyling; anchored to adjacent text \"Password\" (legacy layouts); a11y tree path as fallback when semantics are absent; window-relative geometry as last resort"
+      },
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe",
+      "extract": []
+    },
+    {
+      "id": "edge-5",
+      "from": "parabank-accounts-overview",
+      "to": "parabank-account-activity",
+      "description": "Click on account {{accountId}} to view details",
+      "action": {
+        "kind": "click",
+        "app": null,
+        "url": null,
+        "key": null,
+        "value": null,
+        "graph_ref": null
+      },
+      "target": {
+        "strategies": [
+          {
+            "kind": "role",
+            "role": "link",
+            "name": "{{accountId}}"
+          }
+        ],
+        "reasoning": "accessible name \"13344\" is user-facing and survives restyling; anchored to adjacent text \"$100.00\" (legacy layouts); a11y tree path as fallback when semantics are absent; window-relative geometry as last resort; non-parameterized strategies dropped: they identified the discovery-time record"
+      },
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe",
+      "extract": [
+        {
+          "output": "current_balance",
+          "pattern": "Balance:\\s*\\$?([\\d,.]+)"
+        },
+        {
+          "output": "account_type",
+          "pattern": "Account Type:\\s*(\\w+)"
+        }
+      ]
+    }
+  ],
+  "outcome_edges": [
+    {
+      "id": "auth-failed",
+      "at": "*",
+      "when": {
+        "kind": "textMatches",
+        "pattern": "could not be verified"
+      },
+      "handle": {
+        "type": "business_outcome",
+        "outcome": "AUTH_FAILED",
+        "detail": "the application rejected the configured credentials"
+      }
+    },
+    {
+      "id": "session-lost",
+      "at": "*",
+      "when": {
+        "kind": "textMatches",
+        "pattern": "(An internal error has occurred|User login required|Server returned 401)"
+      },
+      "handle": {
+        "type": "recover",
+        "recovery": "reLogin",
+        "max_attempts": 1
+      }
+    },
+    {
+      "id": "edge-5-record-not-found",
+      "at": "parabank-accounts-overview",
+      "when": {
+        "kind": "titleMatches",
+        "pattern": "ParaBank\\ \\|\\ Accounts\\ Overview"
+      },
+      "handle": {
+        "type": "business_outcome",
+        "outcome": "RECORD_NOT_FOUND",
+        "detail": "no record matching the given input is present (Click on account {{accountId}} to view details)"
+      }
+    }
+  ],
+  "created_at": "2026-08-19T03:34:52.309132+00:00",
+  "updated_at": "2026-08-19T03:34:52.309132+00:00"
+}

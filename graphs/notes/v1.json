@@ -1,0 +1,272 @@
+{
+  "schema_version": "2.1",
+  "vendor_id": "notes",
+  "graph_version": 1,
+  "app_name": "Notes",
+  "window_title_pattern": ".*",
+  "nodes": [
+    {
+      "id": "search-no-results",
+      "description": "entry screen",
+      "checks": [
+        {
+          "kind": "titleMatches",
+          "pattern": "Search\\ –\\ No\\ Results"
+        }
+      ]
+    },
+    {
+      "id": "notes-98-notes",
+      "description": "Cancel the search to return to main Notes view",
+      "checks": [
+        {
+          "kind": "titleMatches",
+          "pattern": "Notes\\ –\\ 98\\ notes"
+        }
+      ]
+    },
+    {
+      "id": "notes-99-notes",
+      "description": "Click the New Note button to create a new note",
+      "checks": [
+        {
+          "kind": "titleMatches",
+          "pattern": "Notes\\ –\\ 99\\ notes"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "search-no-results",
+      "to": "search-no-results",
+      "description": "Open the Notes application",
+      "action": {
+        "kind": "launch",
+        "app": "Notes",
+        "url": null,
+        "key": null,
+        "value": null,
+        "option": null,
+        "direction": null,
+        "amount": null,
+        "graph_ref": null
+      },
+      "target": null,
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe"
+    },
+    {
+      "id": "edge-2",
+      "from": "search-no-results",
+      "to": "notes-98-notes",
+      "description": "Cancel the search to return to main Notes view",
+      "action": {
+        "kind": "click",
+        "app": null,
+        "url": null,
+        "key": null,
+        "value": null,
+        "option": null,
+        "direction": null,
+        "amount": null,
+        "graph_ref": null
+      },
+      "target": {
+        "strategies": [
+          {
+            "kind": "role",
+            "role": "button",
+            "name": "cancel"
+          },
+          {
+            "kind": "labelProximity",
+            "anchor_text": "Perform press to show creation date.",
+            "role": "button"
+          },
+          {
+            "kind": "structural",
+            "path": "content>toolbar:0>group:1>text_field:0>button:1"
+          },
+          {
+            "kind": "region",
+            "role": "button",
+            "x": 0.9822916666666667,
+            "y": 0.022132796780684104,
+            "w": 0.008333333333333333,
+            "h": 0.009054325955734407,
+            "tolerance": 0.08
+          }
+        ],
+        "reasoning": "accessible name \"cancel\" is user-facing and survives restyling; anchored to adjacent text \"Perform press to show creation date.\" (legacy layouts); a11y tree path as fallback when semantics are absent; window-relative geometry as last resort"
+      },
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe"
+    },
+    {
+      "id": "edge-3",
+      "from": "notes-98-notes",
+      "to": "notes-99-notes",
+      "description": "Click the New Note button to create a new note",
+      "action": {
+        "kind": "click",
+        "app": null,
+        "url": null,
+        "key": null,
+        "value": null,
+        "option": null,
+        "direction": null,
+        "amount": null,
+        "graph_ref": null
+      },
+      "target": {
+        "strategies": [
+          {
+            "kind": "role",
+            "role": "button",
+            "name": "New Note"
+          },
+          {
+            "kind": "labelProximity",
+            "anchor_text": "July 27, 2026 at 7:48 PM",
+            "role": "button"
+          },
+          {
+            "kind": "structural",
+            "path": "content>toolbar:0>button:1"
+          },
+          {
+            "kind": "region",
+            "role": "button",
+            "x": 0.18385416666666668,
+            "y": 0.0,
+            "w": 0.0234375,
+            "h": 0.052313883299798795,
+            "tolerance": 0.08
+          }
+        ],
+        "reasoning": "accessible name \"New Note\" is user-facing and survives restyling; anchored to adjacent text \"July 27, 2026 at 7:48 PM\" (legacy layouts); a11y tree path as fallback when semantics are absent; window-relative geometry as last resort"
+      },
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe"
+    },
+    {
+      "id": "edge-4",
+      "from": "notes-99-notes",
+      "to": "notes-99-notes",
+      "description": "Click in the text area to start editing the new note",
+      "action": {
+        "kind": "click",
+        "app": null,
+        "url": null,
+        "key": null,
+        "value": null,
+        "option": null,
+        "direction": null,
+        "amount": null,
+        "graph_ref": null
+      },
+      "target": {
+        "strategies": [
+          {
+            "kind": "labelProximity",
+            "anchor_text": "August 19, 2026 at 4:00 PM",
+            "role": "text_area"
+          },
+          {
+            "kind": "structural",
+            "path": "content>split_group:0>group:1>text_area:0"
+          },
+          {
+            "kind": "region",
+            "role": "text_area",
+            "x": 0.1046875,
+            "y": 0.052313883299798795,
+            "w": 0.8864583333333333,
+            "h": 0.93158953722334,
+            "tolerance": 0.08
+          }
+        ],
+        "reasoning": "anchored to adjacent text \"August 19, 2026 at 4:00 PM\" (legacy layouts); a11y tree path as fallback when semantics are absent; window-relative geometry as last resort"
+      },
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe"
+    },
+    {
+      "id": "edge-5",
+      "from": "notes-99-notes",
+      "to": "notes-99-notes",
+      "description": "Fill the text area with the note title and body",
+      "action": {
+        "kind": "fill",
+        "app": null,
+        "url": null,
+        "key": null,
+        "value": {
+          "literal": "Standup\nblocked on X",
+          "param": null,
+          "secret_ref": null,
+          "from_output": null
+        },
+        "option": null,
+        "direction": null,
+        "amount": null,
+        "graph_ref": null
+      },
+      "target": {
+        "strategies": [
+          {
+            "kind": "labelProximity",
+            "anchor_text": "August 19, 2026 at 4:00 PM",
+            "role": "text_area"
+          },
+          {
+            "kind": "structural",
+            "path": "content>split_group:0>group:1>text_area:0"
+          },
+          {
+            "kind": "region",
+            "role": "text_area",
+            "x": 0.1046875,
+            "y": 0.052313883299798795,
+            "w": 0.8864583333333333,
+            "h": 0.93158953722334,
+            "tolerance": 0.08
+          }
+        ],
+        "reasoning": "anchored to adjacent text \"August 19, 2026 at 4:00 PM\" (legacy layouts); a11y tree path as fallback when semantics are absent; window-relative geometry as last resort"
+      },
+      "wait": {
+        "kind": "settle",
+        "timeout_ms": 4000,
+        "target": null,
+        "title_pattern": null
+      },
+      "risk": "safe"
+    }
+  ],
+  "outcome_edges": [],
+  "created_at": "2026-08-19T20:00:56.263022+00:00",
+  "updated_at": "2026-08-19T20:00:56.263022+00:00"
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": "2.2",
+  "id": "savings-balance",
+  "name": "savings-balance",
+  "description": "Log in and read the current balance of the first account",
+  "version": 2,
+  "status": "draft",
+  "vendor_id": "parabank",
+  "graph_version": 2,
+  "tenants": {
+    "tenant-a": {
+      "base_url": "http://localhost:8080/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    },
+    "tenant-b": {
+      "base_url": "http://localhost:8081/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    }
+  },
+  "default_tenant": "tenant-b",
+  "inputs": {},
+  "outputs": {
+    "first_account_balance": {
+      "type": "string",
+      "description": "extracted first_account_balance",
+      "data_class": "financial"
+    }
+  },
+  "start_node": "parabank-welcome-online-banking",
+  "goal_node": "parabank-accounts-overview",
+  "extract_at_node": "parabank-accounts-overview",
+  "extract": [
+    {
+      "output": "first_account_balance",
+      "pattern": "Account\\s+12345.*?Balance\\*\\s+([-\\$0-9,.]+)"
+    }
+  ],
+  "compiled_path": [
+    "edge-1",
+    "edge-2",
+    "edge-3",
+    "edge-4"
+  ],
+  "policy_scope": {
+    "policy_id": "parabank",
+    "required_action_kinds": [
+      "click",
+      "fill",
+      "launch"
+    ],
+    "touches_mutating_edges": false
+  },
+  "provenance": {
+    "discovery_run_id": "discovery-20260823-234842-4432",
+    "model": "anthropic/claude-haiku-4-5",
+    "recorded_at": "2026-08-23T23:49:20.133284+00:00",
+    "goal": "Log in and read the current balance of the first account"
+  },
+  "stability": null
+}

@@ -1,0 +1,53 @@
+{
+  "vendor_id": "notes",
+  "app_name": "Notes",
+  "window_title_pattern": ".*",
+  "policy": {
+    "id": "notes",
+    "allowed_apps": [
+      "Notes"
+    ],
+    "allowed_url_patterns": [],
+    "allowed_action_kinds": [
+      "launch",
+      "click",
+      "fill",
+      "press",
+      "select",
+      "scroll",
+      "invoke"
+    ],
+    "mutating_control_patterns": [
+      "send",
+      "submit",
+      "pay",
+      "transfer",
+      "purchase",
+      "buy",
+      "order",
+      "delete",
+      "remove",
+      "confirm",
+      "post",
+      "publish",
+      "apply",
+      "sign",
+      "authorize"
+    ],
+    "approval": {
+      "mutating": true,
+      "sensitive_fill": "literals",
+      "sensitive_export": true,
+      "sensitive_field_patterns": []
+    }
+  },
+  "tenants": {
+    "default": {
+      "base_url": "",
+      "secret_refs": {}
+    }
+  },
+  "default_tenant": "default",
+  "global_outcome_edges": [],
+  "fault_injection": null
+}

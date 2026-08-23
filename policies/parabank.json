@@ -1,0 +1,95 @@
+{
+  "vendor_id": "parabank",
+  "app_name": "Google Chrome",
+  "window_title_pattern": "ParaBank",
+  "policy": {
+    "id": "parabank",
+    "allowed_apps": [
+      "Google Chrome",
+      "System Settings"
+    ],
+    "allowed_url_patterns": [
+      "^http://localhost:808[01]/parabank"
+    ],
+    "allowed_action_kinds": [
+      "launch",
+      "click",
+      "fill",
+      "press",
+      "select",
+      "scroll",
+      "invoke"
+    ],
+    "mutating_control_patterns": [
+      "open new account",
+      "transfer",
+      "send payment",
+      "pay bill",
+      "apply now",
+      "update profile",
+      "request loan"
+    ],
+    "approval": {
+      "mutating": true,
+      "sensitive_fill": "literals",
+      "sensitive_export": true,
+      "sensitive_field_patterns": [
+        "financial:amount",
+        "financial:from account",
+        "financial:to account"
+      ]
+    }
+  },
+  "tenants": {
+    "tenant-a": {
+      "base_url": "http://localhost:8080/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    },
+    "tenant-b": {
+      "base_url": "http://localhost:8081/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    }
+  },
+  "default_tenant": "tenant-b",
+  "fault_injection": {
+    "restart_cmd": ["docker", "restart", "operant-parabank-b"],
+    "health_url": "http://localhost:8081/parabank/index.htm",
+    "timeout_s": 180
+  },
+  "global_outcome_edges": [
+    {
+      "id": "auth-failed",
+      "at": "*",
+      "when": {
+        "kind": "textMatches",
+        "pattern": "could not be verified"
+      },
+      "handle": {
+        "type": "business_outcome",
+        "outcome": "AUTH_FAILED",
+        "detail": "the application rejected the configured credentials"
+      }
+    },
+    {
+      "id": "session-lost",
+      "at": "*",
+      "when": {
+        "kind": "textMatches",
+        "pattern": "(An internal error has occurred|User login required|Server returned 401)"
+      },
+      "handle": {
+        "type": "recover",
+        "recovery": "reLogin",
+        "max_attempts": 1
+      }
+    }
+  ]
+}
