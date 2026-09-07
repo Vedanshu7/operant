@@ -17,6 +17,7 @@ import operant.domain.models.llm as llm
 import operant.domain.models.results as results
 import operant.domain.models.runs as runs
 import operant.domain.models.tools as mttools
+import operant.domain.secrets as odsec
 
 
 def blank_digest() -> digest.ScreenDigest:
@@ -383,9 +384,32 @@ class FakeClarifier:
 
     def __init__(self, answer: str = "") -> None:
         self.answer = answer
+        self.asked: List[str] = []
 
     def ask(self, question: str, *, run_id: str) -> str:
+        self.asked.append(question)
         return self.answer
+
+
+# #############################################################################
+# FakeCredentialRequester
+# #############################################################################
+
+
+class FakeCredentialRequester:
+    """
+    Hands back the same typed value for every requested credential.
+    """
+
+    def __init__(self, value: str) -> None:
+        self.value = value
+        self.requested: List[str] = []
+
+    def request(
+        self, name: str, *, run_id: str, reason: str
+    ) -> odsec.CredentialGrant:
+        self.requested.append(name)
+        return odsec.CredentialGrant.typed(self.value)
 
 
 # #############################################################################

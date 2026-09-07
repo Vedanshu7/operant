@@ -1,19 +1,24 @@
 """
-Opt-in gating for the behavioral evals.
+Opt-in gating, fixtures and the results summary for the behavioral evals.
 
 They call the real model (cost, non-determinism, needs an API model
 configured), so they are skipped unless ``OPERANT_RUN_LLM_EVALS`` is set.
 Run them with:
 
     OPERANT_RUN_LLM_EVALS=1 uv run pytest tests/evals
+
+``OPERANT_EVAL_TRIALS`` and ``OPERANT_EVAL_PASS_RATE`` tune the trials;
+every trial is appended to ``state/evals/<session>.jsonl``.
 """
 
 from __future__ import annotations
 
+import collections
 import os
 import pathlib
-from typing import List
+from typing import Any, Dict, List, Tuple
 
+import litellm
 import pytest
 
 import operant.adapters.llm.litellm_client as litecli
@@ -21,6 +26,7 @@ import operant.adapters.secrets.env as env
 import operant.infra.settings as settings
 import operant.ports.llm as plllm
 import operant.ports.secrets as pssecret
+import tests.evals.harness as harness
 
 _ENABLE = "OPERANT_RUN_LLM_EVALS"
 
@@ -43,14 +49,49 @@ def pytest_collection_modifyitems(
 @pytest.fixture(scope="session")
 def real_llm() -> plllm.LlmClient:
     """
-    The configured litellm client, or skip when none is configured.
+    Return the configured litellm client; skip without a model or key.
     """
     loaded = settings.OperantSettings.load()
-    if not loaded.discovery.model:
-        pytest.skip("no discovery model configured (set LLM_MODEL)")
+    model = loaded.discovery.model
+    if not model:
+        pytest.skip(
+            "no discovery model configured (set OPERANT_DISCOVERY__MODEL)"
+        )
+    env_check: Dict[str, Any] = litellm.validate_environment(model=model)
+    if not loaded.discovery.api_key and not env_check.get("keys_in_environment"):
+        pytest.skip(
+            f"no API key for {model}: set {env_check.get('missing_keys')}"
+        )
     return litecli.LiteLlmClient(loaded.discovery)
 
 
 @pytest.fixture(scope="session")
 def secret_store() -> pssecret.SecretStore:
     return env.EnvSecretStore({})
+
+
+def pytest_terminal_summary(terminalreporter: Any) -> None:
+    """
+    Print a pass-rate table per scenario and where the rows were written.
+    """
+    if not harness.SUMMARY:
+        return
+    groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = collections.defaultdict(
+        list
+    )
+    for row in harness.SUMMARY:
+        groups[(row["family"], row["scenario"])].append(row)
+    write = terminalreporter.write_line
+    write("")
+    write(
+        f"{'family':<10} {'scenario':<26} {'pass':>7} {'turns':>6} {'tokens':>8}"
+    )
+    for (family, scenario), rows in sorted(groups.items()):
+        passed = sum(1 for r in rows if r["passed"])
+        turns = sum(r["turns"] for r in rows) / len(rows)
+        tokens = sum(r["tokens_in"] + r["tokens_out"] for r in rows) / len(rows)
+        write(
+            f"{family:<10} {scenario:<26} {passed:>3}/{len(rows):<3} "
+            f"{turns:>6.1f} {tokens:>8.0f}"
+        )
+    write(f"results: {harness.RESULTS_DIR / (harness.SESSION + '.jsonl')}")

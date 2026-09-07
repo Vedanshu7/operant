@@ -118,8 +118,14 @@ class LlmTurn:
         only.
     :ivar tool_calls: Calls made this turn, in order.
     :ivar model: Model id that produced the turn, when reported.
+    :ivar input_tokens: Prompt tokens billed for the turn, when
+        reported.
+    :ivar output_tokens: Completion tokens billed for the turn, when
+        reported.
     """
 
     content: str = ""
     tool_calls: Tuple[ToolCall, ...] = ()
     model: str = ""
+    input_tokens: int = 0
+    output_tokens: int = 0

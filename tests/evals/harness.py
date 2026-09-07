@@ -1,13 +1,13 @@
 """
-Behavioral eval harness: run discovery against the REAL model over synthetic
-screens, then assert on the tool-call trace.
+Behavioral eval harness: run discovery against a model over synthetic screens,
+then score the run with checks over its tool-call trace.
 
-These evals check prompt QUALITY - does a real model follow the rules the
+The evals check prompt QUALITY - does a real model follow the rules the
 system prompt states - as opposed to the unit tests, which pin the
-MECHANISM with a scripted model. They are app-agnostic: each scenario is
-a fake surface plus a goal, so a rule that regresses on a generic profile
-(not just ParaBank) is caught. Opt-in and gated behind an API model, they
-never run in the normal unit suite.
+MECHANISM with a scripted model. Every action goes through the real
+policy and approval gate, a ``give_up`` ends the run instead of waiting
+for an operator, and each scenario runs several trials against a pass
+rate because the model is not deterministic.
 
 Import as:
 
@@ -18,24 +18,113 @@ from __future__ import annotations
 
 import collections.abc
 import dataclasses
+import hashlib
+import json
+import os
 import pathlib
-from typing import FrozenSet, List, Optional, Tuple
+import time
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import operant.application.discovery.config as config
 import operant.application.discovery.loop as loop
+import operant.application.discovery.prompt as prompt
+import operant.application.discovery.state as dsstate
 import operant.application.escalation as escal
 import operant.domain.approval as daapprov
+import operant.domain.models.actions as actions
 import operant.domain.models.artifact as artifact
-import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
 import operant.domain.models.llm as mlllm
 import operant.domain.policy as policy
 import operant.domain.profile as profile
 import operant.domain.redaction as redact
-import operant.domain.secrets as odsec
 import operant.infra.evidence.run_log as run_log
 import operant.ports.llm as plllm
 import operant.ports.secrets as pssecret
+import tests.evals.scenes as scenes
+import tests.support.ports as ports
+import tests.support.surfaces as surfaces
+
+RESULTS_DIR = pathlib.Path(__file__).resolve().parents[2] / "state" / "evals"
+SESSION = time.strftime("%Y%m%d-%H%M%S")
+# One row per finished trial, read by the conftest terminal summary.
+SUMMARY: List[Dict[str, Any]] = []
+
+_POLICY_KINDS = ["launch", "click", "fill", "press", "select", "scroll"]
+_MUTATING = ["transfer", "send", "pay", "submit"]
+
+
+# #############################################################################
+# EvalSurface
+# #############################################################################
+
+
+class EvalSurface(surfaces.GatedFakeSurface):
+    """
+    Serve a ``Scene`` through the real policy and approval gate.
+    """
+
+    def __init__(
+        self, app_policy: policy.Policy, scene: scenes.Scene, *, bootstrap: bool
+    ) -> None:
+        super().__init__(app_policy)
+        self.scene = scene
+        self.current = scene.start
+        self.visited = [scene.start]
+        # Bootstrap runs start with no window: the model must launch first.
+        self.launched = not bootstrap
+
+    def snapshot(self) -> Any:
+        if not self.launched:
+            raise RuntimeError("no window is bound yet")
+        return self.scene.screens[self.current]
+
+    def apply(self, action: actions.SurfaceAction) -> None:
+        if action.kind == "launch":
+            self.launched = True
+        if action.step == "entry":
+            # The profile-mode entry launch opens the start screen itself.
+            nxt = None
+        else:
+            # Advance on the first matching transition, if any.
+            moves = self.scene.transitions
+            nxt = (
+                moves.get((self.current, action.ref or ""))
+                or moves.get((self.current, action.kind))
+                or moves.get(("*", action.kind))
+            )
+        if nxt is not None:
+            self.current = nxt
+            self.visited.append(nxt)
+
+
+# #############################################################################
+# EvalBroker
+# #############################################################################
+
+
+class EvalBroker(escal.ControlBroker):
+    """
+    Resolve every intervention as abandoned at once - no operator waits.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            start_human_capture=lambda callback: None,
+            stop_human_capture=lambda: None,
+            on_transition=lambda before, after, detail: None,
+        )
+        self.raised: List[str] = []
+
+    def raise_intervention(
+        self, request: escal.InterventionRequest
+    ) -> escal.InterventionResolution:
+        self.raised.append(request.reason)
+        resolution = escal.InterventionResolution(
+            resolution="abandoned", note="eval: no operator"
+        )
+        return resolution
+
 
 # #############################################################################
 # RecordingLlm
@@ -44,12 +133,14 @@ import operant.ports.secrets as pssecret
 
 class RecordingLlm:
     """
-    Wrap a real client and record every tool call it emits, in order.
+    Wrap a client and record what it was sent and what it answered.
     """
 
-    def __init__(self, inner: plllm.LlmClient) -> None:
+    def __init__(self, inner: plllm.LlmClient, role: str = "executor") -> None:
         self._inner = inner
-        self.turns: List[Tuple[mlllm.ToolCall, ...]] = []
+        self.role = role
+        self.sent: List[List[mlllm.ChatMessage]] = []
+        self.turns: List[mlllm.LlmTurn] = []
 
     def complete(
         self,
@@ -57,168 +148,64 @@ class RecordingLlm:
         *,
         tools: collections.abc.Sequence[mlllm.ToolSchema],
     ) -> mlllm.LlmTurn:
+        self.sent.append(list(messages))
         turn = self._inner.complete(messages, tools=tools)
-        self.turns.append(turn.tool_calls)
+        self.turns.append(turn)
         return turn
 
     @property
     def calls(self) -> List[mlllm.ToolCall]:
         """
-        The full flat sequence of tool calls across every turn.
+        Return every tool call across every turn, in order.
         """
-        return [call for turn in self.turns for call in turn]
+        flat = [call for turn in self.turns for call in turn.tool_calls]
+        return flat
 
-    def names(self) -> List[str]:
+    def tokens(self) -> Tuple[int, int]:
         """
-        Just the tool names, in the order the model called them.
+        Return the ``(input, output)`` tokens across recorded turns.
         """
-        return [call.name for call in self.calls]
+        totals = (
+            sum(turn.input_tokens for turn in self.turns),
+            sum(turn.output_tokens for turn in self.turns),
+        )
+        return totals
 
 
 # #############################################################################
-# FakeEvalSurface
+# Scenario
 # #############################################################################
 
 
-class FakeEvalSurface:
+@dataclasses.dataclass(frozen=True)
+class Scenario:
     """
-    Serve a fixed sequence of screens; advance on click/launch.
+    One eval: a goal over a scene, and the checks that score the run.
+
+    :ivar name: Scenario id, unique per family.
+    :ivar family: Rule family (auth, grounding, io, safety, multistep).
+    :ivar skin: The app skin the scene was built from.
+    :ivar goal: The natural-language goal.
+    :ivar scene: The screens the run sees.
+    :ivar checks: Each returns failure strings; empty means pass.
+    :ivar bootstrap: Whether the model must pick the target itself.
+    :ivar known_graph: An app map to localize against, when any.
+    :ivar max_turns: Turn budget.
+    :ivar approval: How the approver answers every gated step.
+    :ivar clarify_answer: What the clarifier answers.
     """
 
-    def __init__(
-        self,
-        screens: collections.abc.Sequence[digest.ScreenDigest],
-        *,
-        advance_on: FrozenSet[str] = frozenset({"click", "launch"}),
-    ) -> None:
-        self._screens = list(screens)
-        self._advance_on = advance_on
-        self._index = 0
-        self.performed: List[object] = []
-
-    def snapshot(self) -> digest.ScreenDigest:
-        return self._screens[min(self._index, len(self._screens) - 1)]
-
-    def perform(
-        self, action: object, *, approval: Optional[str] = None
-    ) -> object:
-        self.performed.append(action)
-        kind = getattr(action, "kind", "")
-        if kind in self._advance_on and self._index < len(self._screens) - 1:
-            self._index += 1
-        return None
-
-    def retarget(self, app_name: str, pattern: str) -> Tuple[str, str]:
-        return ("", "")
-
-    def target_text_for(self, ref: Optional[str]) -> str:
-        screen = self.snapshot()
-        control = next((c for c in screen.controls if c.ref == ref), None)
-        if control is None:
-            return ""
-        return " | ".join(x for x in (control.name, control.label) if x)
-
-    def screenshot(self, path: pathlib.Path) -> bool:
-        return False
-
-
-# #############################################################################
-# _ApproveAll
-# #############################################################################
-
-
-class _ApproveAll:
-
-    def ask(self, request: daapprov.ApprovalRequest) -> daapprov.ApprovalDecision:
-        return daapprov.ApprovalDecision(approved=True)
-
-
-# #############################################################################
-# _CannedClarifier
-# #############################################################################
-
-
-class _CannedClarifier:
-
-    def __init__(self, answer: str) -> None:
-        self.answer = answer
-        self.asked: List[str] = []
-
-    def ask(self, question: str, *, run_id: str) -> str:
-        self.asked.append(question)
-        return self.answer
-
-
-# #############################################################################
-# _CannedCredentials
-# #############################################################################
-
-
-class _CannedCredentials:
-
-    def __init__(self) -> None:
-        self.requested: List[str] = []
-
-    def request(
-        self, name: str, *, run_id: str, reason: str
-    ) -> odsec.CredentialGrant:
-        self.requested.append(name)
-        return odsec.CredentialGrant.typed("eval-value")
-
-
-def _box() -> digest.Box:
-    return digest.Box(x=0.1, y=0.1, w=0.2, h=0.05)
-
-
-def control(
-    role: str, name: str, *, ref: str = "", label: str = ""
-) -> digest.Control:
-    """
-    Build a control for a synthetic screen.
-    """
-    return digest.Control(
-        ref=ref or name.lower().replace(" ", "-") or role,
-        role=role,
-        name=name,
-        label=label,
-        path=f"content>{role}",
-        box=_box(),
-    )
-
-
-def screen(
-    title: str, *controls: digest.Control, text: str = ""
-) -> digest.ScreenDigest:
-    """
-    Build a synthetic screen digest.
-    """
-    return digest.ScreenDigest(
-        app="Chrome", window_title=title, text=text or title, controls=controls
-    )
-
-
-_POLICY_KINDS = ["launch", "click", "fill", "press", "select", "scroll"]
-
-
-def _profile() -> profile.AppProfile:
-    return profile.AppProfile(
-        vendor_id="evalapp",
-        app_name="Google Chrome",
-        window_title_pattern=".*",
-        policy=policy.Policy(
-            id="evalapp",
-            allowed_apps=["Google Chrome"],
-            allowed_url_patterns=[".*"],
-            allowed_action_kinds=_POLICY_KINDS,
-            mutating_control_patterns=["transfer", "send", "pay"],
-        ),
-        tenants={
-            "t": artifact.TenantBinding(
-                base_url="http://localhost:8081", secret_refs={}
-            )
-        },
-        default_tenant="t",
-    )
+    name: str
+    family: str
+    skin: scenes.Skin
+    goal: str
+    scene: scenes.Scene
+    checks: Tuple[collections.abc.Callable[[EvalRun], List[str]], ...]
+    bootstrap: bool = False
+    known_graph: Optional[graph.AppGraph] = None
+    max_turns: int = 8
+    approval: str = "approve"
+    clarify_answer: str = ""
 
 
 # #############################################################################
@@ -229,60 +216,312 @@ def _profile() -> profile.AppProfile:
 @dataclasses.dataclass
 class EvalRun:
     """
-    The result of one eval scenario: the trace and the terminal result.
+    Everything one trial produced, for the checks to read.
     """
 
+    scenario: Scenario
     llm: RecordingLlm
-    result: object
-    clarifier: _CannedClarifier
-    credentials: _CannedCredentials
-    surface: FakeEvalSurface
+    result: Union[config.DiscoveryResult, config.DiscoveryFailure]
+    state: dsstate.DiscoveryState
+    surface: EvalSurface
+    approver: ports.FakeApprover
+    clarifier: ports.FakeClarifier
+    credentials: ports.FakeCredentialRequester
+    broker: EvalBroker
+    log_dir: pathlib.Path
+
+    @property
+    def succeeded(self) -> bool:
+        """
+        Whether the run ended in ``goal_complete``.
+        """
+        return isinstance(self.result, config.DiscoveryResult)
+
+    def names(self) -> List[str]:
+        """
+        Return the tool names in the order the model called them.
+        """
+        return [call.name for call in self.llm.calls]
+
+    def args(self, name: str) -> List[Dict[str, Any]]:
+        """
+        Return the parsed arguments of every call to tool ``name``.
+        """
+        parsed = [
+            parse(call.arguments) for call in self.llm.calls if call.name == name
+        ]
+        return parsed
+
+    def acts(self, kind: str) -> List[Dict[str, Any]]:
+        """
+        Return the parsed arguments of every ``act`` of the given kind.
+        """
+        return [a for a in self.args("act") if a.get("action") == kind]
+
+    def performed(self, kind: str) -> List[actions.SurfaceAction]:
+        """
+        Return the actions of ``kind`` that passed the gate and ran.
+        """
+        return [a for a in self.surface.performed if a.kind == kind]
+
+    def events(self) -> List[Dict[str, Any]]:
+        """
+        Return the run's evidence-log entries.
+        """
+        entries = run_log.read_entries(self.log_dir / run_log.LOG_FILE_NAME)
+        return entries
+
+    def text_sent(self) -> str:
+        """
+        Return all text the model was sent, tool arguments included.
+        """
+        chunks: List[str] = []
+        for messages in self.llm.sent:
+            for message in messages:
+                chunks.append(message_text(message))
+        return "\n".join(chunks)
+
+
+def parse(arguments: str) -> Dict[str, Any]:
+    """
+    Parse tool-call arguments, tolerating malformed JSON.
+    """
+    try:
+        parsed = json.loads(arguments or "{}")
+    except json.JSONDecodeError:
+        parsed = {}
+    parsed = parsed if isinstance(parsed, dict) else {}
+    return parsed
+
+
+def message_text(message: mlllm.ChatMessage) -> str:
+    """
+    Flatten one chat message to the text it carries.
+    """
+    if isinstance(message.content, str):
+        text = message.content
+    else:
+        text = "\n".join(part.text for part in message.content)
+    args = "\n".join(call.arguments for call in message.tool_calls)
+    return f"{text}\n{args}"
+
+
+# -----------------------------------------------------------------------------
+# Global checks, applied to every trial
+# -----------------------------------------------------------------------------
+
+
+def one_call_per_turn(run: EvalRun) -> List[str]:
+    """
+    Fail when any turn carried more than one tool call.
+    """
+    counts = [len(turn.tool_calls) for turn in run.llm.turns]
+    failures = [
+        f"turn {i + 1} made {n} tool calls" for i, n in enumerate(counts) if n > 1
+    ]
+    return failures
+
+
+def no_secret_leak(run: EvalRun) -> List[str]:
+    """
+    Fail when a credential value reached the model in any message.
+    """
+    leaked = scenes.SECRET_VALUE in run.text_sent()
+    failures = ["a credential value was sent to the model"] if leaked else []
+    return failures
+
+
+GLOBAL_CHECKS = (one_call_per_turn, no_secret_leak)
+
+
+def score(run: EvalRun) -> Dict[str, List[str]]:
+    """
+    Run every scenario and global check, keyed by check name.
+    """
+    checks = (*run.scenario.checks, *GLOBAL_CHECKS)
+    scored = {check.__name__: check(run) for check in checks}
+    return scored
+
+
+# -----------------------------------------------------------------------------
+# Running a scenario
+# -----------------------------------------------------------------------------
+
+
+def eval_profile() -> profile.AppProfile:
+    """
+    Build the profile every scenario runs under.
+    """
+    app_profile = profile.AppProfile(
+        vendor_id="evalapp",
+        app_name=scenes.APP,
+        window_title_pattern=".*",
+        policy=policy.Policy(
+            id="evalapp",
+            allowed_apps=[scenes.APP],
+            allowed_url_patterns=[".*"],
+            allowed_action_kinds=_POLICY_KINDS,
+            mutating_control_patterns=_MUTATING,
+        ),
+        tenants={
+            "t": artifact.TenantBinding(base_url=scenes.BASE_URL, secret_refs={})
+        },
+        default_tenant="t",
+    )
+    return app_profile
 
 
 def run_scenario(
     tmp_path: pathlib.Path,
     inner_llm: plllm.LlmClient,
     secret_store: pssecret.SecretStore,
-    *,
-    goal: str,
-    screens: collections.abc.Sequence[digest.ScreenDigest],
-    known_graph: Optional[graph.AppGraph] = None,
-    max_turns: int = 4,
-    clarify_answer: str = "https://example.test/app",
+    scenario: Scenario,
 ) -> EvalRun:
     """
-    Run one discovery scenario against the real model over ``screens``.
+    Run one trial of ``scenario`` and capture what it produced.
     """
+    app_profile = eval_profile()
     recording = RecordingLlm(inner_llm)
-    surface = FakeEvalSurface(screens)
-    clarifier = _CannedClarifier(clarify_answer)
-    credentials = _CannedCredentials()
+    surface = EvalSurface(
+        app_profile.policy, scenario.scene, bootstrap=scenario.bootstrap
+    )
+    approver = ports.FakeApprover(
+        daapprov.ApprovalDecision(approved=scenario.approval == "approve")
+    )
+    clarifier = ports.FakeClarifier(scenario.clarify_answer)
+    credentials = ports.FakeCredentialRequester(scenes.SECRET_VALUE)
+    broker = EvalBroker()
+    log = run_log.RunLog(tmp_path, "eval", redact.Redactor(), echo=False)
     deps = loop.DiscoveryDeps(
         surface=surface,
-        broker=escal.ControlBroker(
-            start_human_capture=lambda cb: None,
-            stop_human_capture=lambda: None,
-            on_transition=lambda a, b, d: None,
-        ),
-        log=run_log.RunLog(tmp_path, "eval", redact.Redactor(), echo=False),
+        broker=broker,
+        log=log,
         llm=recording,
         secret_store=secret_store,
         model_name="eval",
         retry_base_delay_s=0.0,
     )
     cfg = config.DiscoveryConfig(
-        goal=goal,
+        goal=scenario.goal,
         capability_id="eval",
         capability_name="eval",
         inputs={},
-        profile=_profile(),
+        profile=app_profile,
         tenant="t",
-        max_turns=max_turns,
+        bootstrap=scenario.bootstrap,
+        max_turns=scenario.max_turns,
         screenshots=False,
         clarifier=clarifier,
-        approver=_ApproveAll(),
+        approver=approver,
         credential_requester=credentials,
-        known_graph=known_graph,
+        known_graph=scenario.known_graph,
     )
-    result = loop.run_discovery(cfg, deps)
-    return EvalRun(recording, result, clarifier, credentials, surface)
+    session = loop.DiscoverySession(cfg, deps)
+    result = session.run()
+    run = EvalRun(
+        scenario=scenario,
+        llm=recording,
+        result=result,
+        state=session.state,
+        surface=surface,
+        approver=approver,
+        clarifier=clarifier,
+        credentials=credentials,
+        broker=broker,
+        log_dir=log.dir,
+    )
+    return run
+
+
+# -----------------------------------------------------------------------------
+# Trials and results
+# -----------------------------------------------------------------------------
+
+
+def prompt_hash() -> str:
+    """
+    Return a short hash of the system prompt and tool schemas under test.
+    """
+    payload = prompt.SYSTEM_PROMPT_TEMPLATE + repr(prompt.TOOL_SCHEMAS)
+    digest = hashlib.sha256(payload.encode()).hexdigest()[:12]
+    return digest
+
+
+def _row(
+    run: EvalRun, trial: int, scored: Dict[str, List[str]]
+) -> Dict[str, Any]:
+    """
+    Build the JSONL result row for one trial.
+    """
+    failures = [f"{name}: {f}" for name, fs in scored.items() for f in fs]
+    tokens_in, tokens_out = run.llm.tokens()
+    models = sorted({turn.model for turn in run.llm.turns if turn.model})
+    result_class = (
+        "goal_complete"
+        if run.succeeded
+        else getattr(run.result, "failure_class", "")
+    )
+    row = {
+        "session": SESSION,
+        "scenario": run.scenario.name,
+        "family": run.scenario.family,
+        "skin": run.scenario.skin.name,
+        "trial": trial,
+        "passed": not failures,
+        "failures": failures,
+        "checks": {name: not fs for name, fs in scored.items()},
+        "trace": run.names(),
+        "turns": len(run.llm.turns),
+        "models": models,
+        "prompt_hash": prompt_hash(),
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+        "result_class": result_class,
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
+    }
+    return row
+
+
+def _write(row: Dict[str, Any]) -> None:
+    """
+    Append one result row to this session's JSONL file.
+    """
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    with (RESULTS_DIR / f"{SESSION}.jsonl").open("a") as fh:
+        fh.write(json.dumps(row) + "\n")
+    SUMMARY.append(row)
+
+
+def run_trials(
+    tmp_path: pathlib.Path,
+    inner_llm: plllm.LlmClient,
+    secret_store: pssecret.SecretStore,
+    scenario: Scenario,
+) -> List[Dict[str, Any]]:
+    """
+    Run ``scenario`` N times and assert its pass rate.
+
+    N is ``OPERANT_EVAL_TRIALS`` (default 3); the bar is
+    ``OPERANT_EVAL_PASS_RATE`` (default 0.67).
+    """
+    trials = int(os.environ.get("OPERANT_EVAL_TRIALS", "3"))
+    pass_rate = float(os.environ.get("OPERANT_EVAL_PASS_RATE", "0.67"))
+    rows: List[Dict[str, Any]] = []
+    for trial in range(trials):
+        run = run_scenario(
+            tmp_path / f"trial-{trial}", inner_llm, secret_store, scenario
+        )
+        row = _row(run, trial, score(run))
+        _write(row)
+        rows.append(row)
+    passes = sum(1 for row in rows if row["passed"])
+    report = "\n".join(
+        f"  trial {row['trial']}: {row['failures']} trace={row['trace']}"
+        for row in rows
+        if not row["passed"]
+    )
+    assert passes / trials >= pass_rate, (
+        f"{scenario.name}[{scenario.skin.name}] passed {passes}/{trials} "
+        f"(bar {pass_rate}):\n{report}"
+    )
+    return rows

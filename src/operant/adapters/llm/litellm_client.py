@@ -139,9 +139,12 @@ def _decode_turn(response: Any) -> llm.LlmTurn:
         )
         for call in (message.tool_calls or [])
     )
+    usage = getattr(response, "usage", None)
     turn = llm.LlmTurn(
         content=message.content or "",
         tool_calls=calls,
         model=str(getattr(response, "model", "") or ""),
+        input_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
+        output_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
     )
     return turn
