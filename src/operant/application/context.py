@@ -141,7 +141,7 @@ class RunContextFactory:
 
         # Wire the log, surface, broker, and approver for this run.
         run_identifier = run_identifier or ids.run_id(kind)
-        redactor = redact.redactor_from_env(_environ())
+        redactor = redact.redactor_from_env(_environ(), scrub=self._scrub())
         log = run_log.RunLog(
             self._settings.paths.evidence_dir, run_identifier, redactor
         )
@@ -174,6 +174,19 @@ class RunContextFactory:
             approval_cache=cache,
         )
         return context
+
+    def _scrub(self) -> Optional[collections.abc.Callable[[str], str]]:
+        """
+        Return the evidence scrubber when evidence scrubbing is opted in.
+        """
+        import operant.adapters.privacy.factory as apfactor
+
+        scrub = (
+            apfactor.scrubber(self._settings.privacy).scrub
+            if self._settings.privacy.evidence == "scrubbed"
+            else None
+        )
+        return scrub
 
 
 def parse_inputs(pairs: List[str]) -> Dict[str, str]:

@@ -294,6 +294,29 @@ class SecretsSettings(pydantic.BaseModel):
 
 
 # #############################################################################
+# PrivacySettings
+# #############################################################################
+
+
+class PrivacySettings(pydantic.BaseModel):
+    """
+    Local PII scrubbing of text that leaves the process or is stored.
+
+    :ivar scrubber:``"auto"`` uses Presidio when the ``privacy`` extra
+        and the spaCy model are installed, else none; ``"presidio"``
+        requires them; ``"none"`` disables scrubbing.
+    :ivar spacy_model: The spaCy pipeline Presidio loads.
+    :ivar evidence:``"exact"`` masks only known secret values in the
+        evidence log (fast); ``"scrubbed"`` also runs the scrubber on
+        every event (slow, opt-in).
+    """
+
+    scrubber: Literal["auto", "presidio", "none"] = "auto"
+    spacy_model: str = "en_core_web_lg"
+    evidence: Literal["exact", "scrubbed"] = "exact"
+
+
+# #############################################################################
 # OperantSettings
 # #############################################################################
 
@@ -318,6 +341,7 @@ class OperantSettings(pydantic_settings.BaseSettings):
     governance: GovernanceSettings = GovernanceSettings()
     browser: BrowserSettings = BrowserSettings()
     secrets: SecretsSettings = SecretsSettings()
+    privacy: PrivacySettings = PrivacySettings()
     log_level: str = "INFO"
     legacy_sources: List[str] = []
 

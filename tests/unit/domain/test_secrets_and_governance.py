@@ -1,6 +1,7 @@
 import pytest
 
 import operant.domain.governance as govern
+import operant.domain.redaction as redact
 import operant.domain.secrets as secrets
 
 
@@ -42,3 +43,16 @@ def test_stability_gate() -> None:
     assert gate.passes(5, 4)
     assert "4/5 passes" in gate.describe(5, 4)
     assert "0/0 fails" in gate.describe(0, 0)
+
+
+def test_redactor_scrubs_string_leaves_after_exact_masking() -> None:
+    redactor = redact.Redactor(scrub=lambda s: s.replace("Jordan", "<PERSON>"))
+    redactor.add_secret("hunter2")
+    out = redactor.redact_deep(
+        {"summary": "Jordan typed hunter2", "nested": ["Jordan"], "seq": 3}
+    )
+    assert out == {
+        "summary": "<PERSON> typed [REDACTED]",
+        "nested": ["<PERSON>"],
+        "seq": 3,
+    }

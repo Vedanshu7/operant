@@ -17,7 +17,16 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 COPY src/ ./src/
 COPY alembic.ini ./
-RUN uv sync --frozen --no-dev --no-extra macos
+# Optional extras, e.g. --build-arg OPERANT_EXTRAS="privacy observability".
+ARG OPERANT_EXTRAS=""
+# The spaCy pipeline the privacy extra loads (about 500 MB for _lg).
+ARG SPACY_MODEL="en_core_web_lg"
+RUN uv sync --frozen --no-dev --no-extra macos \
+    $(for extra in $OPERANT_EXTRAS; do printf -- '--extra %s ' "$extra"; done)
+RUN case " $OPERANT_EXTRAS " in *" privacy "*) \
+    uv pip install --python /app/.venv/bin/python \
+    "https://github.com/explosion/spacy-models/releases/download/${SPACY_MODEL}-3.8.0/${SPACY_MODEL}-3.8.0-py3-none-any.whl";; \
+    esac
 COPY --from=web /web/dist ./web/dist
 ENV PATH="/app/.venv/bin:${PATH}" \
     OPERANT_SERVER__HOST=0.0.0.0 \

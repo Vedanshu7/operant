@@ -41,8 +41,17 @@ class Redactor:
     substring of a longer one cannot leave fragments behind.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, scrub: Optional[collections.abc.Callable[[str], str]] = None
+    ) -> None:
+        """
+        Start with no secrets registered.
+
+        :param scrub: Optional PII scrubber applied to every string leaf
+            by ``redact_deep``, after exact masking.
+        """
         self._secrets: List[str] = []
+        self._scrub = scrub
 
     def add_secret(self, value: Optional[str]) -> None:
         """
@@ -74,10 +83,37 @@ class Redactor:
         :return: An equivalent structure with secrets masked.
         """
         restored = json.loads(self.redact(json.dumps(value, default=str)))
+        if self._scrub is not None:
+            # Scrub string leaves, never the JSON text, so a match can not
+            # straddle a quote and break the structure.
+            restored = _scrub_leaves(restored, self._scrub)
         return restored
 
 
-def redactor_from_env(environ: collections.abc.Mapping[str, str]) -> Redactor:
+def _scrub_leaves(value: Any, scrub: collections.abc.Callable[[str], str]) -> Any:
+    """
+    Apply ``scrub`` to every string inside a JSON structure.
+    """
+    if isinstance(value, str):
+        # A leaf: scrub it.
+        scrubbed: Any = scrub(value)
+    elif isinstance(value, dict):
+        # Keys stay as they are; only values carry screen text.
+        scrubbed = {k: _scrub_leaves(v, scrub) for k, v in value.items()}
+    elif isinstance(value, list):
+        # Scrub each element in order.
+        scrubbed = [_scrub_leaves(v, scrub) for v in value]
+    else:
+        # Numbers, booleans, and null carry no text.
+        scrubbed = value
+    return scrubbed
+
+
+def redactor_from_env(
+    environ: collections.abc.Mapping[str, str],
+    *,
+    scrub: Optional[collections.abc.Callable[[str], str]] = None,
+) -> Redactor:
     """
     Build a redactor seeded from secret-looking environment variables.
 
@@ -85,10 +121,11 @@ def redactor_from_env(environ: collections.abc.Mapping[str, str]) -> Redactor:
     ``os.environ`` (or a test mapping).
 
     :param environ: Environment variables, typically ``os.environ``.
+    :param scrub: Optional PII scrubber for ``redact_deep``.
     :return: A redactor holding the value of every variable whose name
         looks like a password, secret, token, or API key.
     """
-    redactor = Redactor()
+    redactor = Redactor(scrub)
     for key, value in environ.items():
         if _SECRET_ENV_RE.search(key):
             redactor.add_secret(value)

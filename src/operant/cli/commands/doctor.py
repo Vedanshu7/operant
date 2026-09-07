@@ -9,6 +9,7 @@ from typing import Annotated
 
 import typer
 
+import operant.adapters.privacy.factory as apfactor
 import operant.cli.deps as cddeps
 import operant.domain.errors as errors
 
@@ -62,6 +63,18 @@ def _report_config(deps: cddeps.CliDeps) -> None:
     _check(
         "database",
         lambda: str(deps.settings.paths.db_path),
+    )
+    privacy = deps.settings.privacy
+    _check(
+        "PII scrubber",
+        lambda: (
+            f"{privacy.scrubber} - presidio + {privacy.spacy_model} "
+            + (
+                "installed"
+                if apfactor.available(privacy.spacy_model)
+                else "NOT installed"
+            )
+        ),
     )
 
 

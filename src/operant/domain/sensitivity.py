@@ -64,6 +64,13 @@ _SSN_RE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 _EMAIL_RE = re.compile(r"[^\s@]+@[^\s@]+\.[A-Za-z]{2,}")
 _PHONE_SHAPE_RE = re.compile(r"^\s*\+?[\d\s().-]+\s*$")
 _CARD_SHAPE_RE = re.compile(r"^\s*(?:\d[ -]?){13,19}\s*$")
+# Value shapes that are sensitive wherever they appear in free text; the
+# PII scrubber registers them so both layers agree on what is sensitive.
+VALUE_PATTERNS: Final[Dict[str, re.Pattern[str]]] = {
+    "IBAN": _IBAN_RE,
+    "SSN": _SSN_RE,
+    "EMAIL": _EMAIL_RE,
+}
 
 
 def strongest(
