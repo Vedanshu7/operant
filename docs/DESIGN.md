@@ -138,6 +138,13 @@ we gave up.
   brief calls out as the most common mistake. The cost is a little more code
   than raising an error.
 
+- Planned: a deterministic coordinator over an LLM supervisor. For
+  multi-agent discovery ([ADR 3](adr/0003-multi-agent-discovery.md)), plain
+  code decides which agent runs next, so control flow stays testable. Only
+  work that does not touch the screen runs in parallel, because there is one
+  screen and one driver. The cost is less flexibility than a model that
+  routes freely.
+
 - Human approves gated actions. The system routes risky steps to a person
   rather than letting the agent decide. This is safer for regulated data. The
   cost is that fully unattended discovery is not possible for gated steps,
@@ -152,4 +159,7 @@ We kept these at a clean seam and wrote down why in REPORT.md:
   determinism. A stuck replay escalates to a human instead.
 - No code generation from an artifact. The artifact is data, which keeps it
   reviewable.
-- No tracing backend. The JSONL evidence log is the run record.
+- No tracing backend. The JSONL evidence log is the run record. Planned:
+  self-hosted Langfuse ([ADR 2](adr/0002-langfuse-observability.md)).
+- No multi-agent discovery. Planned: a planner, executor, and verifier
+  ([ADR 3](adr/0003-multi-agent-discovery.md)).

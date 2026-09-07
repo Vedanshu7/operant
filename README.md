@@ -15,6 +15,19 @@ More reading:
   headings.
 - [docs/conventions.md](docs/conventions.md): the coding standard the
   linter enforces.
+- [docs/adr/](docs/adr/): design decisions. All are proposed, not built yet:
+  - [0001](docs/adr/0001-eval-harness-and-trials.md): eval harness and
+    repeated trials.
+  - [0002](docs/adr/0002-langfuse-observability.md): Langfuse for model
+    observability.
+  - [0003](docs/adr/0003-multi-agent-discovery.md): multi-agent discovery
+    with fan-out.
+  - [0004](docs/adr/0004-gepa-prompt-optimization.md): GEPA for prompt
+    optimization.
+  - [0005](docs/adr/0005-agent-memory-layer.md): agent memory layer.
+  - [0006](docs/adr/0006-context-layer.md): context layer for model calls.
+  - [0007](docs/adr/0007-local-pii-scrubbing-presidio.md): local PII
+    scrubbing with Presidio.
 
 ## How it works, in three steps
 
@@ -78,8 +91,8 @@ the real UI uses.
 
 A separate eval harness drives discovery against the real model over
 synthetic screens to check it follows the system-prompt rules (request
-credentials by name, skip login when already logged in, never invent URLs).
-It needs a model key and is opt-in, so it is off by default:
+credentials by name, skip login when already logged in). It needs a model key
+and is opt-in, so it is off by default:
 
 ```bash
 OPERANT_RUN_LLM_EVALS=1 uv run pytest tests/evals

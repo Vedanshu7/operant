@@ -161,9 +161,10 @@ Safety is enforced at the actuation boundary and around secrets.
 - **Prompt-adherence evals** - an opt-in harness (`tests/evals/`, run with
   `OPERANT_RUN_LLM_EVALS=1`) drives discovery against the real model over
   synthetic screens and asserts on the tool-call trace: credentials go
-  through `request_secret`, an already-logged-in screen is not
-  re-authenticated, and URLs are never invented. It guards the system-prompt
-  rules against regressions on any profile, not just ParaBank.
+  through `request_secret`, and an already-logged-in screen is not
+  re-authenticated (with and without a recognized state). Three scenarios
+  exist today. A stronger harness with repeated trials and wider coverage is
+  proposed in [ADR 1](docs/adr/0001-eval-harness-and-trials.md).
 
 ## 7. Cuts
 
@@ -181,4 +182,12 @@ Deliberately out of scope, with the reasoning:
   UI target because macOS grants permissions per launching app; a remote
   driver is a documented extension.
 - **Tracing** - a Jaeger profile exists in compose, but OpenTelemetry export is
-  not wired; the JSONL evidence log is the run record.
+  not wired; the JSONL evidence log is the run record. Model tracing with
+  self-hosted Langfuse is proposed in
+  [ADR 2](docs/adr/0002-langfuse-observability.md).
+- **Multi-agent discovery** - discovery is one agent today. A planner,
+  executor, and verifier design, with memory, a context budget, and local
+  PII scrubbing, is proposed in [ADR 3](docs/adr/0003-multi-agent-discovery.md),
+  [ADR 5](docs/adr/0005-agent-memory-layer.md),
+  [ADR 6](docs/adr/0006-context-layer.md), and
+  [ADR 7](docs/adr/0007-local-pii-scrubbing-presidio.md). Not built yet.

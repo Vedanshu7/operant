@@ -74,6 +74,23 @@ env/Keychain source, out of the model's sight (the web UI has a credential
 card). The trusted process swaps the placeholder for the real value at the
 moment of filling, and the value is never written to a log or an artifact.
 
+## Planned: multi-agent discovery and fan-out
+
+Not built yet. See [ADR 3](docs/adr/0003-multi-agent-discovery.md).
+
+- A plain-code coordinator runs three roles in turn: a planner splits the
+  goal into subgoals, an executor (today's loop) acts on one subgoal at a
+  time, and a verifier checks each subgoal before the run moves on.
+- Only the executor touches the screen and the secrets channel.
+- Work that touches the screen runs one at a time. Work that only reads
+  captured state can fan out in parallel: a verifier panel, plan
+  candidates, regex candidates, and per-step locator reviews.
+- Each role gets its own view of a shared run blackboard
+  ([ADR 5](docs/adr/0005-agent-memory-layer.md)), a token budget
+  ([ADR 6](docs/adr/0006-context-layer.md)), and PII scrubbing where it is
+  not the executor ([ADR 7](docs/adr/0007-local-pii-scrubbing-presidio.md)).
+- Replay and the artifact do not change.
+
 ## How replay works
 
 1. The caller names a capability and gives typed inputs.
@@ -122,6 +139,11 @@ the host.
   events.
 - The `operant audit` command cross-checks the two so they cannot drift apart
   without being noticed.
+- Planned: eval results in `state/evals/` and prompt optimization runs in
+  `state/gepa/` ([ADR 1](docs/adr/0001-eval-harness-and-trials.md),
+  [ADR 4](docs/adr/0004-gepa-prompt-optimization.md)).
+- Planned: plan and lesson memory as new SQLite tables
+  ([ADR 5](docs/adr/0005-agent-memory-layer.md)).
 
 ## The web server and threads
 
