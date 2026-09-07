@@ -9,7 +9,7 @@ import operant.ports.llm as plllm
 from __future__ import annotations
 
 import collections.abc
-from typing import Protocol, runtime_checkable
+from typing import Optional, Protocol, runtime_checkable
 
 import operant.domain.models.llm as llm
 
@@ -36,5 +36,34 @@ class LlmClient(Protocol):
         :param messages: The conversation so far, system prompt first.
         :param tools: Functions the model may call.
         :return: The assistant turn.
+        """
+        ...
+
+
+# #############################################################################
+# TokenCounter
+# #############################################################################
+
+
+@runtime_checkable
+class TokenCounter(Protocol):
+    """
+    Count prompt tokens the way one model's tokenizer does.
+    """
+
+    def count(self, messages: collections.abc.Sequence[llm.ChatMessage]) -> int:
+        """
+        Count the tokens ``messages`` would cost as a prompt.
+
+        :param messages: The messages of one call.
+        :return: The token count.
+        """
+        ...
+
+    def limit(self) -> Optional[int]:
+        """
+        Return the model's input-token limit, when known.
+
+        :return: The limit, or ``None`` when the model is unknown.
         """
         ...

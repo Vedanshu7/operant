@@ -34,6 +34,7 @@ import operant.application.discovery.config as config
 import operant.application.discovery.prompt as prompt
 import operant.application.discovery.state as dsstate
 import operant.application.discovery.tools as tools
+import operant.application.discovery.window as dswindow
 import operant.application.escalation as escal
 import operant.application.recorder.builder as builder
 import operant.application.recorder.recording as recdng
@@ -97,6 +98,8 @@ class DiscoveryDeps:
     :ivar default_browser: App used when a goal names only a URL.
     :ivar browsers: Lower-cased app names treated as browsers.
     :ivar remediation: Cross-run memory of fixes for repeated errors.
+    :ivar window_budget: How much history one model call may carry.
+    :ivar token_counter: Counts prompt tokens for the model in use.
     """
 
     surface: pssurfac.Surface
@@ -111,6 +114,12 @@ class DiscoveryDeps:
     default_browser: str = "Google Chrome"
     browsers: FrozenSet[str] = bstrap.DEFAULT_BROWSERS
     remediation: Optional[remem.RemediationMemory] = None
+    window_budget: dswindow.WindowBudget = dataclasses.field(
+        default_factory=dswindow.WindowBudget
+    )
+    token_counter: plllm.TokenCounter = dataclasses.field(
+        default_factory=dswindow.EstimatedCounter
+    )
 
 
 # #############################################################################
@@ -415,7 +424,7 @@ class DiscoverySession:
         Run one observe-decide-act turn; return a result once finished.
         """
         self.state.messages.append(self._user_message(turn))
-        completed = self._complete_with_retry()
+        completed = self._complete_with_retry(turn)
         if isinstance(completed, config.DiscoveryFailure):
             return completed
         self.state.messages.append(
@@ -580,16 +589,49 @@ class DiscoverySession:
         message = mlllm.ChatMessage(role="user", content=tuple(parts))
         return message
 
+    def _window(self, turn: int) -> Optional[dswindow.Window]:
+        """
+        Build this call's prompt window, or ``None`` when it cannot fit.
+        """
+        window = dswindow.build(
+            self._system_prompt,
+            self.state.messages,
+            budget=self.deps.window_budget,
+            counter=self.deps.token_counter,
+        )
+        if window.kept_full < min(self.deps.window_budget.keep_full_turns, turn):
+            # The budget forced harder compaction than usual: record it.
+            self.log.emit(
+                events.ContextCompacted(
+                    turn=turn,
+                    tokens=window.tokens,
+                    limit=window.limit,
+                    kept_full_turns=window.kept_full,
+                    dropped_images=window.dropped_images,
+                    summary=(
+                        f"context compacted to {window.tokens}/"
+                        f"{window.limit} tokens"
+                    ),
+                )
+            )
+        fits = window if window.tokens <= window.limit else None
+        return fits
+
     def _complete_with_retry(
-        self,
+        self, turn: int
     ) -> Union[mlllm.LlmTurn, config.DiscoveryFailure]:
         """
         Call the model, retrying retryable errors up to the deps' bound.
         """
-        conversation = [
-            mlllm.ChatMessage(role="system", content=self._system_prompt),
-            *self.state.messages,
-        ]
+        window = self._window(turn)
+        if window is None:
+            return config.DiscoveryFailure(
+                "the conversation no longer fits the model's context budget "
+                "even with one full screen; the system prompt and goal are "
+                "never cut",
+                failure_class="context_exhausted",
+            )
+        conversation = window.messages
         last_error = ""
         for attempt in range(self.deps.llm_retries):
             try:

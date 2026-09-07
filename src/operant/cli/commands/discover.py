@@ -74,6 +74,9 @@ def register(app: typer.Typer) -> None:
             clarifier=tty.TtyClarifier(),
             approver=_approver(deps),
             credential_requester=tty.TtyCredentialRequester(),
+            token_counter=litecli.LiteLlmTokenCounter(
+                deps.settings.discovery.model or ""
+            ),
         )
         _report(outcome)
 

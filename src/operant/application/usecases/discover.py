@@ -16,6 +16,7 @@ import operant.application.capabilities as capab
 import operant.application.context as accontex
 import operant.application.discovery.config as config
 import operant.application.discovery.loop as loop
+import operant.application.discovery.window as dswindow
 import operant.application.recorder.recording as recdng
 import operant.application.remediation as remem
 import operant.domain.models.artifact as artifact
@@ -95,6 +96,7 @@ def execute_discovery(
     approver: Optional[hitl.Approver] = None,
     credential_requester: Optional[hitl.CredentialRequester] = None,
     run_identifier: Optional[str] = None,
+    token_counter: Optional[plllm.TokenCounter] = None,
     on_context: Optional[
         collections.abc.Callable[[accontex.RunContext], None]
     ] = None,
@@ -114,6 +116,8 @@ def execute_discovery(
     :param approver: Answers approvals.
     :param run_identifier: Fixes the run id and evidence directory; the
         server passes the id it tracks the run under.
+    :param token_counter: Counts prompt tokens for the model; an
+        estimate is used when omitted.
     :param on_context: Called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
     :return: A committed outcome, or a typed failure.
@@ -161,6 +165,12 @@ def execute_discovery(
             remediation=remem.RemediationMemory(
                 rgremed.RemediationsStore(context.settings.paths.remediations)
             ),
+            window_budget=dswindow.WindowBudget(
+                keep_full_turns=context.settings.discovery.keep_full_turns,
+                budget_ratio=context.settings.discovery.context_budget_ratio,
+                max_tokens=context.settings.discovery.context_max_tokens,
+            ),
+            token_counter=token_counter or dswindow.EstimatedCounter(),
         )
         result = loop.run_discovery(cfg, deps)
     finally:

@@ -15,7 +15,7 @@ import operant.adapters.llm.litellm_client as litecli
 from __future__ import annotations
 
 import collections.abc
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import litellm
 
@@ -148,3 +148,42 @@ def _decode_turn(response: Any) -> llm.LlmTurn:
         output_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
     )
     return turn
+
+
+# #############################################################################
+# LiteLlmTokenCounter
+# #############################################################################
+
+
+class LiteLlmTokenCounter:
+    """
+    Implement ``operant.ports.llm.TokenCounter`` with litellm's tokenizers.
+    """
+
+    def __init__(self, model: str) -> None:
+        self._model = model
+
+    def count(self, messages: collections.abc.Sequence[llm.ChatMessage]) -> int:
+        """
+        Count the prompt tokens of ``messages`` for the configured model.
+        """
+        tokens = int(
+            litellm.token_counter(
+                model=self._model,
+                messages=[_encode_message(m) for m in messages],
+            )
+        )
+        return tokens
+
+    def limit(self) -> Optional[int]:
+        """
+        Return the model's input limit from litellm's model map, if listed.
+        """
+        try:
+            info = litellm.get_model_info(self._model)
+            raw = info.get("max_input_tokens")
+        # An unmapped model raises; the caller falls back to its budget.
+        except Exception:
+            raw = None
+        limit = int(raw) if raw else None
+        return limit

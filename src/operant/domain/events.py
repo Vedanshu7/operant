@@ -677,6 +677,31 @@ class Localized(BaseEvent):
 
 
 # #############################################################################
+# ContextCompacted
+# #############################################################################
+
+
+class ContextCompacted(BaseEvent):
+    """
+    A model call had to send less history than usual to fit its budget.
+
+    :ivar type: Always ``context_compacted``.
+    :ivar turn: Discovery turn the call belongs to.
+    :ivar tokens: Tokens of the window that was sent.
+    :ivar limit: The token budget it had to fit.
+    :ivar kept_full_turns: Turns sent with their full screen digest.
+    :ivar dropped_images: Older screenshots left out.
+    """
+
+    type: Literal["context_compacted"] = "context_compacted"
+    turn: int
+    tokens: int
+    limit: int
+    kept_full_turns: int
+    dropped_images: int = 0
+
+
+# #############################################################################
 # PathPlanned
 # #############################################################################
 
@@ -1062,6 +1087,7 @@ _EVENT_MODELS: Final[List[type[BaseEvent]]] = [
     ReplayStarted,
     ReplayFinished,
     Localized,
+    ContextCompacted,
     PathPlanned,
     PathCompiledCache,
     TargetResolved,
@@ -1117,6 +1143,7 @@ EventUnion = Annotated[
         ReplayStarted,
         ReplayFinished,
         Localized,
+        ContextCompacted,
         PathPlanned,
         PathCompiledCache,
         TargetResolved,

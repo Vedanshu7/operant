@@ -349,6 +349,24 @@ def not_completed(run: harness.EvalRun) -> List[str]:
     return failures
 
 
+def tokens_level_off(run: harness.EvalRun) -> List[str]:
+    """
+    Fail when prompt tokens keep growing instead of leveling off.
+
+    Scripted models report no usage, so the check passes vacuously
+    there.
+    """
+    used = [turn.input_tokens for turn in run.llm.turns]
+    early = used[4] if len(used) > 8 else 0
+    late = max(used[4:]) if early else 0
+    failures = (
+        [f"prompt grew from {early} to {late} tokens"]
+        if early and late > 2 * early
+        else []
+    )
+    return failures
+
+
 # -----------------------------------------------------------------------------
 # Scenarios
 # -----------------------------------------------------------------------------
@@ -559,12 +577,38 @@ def multistep(skin: scenes.Skin) -> List[harness.Scenario]:
     return built
 
 
+def context(skin: scenes.Skin) -> List[harness.Scenario]:
+    """
+    Build the context scenarios: a long run must keep a bounded prompt.
+    """
+    built = [
+        harness.Scenario(
+            name="long_run",
+            family="context",
+            skin=skin,
+            goal=(
+                "Finish the setup wizard by pressing Next on every step, then "
+                "tell me the confirmation number."
+            ),
+            scene=scenes.long_flow(skin),
+            max_turns=22,
+            checks=(
+                reached("p15"),
+                extracted(scenes.CONFIRMATION),
+                tokens_level_off,
+            ),
+        )
+    ]
+    return built
+
+
 FAMILIES: Dict[str, Callable[[scenes.Skin], List[harness.Scenario]]] = {
     "auth": auth,
     "grounding": grounding,
     "io": io_contract,
     "safety": safety,
     "multistep": multistep,
+    "context": context,
 }
 
 

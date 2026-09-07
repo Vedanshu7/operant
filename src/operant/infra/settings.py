@@ -193,6 +193,12 @@ class DiscoverySettings(pydantic.BaseModel):
     :ivar max_turns: Turn budget per discovery run.
     :ivar llm_retries: Attempts per model call.
     :ivar screenshots: Whether to send screenshots to the model.
+    :ivar keep_full_turns: Newest turns whose screen digest is sent in
+        full; older turns keep only their window title.
+    :ivar context_budget_ratio: Share of the model's input limit one
+        call may use.
+    :ivar context_max_tokens: The per-call budget when the model's input
+        limit is unknown.
     """
 
     model: Optional[str] = None
@@ -201,6 +207,9 @@ class DiscoverySettings(pydantic.BaseModel):
     max_turns: int = 40
     llm_retries: int = 3
     screenshots: bool = True
+    keep_full_turns: int = 3
+    context_budget_ratio: float = 0.6
+    context_max_tokens: int = 100_000
 
 
 # #############################################################################

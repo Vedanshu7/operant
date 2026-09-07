@@ -29,6 +29,7 @@ import operant.application.discovery.config as config
 import operant.application.discovery.loop as loop
 import operant.application.discovery.prompt as prompt
 import operant.application.discovery.state as dsstate
+import operant.application.discovery.window as dswindow
 import operant.application.escalation as escal
 import operant.domain.approval as daapprov
 import operant.domain.models.actions as actions
@@ -376,9 +377,18 @@ def run_scenario(
     inner_llm: plllm.LlmClient,
     secret_store: pssecret.SecretStore,
     scenario: Scenario,
+    *,
+    window_budget: Optional[dswindow.WindowBudget] = None,
 ) -> EvalRun:
     """
     Run one trial of ``scenario`` and capture what it produced.
+
+    :param tmp_path: Where the trial's evidence log is written.
+    :param inner_llm: The model under test.
+    :param secret_store: Where secret references resolve.
+    :param scenario: The scenario to run.
+    :param window_budget: Overrides the default prompt-window budget.
+    :return: The trial's captured run.
     """
     app_profile = eval_profile()
     recording = RecordingLlm(inner_llm)
@@ -400,6 +410,7 @@ def run_scenario(
         secret_store=secret_store,
         model_name="eval",
         retry_base_delay_s=0.0,
+        window_budget=window_budget or dswindow.WindowBudget(),
     )
     cfg = config.DiscoveryConfig(
         goal=scenario.goal,

@@ -460,6 +460,9 @@ class RunManager:
             approver=approver,
             credential_requester=credentials,
             run_identifier=handle.run_id,
+            token_counter=litecli.LiteLlmTokenCounter(
+                self._settings.discovery.model or ""
+            ),
             on_context=lambda ctx: self._wire(handle, ctx),
         )
         self._finish_discovery(handle, outcome)
