@@ -704,6 +704,129 @@ class ContextCompacted(BaseEvent):
 
 
 # #############################################################################
+# PlanProposed
+# #############################################################################
+
+
+class PlanProposed(BaseEvent):
+    """
+    The planner split the goal into subgoals (multi-agent discovery).
+
+    :ivar type: Always ``plan_proposed``.
+    :ivar subgoals:``{id, description, success_criteria}`` per subgoal.
+    :ivar credential_names: Credentials the plan expects, by name.
+    :ivar attempt: 0 for the first plan, then one per replan.
+    """
+
+    type: Literal["plan_proposed"] = "plan_proposed"
+    subgoals: List[Dict[str, Any]] = []
+    credential_names: List[str] = []
+    attempt: int = 0
+
+
+# #############################################################################
+# SubgoalStarted
+# #############################################################################
+
+
+class SubgoalStarted(BaseEvent):
+    """
+    The executor moved on to a subgoal.
+
+    :ivar type: Always ``subgoal_started``.
+    :ivar subgoal: The subgoal id.
+    :ivar description: What the subgoal asks for.
+    """
+
+    type: Literal["subgoal_started"] = "subgoal_started"
+    subgoal: str
+    description: str = ""
+
+
+# #############################################################################
+# VerifierVerdict
+# #############################################################################
+
+
+class VerifierVerdict(BaseEvent):
+    """
+    A verifier-panel member judged a subgoal.
+
+    :ivar type: Always ``verifier_verdict``.
+    :ivar subgoal: The subgoal id.
+    :ivar passed: Whether it judged the subgoal achieved.
+    :ivar reason: Its one-sentence reason.
+    :ivar reviewer: Which panel member decided.
+    """
+
+    type: Literal["verifier_verdict"] = "verifier_verdict"
+    subgoal: str
+    passed: bool
+    reason: str = ""
+    reviewer: str = "verifier"
+
+
+# #############################################################################
+# Replanned
+# #############################################################################
+
+
+class Replanned(BaseEvent):
+    """
+    The coordinator asked the planner for a new plan.
+
+    :ivar type: Always ``replanned``.
+    :ivar reason: What triggered it (rejections, give-up, stall).
+    :ivar attempt: Which replan this is, from 1.
+    """
+
+    type: Literal["replanned"] = "replanned"
+    reason: str
+    attempt: int
+
+
+# #############################################################################
+# CompileReview
+# #############################################################################
+
+
+class CompileReview(BaseEvent):
+    """
+    An advisory review of the saved recording (never blocks the save).
+
+    :ivar type: Always ``compile_review``.
+    :ivar target: The edge id, or ``schema`` for the input/output
+        review.
+    :ivar verdict:``ok`` or ``concern``.
+    :ivar note: The reviewer's note.
+    """
+
+    type: Literal["compile_review"] = "compile_review"
+    target: str
+    verdict: str
+    note: str = ""
+
+
+# #############################################################################
+# MemoryRecalled
+# #############################################################################
+
+
+class MemoryRecalled(BaseEvent):
+    """
+    Cross-run memory was offered to the agents as advisory hints.
+
+    :ivar type: Always ``memory_recalled``.
+    :ivar plans: Past plans recalled for the planner.
+    :ivar lessons: Lessons recalled for the planner and executor.
+    """
+
+    type: Literal["memory_recalled"] = "memory_recalled"
+    plans: int = 0
+    lessons: int = 0
+
+
+# #############################################################################
 # PathPlanned
 # #############################################################################
 
@@ -1090,6 +1213,12 @@ _EVENT_MODELS: Final[List[type[BaseEvent]]] = [
     ReplayFinished,
     Localized,
     ContextCompacted,
+    PlanProposed,
+    SubgoalStarted,
+    VerifierVerdict,
+    Replanned,
+    CompileReview,
+    MemoryRecalled,
     PathPlanned,
     PathCompiledCache,
     TargetResolved,
@@ -1146,6 +1275,12 @@ EventUnion = Annotated[
         ReplayFinished,
         Localized,
         ContextCompacted,
+        PlanProposed,
+        SubgoalStarted,
+        VerifierVerdict,
+        Replanned,
+        CompileReview,
+        MemoryRecalled,
         PathPlanned,
         PathCompiledCache,
         TargetResolved,

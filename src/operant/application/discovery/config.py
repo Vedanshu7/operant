@@ -46,6 +46,9 @@ class DiscoveryConfig:
     :ivar known_graph: The app's current graph, when one exists, so the
         agent can be told which mapped state the live screen matches and
         skip steps already recorded (empty for a first/bootstrap run).
+    :ivar agents:``"single"`` or ``"multi"`` (planner, executor, panel).
+    :ivar prompt_overrides: Per-role system prompts replacing the
+        defaults for this run (``executor``, ``planner``, ``verifier``...).
     """
 
     goal: str
@@ -61,6 +64,8 @@ class DiscoveryConfig:
     approver: Optional[hitl.Approver] = None
     credential_requester: Optional[hitl.CredentialRequester] = None
     known_graph: Optional[dmgraph.AppGraph] = None
+    agents: str = "single"
+    prompt_overrides: Dict[str, str] = dataclasses.field(default_factory=dict)
 
 
 # #############################################################################

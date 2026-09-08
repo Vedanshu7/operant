@@ -8,7 +8,7 @@ import operant.application.discovery.prompt as prompt
 
 from __future__ import annotations
 
-from typing import Final, List, Tuple
+from typing import Final, List, Optional, Tuple
 
 import operant.domain.models.llm as llm
 
@@ -65,12 +65,21 @@ Finishing:
 
 
 def build_system_prompt(
-    secret_names: List[str], default_browser: str = "Google Chrome"
+    secret_names: List[str],
+    default_browser: str = "Google Chrome",
+    template: Optional[str] = None,
 ) -> str:
     """
     Fill the template with secret names and the default browser.
+
+    :param secret_names: Secret names the model may reference.
+    :param default_browser: The browser used for URL launches.
+    :param template: A replacement template (prompt optimization); it
+        must keep the ``{secret_names}`` and ``{default_browser}``
+        slots.
+    :return: The system prompt.
     """
-    filled = SYSTEM_PROMPT_TEMPLATE.format(
+    filled = (template or SYSTEM_PROMPT_TEMPLATE).format(
         secret_names=", ".join(secret_names) or "(none available)",
         default_browser=default_browser,
     )

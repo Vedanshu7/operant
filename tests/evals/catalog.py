@@ -11,6 +11,8 @@ import tests.evals.catalog as catalog
 
 from __future__ import annotations
 
+import dataclasses
+import os
 import re
 import urllib.parse
 from typing import Callable, Dict, List, Tuple
@@ -612,13 +614,23 @@ FAMILIES: Dict[str, Callable[[scenes.Skin], List[harness.Scenario]]] = {
 }
 
 
+def modes() -> List[str]:
+    """
+    Return the agent modes to evaluate (``OPERANT_EVAL_MODES``).
+    """
+    raw = os.environ.get("OPERANT_EVAL_MODES", "single,multi")
+    chosen = [m.strip() for m in raw.split(",") if m.strip()]
+    return chosen
+
+
 def scenarios(family: str) -> List[Tuple[str, harness.Scenario]]:
     """
-    Return every ``(test id, scenario)`` of a family, across all skins.
+    Return every ``(test id, scenario)`` of a family, per skin and mode.
     """
     built = [
-        (f"{s.name}-{skin.name}", s)
+        (f"{s.name}-{skin.name}-{mode}", dataclasses.replace(s, mode=mode))
         for skin in scenes.SKINS
         for s in FAMILIES[family](skin)
+        for mode in modes()
     ]
     return built

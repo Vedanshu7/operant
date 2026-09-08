@@ -44,6 +44,12 @@ def register(app: typer.Typer) -> None:
             Optional[int],
             typer.Option("--max-turns", help="override the turn budget"),
         ] = None,
+        agents: Annotated[
+            Optional[str],
+            typer.Option(
+                "--agents", help="single or multi (planner/executor/verifier)"
+            ),
+        ] = None,
     ) -> None:
         """
         Discover a capability for ``goal`` and commit it.
@@ -53,6 +59,7 @@ def register(app: typer.Typer) -> None:
             llm = litecli.LiteLlmClient(deps.settings.discovery)
             tracer = aofactor.tracer(deps.settings.observability)
             scrubber = apfactor.scrubber(deps.settings.privacy)
+            roles, role_models = litecli.role_clients(deps.settings.discovery)
         except errors.ConfigError as err:
             typer.echo(f"  {err}", err=True)
             raise typer.Exit(1) from err
@@ -65,6 +72,7 @@ def register(app: typer.Typer) -> None:
             inputs=context.parse_inputs(input),
             screenshots=not no_screenshots,
             max_turns=max_turns,
+            agents=agents,
         )
         outcome = uddiscov.execute_discovery(
             request,
@@ -83,6 +91,8 @@ def register(app: typer.Typer) -> None:
             ),
             tracer=tracer,
             scrubber=scrubber,
+            role_llms=roles,
+            role_models=role_models,
         )
         _report(outcome)
 

@@ -362,3 +362,11 @@ def test_audit_all_flags_approved_unstable(tmp_path: pathlib.Path) -> None:
         stability_of=lambda _cap_id: artifact.Stability(runs=5, successes=5),
     )
     assert "approved-unstable" not in _codes(proven)
+
+
+def test_memory_with_values_is_an_audit_error() -> None:
+    findings = operant.application.audit.audit_memory(
+        ["send <n> to <n>", "account 13344 used", "mail jl@example.com"]
+    )
+    assert [f.subject for f in findings] == ["agent memory #1", "agent memory #2"]
+    assert all(f.code == "memory_value" for f in findings)

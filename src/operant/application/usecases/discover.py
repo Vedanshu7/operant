@@ -17,16 +17,22 @@ import operant.application.context as accontex
 import operant.application.discovery.config as config
 import operant.application.discovery.loop as loop
 import operant.application.discovery.observe as dsobserv
+import operant.application.discovery.team as dsteam
 import operant.application.discovery.window as dswindow
+import operant.application.memory as apmemory
 import operant.application.recorder.recording as recdng
 import operant.application.remediation as remem
 import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as dmgraph
 import operant.domain.profile as dmprofil
+import operant.infra.db.engine as engine
+import operant.infra.db.migrate as migrate
 import operant.infra.repositories.artifacts as raartifa
 import operant.infra.repositories.graphs as rggraphs
+import operant.infra.repositories.memory as rmmemory
 import operant.infra.repositories.profiles as rpprofil
 import operant.infra.repositories.remediations as rgremed
+import operant.infra.settings as issettin
 import operant.ports.hitl as hitl
 import operant.ports.llm as plllm
 import operant.ports.privacy as ppprivac
@@ -53,6 +59,8 @@ class DiscoverRequest:
     :ivar screenshots: Whether to send the model screenshots.
     :ivar max_turns: Override the turn budget; ``None`` uses the
         configured default.
+    :ivar agents: Override ``single``/``multi``; ``None`` uses the
+        configured default.
     """
 
     goal: str
@@ -63,6 +71,7 @@ class DiscoverRequest:
     inputs: Optional[Dict[str, str]] = None
     screenshots: bool = True
     max_turns: Optional[int] = None
+    agents: Optional[str] = None
 
 
 # #############################################################################
@@ -102,6 +111,8 @@ def execute_discovery(
     token_counter: Optional[plllm.TokenCounter] = None,
     tracer: Optional[pttracin.Tracer] = None,
     scrubber: Optional[ppprivac.TextScrubber] = None,
+    role_llms: Optional[collections.abc.Mapping[str, plllm.LlmClient]] = None,
+    role_models: Optional[Dict[str, str]] = None,
     on_context: Optional[
         collections.abc.Callable[[accontex.RunContext], None]
     ] = None,
@@ -125,6 +136,8 @@ def execute_discovery(
         estimate is used when omitted.
     :param tracer: Where model calls are traced; none when omitted.
     :param scrubber: Masks personal data in traced text.
+    :param role_llms: Clients for the multi-agent roles, by role name.
+    :param role_models: Model ids for those roles, for tracing.
     :param on_context: Called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
     :return: A committed outcome, or a typed failure.
@@ -159,6 +172,7 @@ def execute_discovery(
                 if request.profile_id and graphs.exists(base.vendor_id)
                 else None
             ),
+            agents=request.agents or context.settings.discovery.agents,
         )
         deps = loop.DiscoveryDeps(
             surface=context.surface,
@@ -180,6 +194,10 @@ def execute_discovery(
             token_counter=token_counter or dswindow.EstimatedCounter(),
             tracer=tracer or dsobserv.NoopTracer(),
             scrubber=scrubber,
+            role_llms=dict(role_llms or {}),
+            role_models=dict(role_models or {}),
+            team=_team_budget(context.settings.discovery),
+            memory=_memory(context.settings, cfg.agents),
         )
         result = loop.run_discovery(cfg, deps)
     finally:
@@ -194,6 +212,36 @@ def execute_discovery(
             result, artifacts, graphs, profiles, bootstrap=cfg.bootstrap
         )
     return outcome
+
+
+def _team_budget(config_: issettin.DiscoverySettings) -> dsteam.TeamBudget:
+    """
+    Build the coordinator's bounds from the discovery settings.
+    """
+    budget = dsteam.TeamBudget(
+        max_replans=config_.max_replans,
+        max_rejections_per_subgoal=config_.max_rejections_per_subgoal,
+        stall_turns=config_.stall_turns,
+        planner_samples=config_.planner_samples,
+        extract_candidates=config_.extract_candidates,
+        fanout_workers=config_.fanout_workers,
+        compile_review=config_.compile_review,
+    )
+    return budget
+
+
+def _memory(
+    settings: issettin.OperantSettings, agents: str
+) -> Optional[apmemory.AgentMemory]:
+    """
+    Open agent memory for a multi-agent run when memory is enabled.
+    """
+    memory: Optional[apmemory.AgentMemory] = None
+    if agents == "multi" and settings.discovery.memory == "on":
+        database = engine.Database.open(settings.paths.db_path)
+        migrate.upgrade(database)
+        memory = apmemory.AgentMemory(rmmemory.SqlMemoryStore(database))
+    return memory
 
 
 def _commit(

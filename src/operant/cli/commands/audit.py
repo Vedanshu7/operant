@@ -11,6 +11,7 @@ import typer
 import operant.application.audit as aaaudit
 import operant.cli.deps as cddeps
 import operant.domain.governance as govern
+import operant.infra.repositories.memory as rmmemory
 
 
 def register(app: typer.Typer) -> None:
@@ -39,6 +40,7 @@ def register(app: typer.Typer) -> None:
                     min_runs=deps.settings.governance.min_runs,
                     min_success_rate=deps.settings.governance.min_success_rate,
                 ),
+                memory_text=rmmemory.SqlMemoryStore(database).all_text(),
             )
         finally:
             database.close()

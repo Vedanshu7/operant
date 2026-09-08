@@ -443,3 +443,76 @@ class SecretRefRow(Base):
     present: sqlalchemy.orm.Mapped[bool] = sqlalchemy.orm.mapped_column(
         sqlalchemy.Boolean, default=False
     )
+
+
+# #############################################################################
+# PlanMemoryRow
+# #############################################################################
+
+
+class PlanMemoryRow(Base):
+    """
+    A plan that worked for a goal on an app (multi-agent memory).
+    """
+
+    __tablename__ = "plan_memory"
+
+    id: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, primary_key=True, autoincrement=True
+    )
+    vendor_id: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(128), index=True, nullable=False
+    )
+    goal_key: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Text, nullable=False
+    )
+    goal_text: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Text, nullable=False
+    )
+    plan_json: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Text, nullable=False
+    )
+    successes: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, default=0
+    )
+    failures: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, default=0
+    )
+    last_used_at: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(40), nullable=False
+    )
+
+
+# #############################################################################
+# LessonRow
+# #############################################################################
+
+
+class LessonRow(Base):
+    """
+    A mistake to avoid on an app, from a verifier or a person.
+    """
+
+    __tablename__ = "lessons"
+
+    id: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, primary_key=True, autoincrement=True
+    )
+    vendor_id: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(128), index=True, nullable=False
+    )
+    goal_key: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Text, nullable=False
+    )
+    lesson: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Text, nullable=False
+    )
+    source: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(16), nullable=False
+    )
+    reinforcements: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, default=1
+    )
+    last_used_at: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(40), nullable=False
+    )

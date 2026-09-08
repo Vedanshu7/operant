@@ -449,6 +449,7 @@ class RunManager:
             timeout_s=self._settings.approval.clarification_timeout_s,
         )
         llm = litecli.LiteLlmClient(self._settings.discovery)
+        roles, role_models = litecli.role_clients(self._settings.discovery)
         outcome = discover.execute_discovery(
             request,
             factory=self._factory,
@@ -467,6 +468,8 @@ class RunManager:
             ),
             tracer=aofactor.tracer(self._settings.observability),
             scrubber=apfactor.scrubber(self._settings.privacy),
+            role_llms=roles,
+            role_models=role_models,
             on_context=lambda ctx: self._wire(handle, ctx),
         )
         self._finish_discovery(handle, outcome)

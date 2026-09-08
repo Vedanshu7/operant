@@ -1,0 +1,283 @@
+"""
+Multi-agent coordinator tests with a scripted model per role: plan,
+execute, verify, reject, replan, escalate - no live app, no real model.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import pathlib
+from typing import Any, Dict, List, Optional, Tuple
+
+import pytest
+
+import operant.adapters.secrets.env as env
+import operant.application.discovery.team as dsteam
+import operant.domain.models.plan as mdplan
+import tests.evals.catalog as catalog
+import tests.evals.harness as harness
+import tests.evals.scenes as scenes
+import tests.support.llm as sllm
+
+_BANK = scenes.SKINS[0]
+Call = Tuple[str, Dict[str, Any]]
+
+
+def _scenario(family: str, name: str) -> harness.Scenario:
+    found = next(s for s in catalog.FAMILIES[family](_BANK) if s.name == name)
+    return dataclasses.replace(found, mode="multi")
+
+
+def _plan(*descriptions: str) -> Call:
+    return (
+        "submit_plan",
+        {
+            "subgoals": [
+                {
+                    "id": f"s{i}",
+                    "description": d,
+                    "success_criteria": f"{d} shown",
+                }
+                for i, d in enumerate(descriptions, start=1)
+            ],
+            "credential_names": [],
+        },
+    )
+
+
+def _verdicts(*passed: bool) -> List[Call]:
+    return [("verdict", {"passed": p, "reason": "checked"}) for p in passed]
+
+
+def _run(
+    tmp_path: pathlib.Path,
+    scenario: harness.Scenario,
+    executor: List[Call],
+    *,
+    planner: List[Call],
+    verifier: List[Call],
+    safety: Optional[List[Call]] = None,
+    extra: Optional[Dict[str, List[Call]]] = None,
+    team: Optional[dsteam.TeamBudget] = None,
+) -> harness.EvalRun:
+    roles = {
+        "planner": sllm.scripted(planner),
+        "verifier": sllm.scripted(verifier),
+        "safety": sllm.scripted(
+            safety if safety is not None else _verdicts(*[True] * len(verifier))
+        ),
+    }
+    for role, calls in (extra or {}).items():
+        roles[role] = sllm.scripted(calls)
+    run = harness.run_scenario(
+        tmp_path,
+        harness.EvalEnv(
+            sllm.scripted(executor), env.EnvSecretStore({}), role_llms=roles
+        ),
+        scenario,
+        team=team,
+    )
+    return run
+
+
+_READ = [
+    ("extract", {"name": "balance", "pattern": r"balance: (\S+)"}),
+    ("goal_complete", {"summary": "read it"}),
+]
+
+
+def test_plan_execute_verify_completes(tmp_path: pathlib.Path) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        _READ,
+        planner=[_plan("read the savings balance")],
+        verifier=_verdicts(True),
+    )
+    assert run.succeeded
+    assert run.state.extracted == {"balance": _BANK.value}
+    assert [e["subgoals"][0]["id"] for e in run.events_of("plan_proposed")] == [
+        "s1"
+    ]
+    reviewers = sorted(e["reviewer"] for e in run.events_of("verifier_verdict"))
+    assert reviewers == ["leak", "safety", "verifier"]
+
+
+def test_the_recording_matches_single_agent(tmp_path: pathlib.Path) -> None:
+    multi = _run(
+        tmp_path / "multi",
+        _scenario("auth", "already_logged_in"),
+        _READ,
+        planner=[_plan("read the savings balance")],
+        verifier=_verdicts(True),
+    )
+    single = harness.run_scenario(
+        tmp_path / "single",
+        harness.EvalEnv(sllm.scripted(_READ), env.EnvSecretStore({})),
+        dataclasses.replace(
+            _scenario("auth", "already_logged_in"), mode="single"
+        ),
+    )
+    assert multi.succeeded and single.succeeded
+    a, b = multi.result.recording, single.result.recording
+    assert a.edges == b.edges
+    assert a.outputs == b.outputs
+    assert a.extract == b.extract
+
+
+def test_a_rejection_sends_the_reason_back(tmp_path: pathlib.Path) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [("goal_complete", {"summary": "done?"}), *_READ],
+        planner=[_plan("read the savings balance")],
+        verifier=[
+            ("verdict", {"passed": False, "reason": "no balance extracted"}),
+            ("verdict", {"passed": True, "reason": "ok"}),
+        ],
+    )
+    assert run.succeeded
+    assert any(
+        "NOT VERIFIED - verifier: no balance extracted" in harness.message_text(m)
+        for m in run.llm.sent[1]
+    )
+
+
+def test_two_rejections_trigger_a_replan(tmp_path: pathlib.Path) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [
+            ("goal_complete", {"summary": "a"}),
+            ("goal_complete", {"summary": "b"}),
+        ],
+        planner=[_plan("read it"), _plan("read the balance again")],
+        verifier=_verdicts(False, False),
+    )
+    first = run.events_of("replanned")[0]
+    assert first["attempt"] == 1
+    assert "rejected 2 times" in first["reason"]
+    assert len(run.roles["planner"].turns) >= 2
+
+
+def test_spent_replans_escalate_to_a_person(tmp_path: pathlib.Path) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [
+            ("goal_complete", {"summary": "a"}),
+            ("goal_complete", {"summary": "b"}),
+        ],
+        planner=[_plan("read it")],
+        verifier=_verdicts(False, False),
+        team=dsteam.TeamBudget(max_replans=0),
+    )
+    assert getattr(run.result, "failure_class", "") == "escalated_abandoned"
+    assert run.broker.raised
+
+
+def test_give_up_replans_before_escalating(tmp_path: pathlib.Path) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [("give_up", {"reason": "lost"}), *_READ],
+        planner=[_plan("read it"), _plan("read the balance")],
+        verifier=_verdicts(True),
+    )
+    assert run.succeeded
+    assert not run.broker.raised
+    assert run.events_of("replanned")
+
+
+def test_verified_subgoals_are_folded_out_of_the_history(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [
+            ("subgoal_done", {"summary": "on home"}),
+            ("extract", {"name": "balance", "pattern": r"balance: (\S+)"}),
+            ("goal_complete", {"summary": "read it"}),
+        ],
+        planner=[_plan("be on home", "read the balance")],
+        verifier=_verdicts(True, True),
+    )
+    assert run.succeeded
+    # The next executor call starts fresh: system prompt + the new turn,
+    # with the verified subgoal reduced to one line in the plan block.
+    second = run.llm.sent[1]
+    assert [m.role for m in second] == ["system", "user"]
+    assert "[done] be on home: on home" in harness.message_text(second[-1])
+
+
+def test_a_missed_extract_is_repaired_by_candidates(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [
+            ("extract", {"name": "balance", "pattern": r"Balance=(\d+)"}),
+            ("goal_complete", {"summary": "read it"}),
+        ],
+        planner=[_plan("read the balance")],
+        verifier=_verdicts(True),
+        extra={
+            "extract": [
+                ("propose_pattern", {"pattern": r"nothing (here)"}),
+                ("propose_pattern", {"pattern": r"balance: (\S+)"}),
+                ("propose_pattern", {"pattern": r"balance: (\S+)"}),
+            ]
+        },
+    )
+    assert run.state.extracted["balance"] == _BANK.value
+
+
+def test_compile_review_is_advisory(tmp_path: pathlib.Path) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("safety", "mutating_needs_approval"),
+        [
+            ("act", {"action": "click", "ref": "go", "intent": "submit"}),
+            ("goal_complete", {"summary": "sent"}),
+        ],
+        planner=[_plan("submit the form")],
+        verifier=_verdicts(True),
+        extra={
+            "critic": [("review", {"verdict": "concern", "note": "fragile"})],
+            "schema": [("review", {"verdict": "ok", "note": "fine"})],
+        },
+    )
+    assert run.succeeded
+    reviews = {e["target"]: e["verdict"] for e in run.events_of("compile_review")}
+    assert reviews["schema"] == "ok"
+    assert "concern" in reviews.values()
+
+
+def test_a_planner_failure_falls_back_to_one_subgoal(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        _READ,
+        planner=[
+            ("submit_plan", {"subgoals": []}),
+            ("submit_plan", {"subgoals": []}),
+        ],
+        verifier=_verdicts(True),
+    )
+    assert run.succeeded
+    plan = run.events_of("plan_proposed")[0]["subgoals"]
+    assert plan[0]["description"] == run.scenario.goal
+
+
+def test_credential_values_are_rejected_from_plans() -> None:
+    with pytest.raises(ValueError):
+        mdplan.Plan(
+            subgoals=[
+                mdplan.Subgoal(id="s1", description="d", success_criteria="c")
+            ],
+            credential_names=["my password is hunter2"],
+        )

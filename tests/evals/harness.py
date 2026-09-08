@@ -27,13 +27,16 @@ import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import operant.adapters.privacy.noop as apnoop
+import operant.application.discovery.agents.prompts as daprompt
 import operant.application.discovery.config as config
 import operant.application.discovery.loop as loop
 import operant.application.discovery.observe as dsobserv
 import operant.application.discovery.prompt as prompt
 import operant.application.discovery.state as dsstate
+import operant.application.discovery.team as dsteam
 import operant.application.discovery.window as dswindow
 import operant.application.escalation as escal
+import operant.application.memory as apmemory
 import operant.domain.approval as daapprov
 import operant.domain.models.actions as actions
 import operant.domain.models.artifact as artifact
@@ -205,12 +208,19 @@ class EvalEnv:
     :ivar secret_store: Where secret references resolve.
     :ivar tracer: Where traces go (Langfuse when configured), if any.
     :ivar scrubber: The PII scrubber for traced text, if any.
+    :ivar role_llms: Per-role clients (scripted tests); ``llm`` serves
+        every role not listed.
+    :ivar memory: Cross-run agent memory, for the memory evals.
     """
 
     llm: plllm.LlmClient
     secret_store: pssecret.SecretStore
     tracer: Optional[pttracin.Tracer] = None
     scrubber: Optional[ppprivac.TextScrubber] = None
+    role_llms: Dict[str, plllm.LlmClient] = dataclasses.field(
+        default_factory=dict
+    )
+    memory: Optional[apmemory.AgentMemory] = None
 
 
 # #############################################################################
@@ -280,6 +290,7 @@ class Scenario:
     :ivar max_turns: Turn budget.
     :ivar approval: How the approver answers every gated step.
     :ivar clarify_answer: What the clarifier answers.
+    :ivar mode:``"single"`` or ``"multi"`` agent discovery.
     """
 
     name: str
@@ -293,6 +304,7 @@ class Scenario:
     max_turns: int = 8
     approval: str = "approve"
     clarify_answer: str = ""
+    mode: str = "single"
 
 
 # #############################################################################
@@ -319,6 +331,7 @@ class EvalRun:
     tracer: RecordingTracer
     trace_id: str
     scrubbing: bool
+    roles: Dict[str, RecordingLlm] = dataclasses.field(default_factory=dict)
 
     @property
     def succeeded(self) -> bool:
@@ -366,10 +379,17 @@ class EvalRun:
         Return all text the model was sent, tool arguments included.
         """
         chunks: List[str] = []
-        for messages in self.llm.sent:
-            for message in messages:
-                chunks.append(message_text(message))
+        for recording in (self.llm, *self.roles.values()):
+            for messages in recording.sent:
+                for message in messages:
+                    chunks.append(message_text(message))
         return "\n".join(chunks)
+
+    def events_of(self, kind: str) -> List[Dict[str, Any]]:
+        """
+        Return the evidence-log entries of one event type.
+        """
+        return [e for e in self.events() if e.get("type") == kind]
 
 
 def parse(arguments: str) -> Dict[str, Any]:
@@ -478,6 +498,7 @@ def run_scenario(
     scenario: Scenario,
     *,
     window_budget: Optional[dswindow.WindowBudget] = None,
+    team: Optional[dsteam.TeamBudget] = None,
 ) -> EvalRun:
     """
     Run one trial of ``scenario`` and capture what it produced.
@@ -486,10 +507,15 @@ def run_scenario(
     :param env: The model, secret store, tracer and scrubber to use.
     :param scenario: The scenario to run.
     :param window_budget: Overrides the default prompt-window budget.
+    :param team: Overrides the multi-agent coordinator's bounds.
     :return: The trial's captured run.
     """
     app_profile = eval_profile()
     recording = RecordingLlm(env.llm)
+    roles = {
+        role: RecordingLlm(env.role_llms.get(role, env.llm), role)
+        for role in daprompt.PROMPTS
+    }
     tracer = RecordingTracer(env.tracer)
     surface = EvalSurface(
         app_profile.policy, scenario.scene, bootstrap=scenario.bootstrap
@@ -518,8 +544,12 @@ def run_scenario(
             scenario.family,
             scenario.name,
             scenario.skin.name,
+            scenario.mode,
             prompt_hash(),
         ),
+        role_llms=dict(roles),
+        memory=env.memory,
+        team=team or dsteam.TeamBudget(),
     )
     cfg = config.DiscoveryConfig(
         goal=scenario.goal,
@@ -535,6 +565,7 @@ def run_scenario(
         approver=approver,
         credential_requester=credentials,
         known_graph=scenario.known_graph,
+        agents=scenario.mode,
     )
     session = loop.DiscoverySession(cfg, deps)
     result = session.run()
@@ -553,6 +584,7 @@ def run_scenario(
         trace_id=session.trace_id,
         scrubbing=env.scrubber is not None
         and not isinstance(env.scrubber, apnoop.NoopScrubber),
+        roles=roles,
     )
     return run
 
@@ -578,7 +610,8 @@ def _row(
     Build the JSONL result row for one trial.
     """
     failures = [f"{name}: {f}" for name, fs in scored.items() for f in fs]
-    tokens_in, tokens_out = run.llm.tokens()
+    tokens_in = sum(r.tokens()[0] for r in (run.llm, *run.roles.values()))
+    tokens_out = sum(r.tokens()[1] for r in (run.llm, *run.roles.values()))
     models = sorted({turn.model for turn in run.llm.turns if turn.model})
     result_class = (
         "goal_complete"
@@ -590,6 +623,10 @@ def _row(
         "scenario": run.scenario.name,
         "family": run.scenario.family,
         "skin": run.scenario.skin.name,
+        "mode": run.scenario.mode,
+        "role_calls": {
+            role: len(r.turns) for role, r in run.roles.items() if r.turns
+        },
         "trial": trial,
         "passed": not failures,
         "failures": failures,
@@ -663,7 +700,7 @@ def run_trials(
         if not row["passed"]
     )
     assert passes / trials >= pass_rate, (
-        f"{scenario.name}[{scenario.skin.name}] passed {passes}/{trials} "
+        f"{scenario.name}[{scenario.skin.name}/{scenario.mode}] passed {passes}/{trials} "
         f"(bar {pass_rate}):\n{report}"
     )
     return rows

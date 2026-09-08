@@ -199,6 +199,21 @@ class DiscoverySettings(pydantic.BaseModel):
         call may use.
     :ivar context_max_tokens: The per-call budget when the model's input
         limit is unknown.
+    :ivar agents:``"single"`` (one agent) or ``"multi"`` (planner,
+        executor, verifier panel; docs/adr/0003).
+    :ivar planner_model: Model for the planner; ``model`` when unset.
+    :ivar verifier_model: Model for the verifier panel and reviewers;
+        ``model`` when unset.
+    :ivar max_replans: Replans before a stuck multi-agent run escalates.
+    :ivar max_rejections_per_subgoal: Rejections before a replan.
+    :ivar stall_turns: Turns without a verified subgoal before a replan.
+    :ivar planner_samples: Plan candidates drawn in parallel.
+    :ivar extract_candidates: Regex candidates drawn when an extract
+        misses.
+    :ivar fanout_workers: Upper bound on parallel role calls.
+    :ivar compile_review:``"on"`` reviews the saved recording
+        (advisory).
+    :ivar memory:``"on"`` recalls and records plans and lessons.
     """
 
     model: Optional[str] = None
@@ -210,6 +225,17 @@ class DiscoverySettings(pydantic.BaseModel):
     keep_full_turns: int = 3
     context_budget_ratio: float = 0.6
     context_max_tokens: int = 100_000
+    agents: Literal["single", "multi"] = "single"
+    planner_model: Optional[str] = None
+    verifier_model: Optional[str] = None
+    max_replans: int = 2
+    max_rejections_per_subgoal: int = 2
+    stall_turns: int = 6
+    planner_samples: int = 1
+    extract_candidates: int = 3
+    fanout_workers: int = 4
+    compile_review: Literal["on", "off"] = "on"
+    memory: Literal["on", "off"] = "on"
 
 
 # #############################################################################

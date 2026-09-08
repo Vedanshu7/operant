@@ -15,7 +15,7 @@ import operant.adapters.llm.litellm_client as litecli
 from __future__ import annotations
 
 import collections.abc
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Final, Optional, Tuple
 
 import litellm
 
@@ -187,3 +187,32 @@ class LiteLlmTokenCounter:
             raw = None
         limit = int(raw) if raw else None
         return limit
+
+
+_PLANNER_ROLES: Final = ("planner",)
+_REVIEW_ROLES: Final = ("verifier", "safety", "extract", "critic", "schema")
+
+
+def role_clients(
+    config: settings.DiscoverySettings,
+) -> Tuple[Dict[str, LiteLlmClient], Dict[str, str]]:
+    """
+    Build one client per multi-agent role from the configured models.
+
+    :param config: The discovery settings group.
+    :return:``(clients, model ids)`` keyed by role; the planner uses
+        ``planner_model`` and the reviewers ``verifier_model``, each
+        falling back to ``model``.
+    """
+    clients: Dict[str, LiteLlmClient] = {}
+    models: Dict[str, str] = {}
+    for roles, override in (
+        (_PLANNER_ROLES, config.planner_model),
+        (_REVIEW_ROLES, config.verifier_model),
+    ):
+        model = override or config.model or ""
+        client = LiteLlmClient(config.model_copy(update={"model": model}))
+        for role in roles:
+            clients[role] = client
+            models[role] = model
+    return clients, models

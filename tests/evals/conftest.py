@@ -102,22 +102,23 @@ def pytest_terminal_summary(terminalreporter: Any) -> None:
     """
     if not harness.SUMMARY:
         return
-    groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = collections.defaultdict(
-        list
+    groups: Dict[Tuple[str, str, str], List[Dict[str, Any]]] = (
+        collections.defaultdict(list)
     )
     for row in harness.SUMMARY:
-        groups[(row["family"], row["scenario"])].append(row)
+        groups[(row["family"], row["scenario"], row["mode"])].append(row)
     write = terminalreporter.write_line
     write("")
     write(
-        f"{'family':<10} {'scenario':<26} {'pass':>7} {'turns':>6} {'tokens':>8}"
+        f"{'family':<10} {'scenario':<26} {'mode':<7} {'pass':>7} "
+        f"{'turns':>6} {'tokens':>8}"
     )
-    for (family, scenario), rows in sorted(groups.items()):
+    for (family, scenario, mode), rows in sorted(groups.items()):
         passed = sum(1 for r in rows if r["passed"])
         turns = sum(r["turns"] for r in rows) / len(rows)
         tokens = sum(r["tokens_in"] + r["tokens_out"] for r in rows) / len(rows)
         write(
-            f"{family:<10} {scenario:<26} {passed:>3}/{len(rows):<3} "
+            f"{family:<10} {scenario:<26} {mode:<7} {passed:>3}/{len(rows):<3} "
             f"{turns:>6.1f} {tokens:>8.0f}"
         )
     write(f"results: {harness.RESULTS_DIR / (harness.SESSION + '.jsonl')}")

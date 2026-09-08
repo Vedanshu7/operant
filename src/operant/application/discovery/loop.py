@@ -31,14 +31,17 @@ import uuid
 from typing import Dict, FrozenSet, List, Optional, Tuple, Union
 
 import operant.application.approval as approval
+import operant.application.discovery.agents.prompts as daprompt
 import operant.application.discovery.bootstrap as bstrap
 import operant.application.discovery.config as config
 import operant.application.discovery.observe as dsobserv
 import operant.application.discovery.prompt as prompt
 import operant.application.discovery.state as dsstate
+import operant.application.discovery.team as dsteam
 import operant.application.discovery.tools as tools
 import operant.application.discovery.window as dswindow
 import operant.application.escalation as escal
+import operant.application.memory as apmemory
 import operant.application.recorder.builder as builder
 import operant.application.recorder.recording as recdng
 import operant.application.remediation as remem
@@ -110,6 +113,11 @@ class DiscoveryDeps:
     :ivar trace_session: Groups this run's trace under another session
         (e.g. an eval session); the run id when ``None``.
     :ivar trace_tags: Extra labels on this run's trace.
+    :ivar role_llms: Model clients for non-executor roles; ``llm`` for
+        any role not listed.
+    :ivar role_models: Model ids for those roles, for tracing.
+    :ivar team: Bounds on the multi-agent coordinator.
+    :ivar memory: Cross-run plan and lesson memory, when enabled.
     """
 
     surface: pssurfac.Surface
@@ -136,6 +144,12 @@ class DiscoveryDeps:
     scrubber: Optional[ppprivac.TextScrubber] = None
     trace_session: Optional[str] = None
     trace_tags: Tuple[str, ...] = ()
+    role_llms: Dict[str, plllm.LlmClient] = dataclasses.field(
+        default_factory=dict
+    )
+    role_models: Dict[str, str] = dataclasses.field(default_factory=dict)
+    team: dsteam.TeamBudget = dataclasses.field(default_factory=dsteam.TeamBudget)
+    memory: Optional[apmemory.AgentMemory] = None
 
 
 # #############################################################################
@@ -183,9 +197,17 @@ class DiscoverySession:
             self.log.redactor,
         )
         self._system_prompt = prompt.build_system_prompt(
-            self.secrets.names(), self.deps.default_browser
+            self.secrets.names(),
+            self.deps.default_browser,
+            self.cfg.prompt_overrides.get("executor"),
         )
         self._recognized_node: Optional[str] = None
+        self.team: Optional[dsteam.Team] = (
+            dsteam.Team(self) if self.cfg.agents == "multi" else None
+        )
+        self._tools = prompt.TOOL_SCHEMAS + (
+            (daprompt.SUBGOAL_DONE,) if self.team is not None else ()
+        )
         self.trace_id = uuid.uuid4().hex
 
     # ── conveniences the tool handlers use ─────────────────────────────
@@ -366,6 +388,8 @@ class DiscoverySession:
                 summary=f"goal: {self.cfg.goal}",
             )
         )
+        if self.team is not None:
+            self.team.start(0)
         for turn in range(1, self.cfg.max_turns + 1):
             finished = self._turn(turn)
             if finished is not None:
@@ -400,6 +424,40 @@ class DiscoverySession:
         if self.deps.scrubber is not None:
             safe = self.deps.scrubber.scrub(safe)
         return safe
+
+    def _plan_block(self) -> str:
+        """
+        Return the multi-agent plan context for this turn, if any.
+        """
+        block = (
+            f"{self.team.executor_block()}\n\n" if self.team is not None else ""
+        )
+        return block
+
+    def _team_dispatch(
+        self, name: str, args: Dict[str, object], turn: int
+    ) -> Optional[tools.ToolOutcome]:
+        """
+        Route the tools the coordinator intercepts in multi-agent mode.
+        """
+        team = self.team
+        routed: Optional[tools.ToolOutcome] = None
+        if team is None:
+            # Single-agent: nothing is intercepted.
+            routed = None
+        elif name == "subgoal_done":
+            # The panel verifies the active subgoal.
+            routed = team.on_subgoal_done(args, turn)
+        elif name == "goal_complete":
+            # The panel verifies the last subgoal before finishing.
+            routed = team.on_goal_complete(args, turn)
+        elif name == "give_up":
+            # Replan before escalating to a person.
+            routed = team.on_give_up(args, turn, self._last_screenshot)
+        elif name == "extract":
+            # A missed pattern gets regex candidates drawn in parallel.
+            routed = team.on_extract(args, tools.handle_extract(self, args), turn)
+        return routed
 
     def _seed_input_classes(self) -> None:
         """
@@ -468,6 +526,8 @@ class DiscoverySession:
         """
         Run one observe-decide-act turn; return a result once finished.
         """
+        if self.team is not None:
+            self.team.before_turn(turn)
         self.state.messages.append(self._user_message(turn))
         completed = self._complete_with_retry(turn)
         if isinstance(completed, config.DiscoveryFailure):
@@ -489,6 +549,10 @@ class DiscoverySession:
             )
             return None
         outcome = self._dispatch(calls[0], turn)
+        if self.team is not None:
+            self.team.note_step(
+                calls[0].name, _arguments(calls[0]), outcome.reply, turn
+            )
         replies: List[Tuple[str, str]] = []
         if outcome.reply is not None:
             replies.append((calls[0].id, outcome.reply))
@@ -604,6 +668,7 @@ class DiscoverySession:
                 type="text",
                 text=(
                     f"GOAL: {self.cfg.goal}\n{state.inputs_block()}\n\n"
+                    f"{self._plan_block()}"
                     f"{self._recognized_state()}"
                     f"Current screen:\n{screen_text}"
                 ),
@@ -717,9 +782,7 @@ class DiscoverySession:
             model=self.deps.model_name,
             prompt=traced,
         ) as generation:
-            answer = self.deps.llm.complete(
-                conversation, tools=prompt.TOOL_SCHEMAS
-            )
+            answer = self.deps.llm.complete(conversation, tools=self._tools)
             generation.finish(
                 answer, output=self.safe_text(dsobserv.turn_output(answer))
             )
@@ -733,6 +796,10 @@ class DiscoverySession:
             args: Dict[str, object] = json.loads(call.arguments or "{}")
         except json.JSONDecodeError as err:
             return tools.ToolOutcome(f"Tool arguments were not valid JSON: {err}")
+        if self.team is not None:
+            routed = self._team_dispatch(call.name, args, turn)
+            if routed is not None:
+                return routed
         if call.name == "declare_input":
             return tools.handle_declare_input(self, args)
         if call.name == "clarify":
@@ -748,6 +815,18 @@ class DiscoverySession:
         if call.name == "act":
             return tools.handle_act(self, args, turn)
         return tools.ToolOutcome(f'Unknown tool "{call.name}".')
+
+
+def _arguments(call: mlllm.ToolCall) -> Dict[str, object]:
+    """
+    Parse a tool call's arguments, empty when they are not a JSON object.
+    """
+    try:
+        parsed = json.loads(call.arguments or "{}")
+    except json.JSONDecodeError:
+        parsed = {}
+    arguments: Dict[str, object] = parsed if isinstance(parsed, dict) else {}
+    return arguments
 
 
 def run_discovery(

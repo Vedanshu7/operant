@@ -19,6 +19,13 @@ const DOT: Record<string, string> = {
   run_status: "bg-muted-foreground",
   replay_finished: "bg-success",
   goal_complete: "bg-success",
+  plan_proposed: "bg-sky-600",
+  replanned: "bg-sky-400",
+  subgoal_started: "bg-sky-300",
+  verifier_verdict: "bg-emerald-500",
+  compile_review: "bg-slate-400",
+  memory_recalled: "bg-indigo-400",
+  context_compacted: "bg-amber-300",
   error: "bg-destructive",
 };
 

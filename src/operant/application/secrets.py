@@ -106,3 +106,12 @@ class SecretResolver:
             except errors.SecretNotFoundError:
                 continue
         return resolved
+
+    def held_values(self) -> List[str]:
+        """
+        Return every credential value the trusted process holds.
+
+        Used to audit that none of them ever reached a model.
+        """
+        values = [*self.resolve_available().values(), *self._transient.values()]
+        return [value for value in values if value]

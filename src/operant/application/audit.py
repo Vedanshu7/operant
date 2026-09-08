@@ -81,6 +81,7 @@ def audit_all(
     *,
     stability_of: StabilityOf = _zero_stability,
     gate: Optional[govern.StabilityGate] = None,
+    memory_text: Optional[collections.abc.Sequence[str]] = None,
 ) -> List[Finding]:
     """
     Audits every artifact, graph version, and evidence run.
@@ -91,6 +92,8 @@ def audit_all(
         ``None``.
     :param stability_of: Returns a capability's replay track record.
     :param gate: The approval gate; defaults to the governance default.
+    :param memory_text: Every stored agent-memory text; skipped if
+        ``None``.
     :return: Findings, errors and warnings interleaved in scan order.
     """
     gate = gate or govern.StabilityGate()
@@ -102,6 +105,44 @@ def audit_all(
     if evidence_root is not None and evidence_root.exists():
         for run_dir in sorted(p for p in evidence_root.iterdir() if p.is_dir()):
             findings += audit_evidence_run(run_dir)
+    if memory_text is not None:
+        findings += audit_memory(memory_text)
+    return findings
+
+
+# Digits that survived storage: memory masks every number as ``<n>``.
+_UNMASKED_NUMBER: Final = re.compile(r"(?<![A-Za-z])\d{3,}")
+
+
+def audit_memory(texts: collections.abc.Sequence[str]) -> List[Finding]:
+    """
+    Check that agent memory holds no values: no unmasked numbers and no value
+    shapes the sensitivity gates treat as sensitive.
+
+    :param texts: Every stored plan and lesson text.
+    :return: One error per offending text.
+    """
+    findings: List[Finding] = []
+    for index, text in enumerate(texts):
+        shapes = [
+            name
+            for name, pattern in sensv.VALUE_PATTERNS.items()
+            if pattern.search(text)
+        ]
+        if _UNMASKED_NUMBER.search(text):
+            shapes.append("number")
+        if shapes:
+            findings.append(
+                Finding(
+                    severity="error",
+                    code="memory_value",
+                    subject=f"agent memory #{index}",
+                    message=(
+                        "stored text holds a value, not a name: "
+                        + ", ".join(shapes)
+                    ),
+                )
+            )
     return findings
 
 
