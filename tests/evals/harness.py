@@ -499,6 +499,7 @@ def run_scenario(
     *,
     window_budget: Optional[dswindow.WindowBudget] = None,
     team: Optional[dsteam.TeamBudget] = None,
+    prompt_overrides: Optional[Dict[str, str]] = None,
 ) -> EvalRun:
     """
     Run one trial of ``scenario`` and capture what it produced.
@@ -508,6 +509,7 @@ def run_scenario(
     :param scenario: The scenario to run.
     :param window_budget: Overrides the default prompt-window budget.
     :param team: Overrides the multi-agent coordinator's bounds.
+    :param prompt_overrides: Per-role prompts to run with (GEPA).
     :return: The trial's captured run.
     """
     app_profile = eval_profile()
@@ -566,6 +568,7 @@ def run_scenario(
         credential_requester=credentials,
         known_graph=scenario.known_graph,
         agents=scenario.mode,
+        prompt_overrides=dict(prompt_overrides or {}),
     )
     session = loop.DiscoverySession(cfg, deps)
     result = session.run()

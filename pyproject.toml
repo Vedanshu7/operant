@@ -36,6 +36,9 @@ privacy = [
 observability = [
     "langfuse>=5.0.4",
 ]
+optimize = [
+    "gepa>=0.1.4",
+]
 
 [project.scripts]
 operant = "operant.cli.main:main"
