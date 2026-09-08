@@ -22,15 +22,18 @@ import operant.application.discovery.loop as loop
 from __future__ import annotations
 
 import base64
+import collections.abc
 import dataclasses
 import json
 import re
 import time
+import uuid
 from typing import Dict, FrozenSet, List, Optional, Tuple, Union
 
 import operant.application.approval as approval
 import operant.application.discovery.bootstrap as bstrap
 import operant.application.discovery.config as config
+import operant.application.discovery.observe as dsobserv
 import operant.application.discovery.prompt as prompt
 import operant.application.discovery.state as dsstate
 import operant.application.discovery.tools as tools
@@ -55,8 +58,10 @@ import operant.helpers.logging as logging
 import operant.ports.evidence as evidence
 import operant.ports.hitl as hitl
 import operant.ports.llm as plllm
+import operant.ports.privacy as ppprivac
 import operant.ports.secrets as pssecret
 import operant.ports.surface as pssurfac
+import operant.ports.tracing as pttracin
 
 _LOG = logging.get_logger(__name__)
 
@@ -100,6 +105,11 @@ class DiscoveryDeps:
     :ivar remediation: Cross-run memory of fixes for repeated errors.
     :ivar window_budget: How much history one model call may carry.
     :ivar token_counter: Counts prompt tokens for the model in use.
+    :ivar tracer: Where model calls are traced.
+    :ivar scrubber: Masks personal data in what leaves the process.
+    :ivar trace_session: Groups this run's trace under another session
+        (e.g. an eval session); the run id when ``None``.
+    :ivar trace_tags: Extra labels on this run's trace.
     """
 
     surface: pssurfac.Surface
@@ -120,6 +130,12 @@ class DiscoveryDeps:
     token_counter: plllm.TokenCounter = dataclasses.field(
         default_factory=dswindow.EstimatedCounter
     )
+    tracer: pttracin.Tracer = dataclasses.field(
+        default_factory=dsobserv.NoopTracer
+    )
+    scrubber: Optional[ppprivac.TextScrubber] = None
+    trace_session: Optional[str] = None
+    trace_tags: Tuple[str, ...] = ()
 
 
 # #############################################################################
@@ -170,6 +186,7 @@ class DiscoverySession:
             self.secrets.names(), self.deps.default_browser
         )
         self._recognized_node: Optional[str] = None
+        self.trace_id = uuid.uuid4().hex
 
     # ── conveniences the tool handlers use ─────────────────────────────
 
@@ -345,6 +362,7 @@ class DiscoverySession:
                 goal=self.cfg.goal,
                 inputs=self.cfg.inputs,
                 model=self.deps.model_name,
+                trace_id=self.trace_id,
                 summary=f"goal: {self.cfg.goal}",
             )
         )
@@ -355,6 +373,33 @@ class DiscoverySession:
         return config.DiscoveryFailure(
             f"max turns ({self.cfg.max_turns}) reached without goal_complete"
         )
+
+    def trace_context(self, agent: str, turn: int) -> mlllm.TraceContext:
+        """
+        Name one model call within this run's trace.
+        """
+        context = mlllm.TraceContext(
+            trace_id=self.trace_id,
+            session_id=self.deps.trace_session or self.log.run_id,
+            trace_name=f"discovery:{self.cfg.capability_id}",
+            generation_name=f"{agent}-turn-{turn}",
+            agent=agent,
+            tags=(
+                self.cfg.profile.vendor_id,
+                self.cfg.tenant,
+                *self.deps.trace_tags,
+            ),
+        )
+        return context
+
+    def safe_text(self, text: str) -> str:
+        """
+        Mask known sensitive values, then personal data, in ``text``.
+        """
+        safe = self.log.redactor.redact(text)
+        if self.deps.scrubber is not None:
+            safe = self.deps.scrubber.scrub(safe)
+        return safe
 
     def _seed_input_classes(self) -> None:
         """
@@ -635,9 +680,7 @@ class DiscoverySession:
         last_error = ""
         for attempt in range(self.deps.llm_retries):
             try:
-                return self.deps.llm.complete(
-                    conversation, tools=prompt.TOOL_SCHEMAS
-                )
+                return self._traced_complete(conversation, turn)
             except errors.LlmError as err:
                 last_error = str(err)
                 if not err.retryable:
@@ -657,6 +700,30 @@ class DiscoverySession:
             f"{last_error}",
             failure_class="llm_failed",
         )
+
+    def _traced_complete(
+        self, conversation: collections.abc.Sequence[mlllm.ChatMessage], turn: int
+    ) -> mlllm.LlmTurn:
+        """
+        Call the executor model inside a traced generation.
+        """
+        traced = dsobserv.traced_prompt(
+            conversation,
+            redact=self.log.redactor.redact,
+            scrubber=self.deps.scrubber,
+        )
+        with self.deps.tracer.generation(
+            self.trace_context("executor", turn),
+            model=self.deps.model_name,
+            prompt=traced,
+        ) as generation:
+            answer = self.deps.llm.complete(
+                conversation, tools=prompt.TOOL_SCHEMAS
+            )
+            generation.finish(
+                answer, output=self.safe_text(dsobserv.turn_output(answer))
+            )
+        return answer
 
     def _dispatch(self, call: mlllm.ToolCall, turn: int) -> tools.ToolOutcome:
         """

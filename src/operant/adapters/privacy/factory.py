@@ -44,8 +44,8 @@ def scrubber(config: settings.PrivacySettings) -> ppprivac.TextScrubber:
     if config.scrubber == "presidio" and not ready:
         raise errors.ConfigError(
             "PII scrubbing needs the privacy extra and the spaCy model "
-            f"{config.spacy_model!r} (uv sync --extra privacy; "
-            f"python -m spacy download {config.spacy_model})"
+            f"{config.spacy_model!r} (uv sync --extra privacy, then install "
+            "the model wheel; see the README)"
         )
     chosen: ppprivac.TextScrubber
     if config.scrubber != "none" and ready:

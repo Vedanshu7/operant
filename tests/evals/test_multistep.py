@@ -10,8 +10,6 @@ import pathlib
 
 import pytest
 
-import operant.ports.llm as plllm
-import operant.ports.secrets as pssecret
 import tests.evals.catalog as catalog
 import tests.evals.harness as harness
 
@@ -23,8 +21,7 @@ _CASES = catalog.scenarios("multistep")
 )
 def test_multistep(
     tmp_path: pathlib.Path,
-    real_llm: plllm.LlmClient,
-    secret_store: pssecret.SecretStore,
+    eval_env: harness.EvalEnv,
     scenario: harness.Scenario,
 ) -> None:
-    harness.run_trials(tmp_path, real_llm, secret_store, scenario)
+    harness.run_trials(tmp_path, eval_env, scenario)

@@ -22,6 +22,8 @@ import threading
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import operant.adapters.llm.litellm_client as litecli
+import operant.adapters.observability.factory as aofactor
+import operant.adapters.privacy.factory as apfactor
 import operant.application.approval as approval
 import operant.application.context as accontex
 import operant.application.discovery.config as config
@@ -463,6 +465,8 @@ class RunManager:
             token_counter=litecli.LiteLlmTokenCounter(
                 self._settings.discovery.model or ""
             ),
+            tracer=aofactor.tracer(self._settings.observability),
+            scrubber=apfactor.scrubber(self._settings.privacy),
             on_context=lambda ctx: self._wire(handle, ctx),
         )
         self._finish_discovery(handle, outcome)

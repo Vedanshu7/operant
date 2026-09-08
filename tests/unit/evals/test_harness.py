@@ -29,7 +29,9 @@ def _run(
     calls: List[Tuple[str, Dict[str, Any]]],
 ) -> harness.EvalRun:
     run = harness.run_scenario(
-        tmp_path, llm.scripted(calls), env.EnvSecretStore({}), scenario
+        tmp_path,
+        harness.EvalEnv(llm.scripted(calls), env.EnvSecretStore({})),
+        scenario,
     )
     return run
 
@@ -192,3 +194,55 @@ def test_entry_launch_stays_on_the_start_screen(tmp_path: pathlib.Path) -> None:
     run = _run(tmp_path, scenario, [("give_up", {"reason": "stop"})])
     assert run.surface.visited == ["login"]
     assert run.performed("launch")
+
+
+# #############################################################################
+# _NameScrubber
+# #############################################################################
+
+
+class _NameScrubber:
+    """
+    Mask the bank skin's user name, like Presidio's PERSON recognizer.
+    """
+
+    def __init__(self, masks: bool) -> None:
+        self._masks = masks
+
+    def scrub(self, text: str) -> str:
+        return text.replace(_BANK.user, "<PERSON>") if self._masks else text
+
+
+def _traced_run(tmp_path: pathlib.Path, masks: bool) -> harness.EvalRun:
+    scenario = _scenario("auth", "already_logged_in")
+    run = harness.run_scenario(
+        tmp_path,
+        harness.EvalEnv(
+            llm.scripted([("goal_complete", {"summary": "done"})]),
+            env.EnvSecretStore({}),
+            scrubber=_NameScrubber(masks),
+        ),
+        scenario,
+    )
+    return run
+
+
+def test_traced_prompts_are_scrubbed(tmp_path: pathlib.Path) -> None:
+    run = _traced_run(tmp_path, masks=True)
+    assert run.tracer.prompts
+    assert "<PERSON>" in run.tracer.traced_text()
+    assert harness.no_pii_traced(run) == []
+
+
+def test_an_unscrubbed_name_in_a_trace_fails(tmp_path: pathlib.Path) -> None:
+    run = _traced_run(tmp_path, masks=False)
+    assert harness.no_pii_traced(run)
+
+
+def test_the_trace_id_is_logged_at_discovery_start(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _traced_run(tmp_path, masks=True)
+    started = [e for e in run.events() if e.get("type") == "discovery_started"]
+    assert started[0]["trace_id"] == run.trace_id
+    assert len(run.trace_id) == 32

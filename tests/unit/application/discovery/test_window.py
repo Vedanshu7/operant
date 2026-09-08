@@ -149,8 +149,7 @@ def test_an_unfittable_window_fails_the_run(tmp_path: pathlib.Path) -> None:
     )
     run = harness.run_scenario(
         tmp_path,
-        sllm.scripted([]),
-        env.EnvSecretStore({}),
+        harness.EvalEnv(sllm.scripted([]), env.EnvSecretStore({})),
         scenario,
         window_budget=dswindow.WindowBudget(max_tokens=10),
     )
@@ -163,8 +162,7 @@ def test_forced_compaction_is_logged(tmp_path: pathlib.Path) -> None:
     calls = [("act", {"action": "click", "ref": "next", "intent": "next"})] * 6
     run = harness.run_scenario(
         tmp_path,
-        sllm.scripted(calls),
-        env.EnvSecretStore({}),
+        harness.EvalEnv(sllm.scripted(calls), env.EnvSecretStore({})),
         scenario,
         # Room for the system prompt plus about one full screen turn.
         window_budget=dswindow.WindowBudget(

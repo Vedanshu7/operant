@@ -438,12 +438,14 @@ class DiscoveryStarted(BaseEvent):
     :ivar goal: Natural-language goal.
     :ivar inputs: Task inputs supplied up front.
     :ivar model: Model driving discovery.
+    :ivar trace_id: The run's trace in the observability backend.
     """
 
     type: Literal["discovery_started"] = "discovery_started"
     goal: str
     inputs: Dict[str, str] = {}
     model: str
+    trace_id: str = ""
 
 
 # #############################################################################

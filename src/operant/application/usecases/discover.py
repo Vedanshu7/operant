@@ -16,6 +16,7 @@ import operant.application.capabilities as capab
 import operant.application.context as accontex
 import operant.application.discovery.config as config
 import operant.application.discovery.loop as loop
+import operant.application.discovery.observe as dsobserv
 import operant.application.discovery.window as dswindow
 import operant.application.recorder.recording as recdng
 import operant.application.remediation as remem
@@ -28,7 +29,9 @@ import operant.infra.repositories.profiles as rpprofil
 import operant.infra.repositories.remediations as rgremed
 import operant.ports.hitl as hitl
 import operant.ports.llm as plllm
+import operant.ports.privacy as ppprivac
 import operant.ports.secrets as secrets
+import operant.ports.tracing as pttracin
 
 # #############################################################################
 # DiscoverRequest
@@ -97,6 +100,8 @@ def execute_discovery(
     credential_requester: Optional[hitl.CredentialRequester] = None,
     run_identifier: Optional[str] = None,
     token_counter: Optional[plllm.TokenCounter] = None,
+    tracer: Optional[pttracin.Tracer] = None,
+    scrubber: Optional[ppprivac.TextScrubber] = None,
     on_context: Optional[
         collections.abc.Callable[[accontex.RunContext], None]
     ] = None,
@@ -118,6 +123,8 @@ def execute_discovery(
         server passes the id it tracks the run under.
     :param token_counter: Counts prompt tokens for the model; an
         estimate is used when omitted.
+    :param tracer: Where model calls are traced; none when omitted.
+    :param scrubber: Masks personal data in traced text.
     :param on_context: Called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
     :return: A committed outcome, or a typed failure.
@@ -171,10 +178,14 @@ def execute_discovery(
                 max_tokens=context.settings.discovery.context_max_tokens,
             ),
             token_counter=token_counter or dswindow.EstimatedCounter(),
+            tracer=tracer or dsobserv.NoopTracer(),
+            scrubber=scrubber,
         )
         result = loop.run_discovery(cfg, deps)
     finally:
         context.close()
+        if tracer is not None:
+            tracer.flush()
     outcome: Union[DiscoverOutcome, config.DiscoveryFailure]
     if isinstance(result, config.DiscoveryFailure):
         outcome = result

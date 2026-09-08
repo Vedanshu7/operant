@@ -129,3 +129,29 @@ class LlmTurn:
     model: str = ""
     input_tokens: int = 0
     output_tokens: int = 0
+
+
+# #############################################################################
+# TraceContext
+# #############################################################################
+
+
+@dataclasses.dataclass(frozen=True)
+class TraceContext:
+    """
+    Where one model call belongs in the observability backend.
+
+    :ivar trace_id: 32 lowercase hex chars; one trace per run.
+    :ivar session_id: Groups traces, e.g. the run id or an eval session.
+    :ivar trace_name: Human-readable trace name.
+    :ivar generation_name: This call's name, e.g. ``executor-turn-3``.
+    :ivar agent: The role that made the call.
+    :ivar tags: Free-form labels (vendor, tenant, eval scenario...).
+    """
+
+    trace_id: str
+    session_id: str
+    trace_name: str
+    generation_name: str
+    agent: str = "executor"
+    tags: Tuple[str, ...] = ()

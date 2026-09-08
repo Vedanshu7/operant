@@ -98,6 +98,16 @@ and is opt-in, so it is off by default:
 OPERANT_RUN_LLM_EVALS=1 uv run pytest tests/evals
 ```
 
+Each scenario runs over three app skins (bank, CRM, HR) and several
+trials, because the model is not deterministic:
+
+- `OPERANT_EVAL_TRIALS` sets the trials per scenario (default 3).
+- `OPERANT_EVAL_PASS_RATE` sets the pass rate each scenario must reach
+  (default 0.67).
+- Every trial is appended to `state/evals/<session>.jsonl`, and the run
+  ends with a pass-rate table per scenario.
+- The harness itself is tested in the normal suite with a scripted model.
+
 ## Demo path: discover then replay
 
 The target for the demo is ParaBank, a public bank sandbox. Its demo login is
@@ -147,6 +157,46 @@ cd web && pnpm dev                               # terminal 3 (dev only): the UI
 
 Open the UI, paste the token from `state/server-token` (or your
 `OPERANT_SERVER__AUTH_TOKEN`), and start a run.
+
+## Model tracing (optional)
+
+Discovery can trace every model call to a self-hosted Langfuse
+([ADR 2](docs/adr/0002-langfuse-observability.md)):
+
+```bash
+uv sync --extra observability
+# set LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and the LANGFUSE_INIT_USER_*
+# login in .env (see .env.example), then:
+docker compose --profile observability up -d   # UI on http://localhost:3000
+OPERANT_OBSERVABILITY__BACKEND=langfuse uv run operant discover ...
+```
+
+- One trace per run. The session is the run id, and the trace id is in the
+  `discovery_started` evidence event.
+- Secret values never reach Langfuse: the model only sees `$secret:<name>`.
+- Prompts are sent after exact redaction and PII scrubbing.
+  `OPERANT_OBSERVABILITY__CONTENT=metadata` sends only model, usage and tags.
+- Evals tag their traces and attach a `passed` score and one score per check.
+
+## PII scrubbing (optional)
+
+Text that leaves the process or is stored can be scrubbed locally with
+Presidio ([ADR 7](docs/adr/0007-local-pii-scrubbing-presidio.md)):
+
+```bash
+uv sync --extra privacy
+# the spaCy model (about 500 MB); OPERANT_PRIVACY__SPACY_MODEL picks another
+uv pip install "en_core_web_lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl"
+uv run operant doctor   # reports whether the scrubber is ready
+```
+
+- `OPERANT_PRIVACY__SCRUBBER=auto` (default) uses Presidio when installed.
+- Names, card numbers, IBANs, SSNs, emails and phone numbers become
+  placeholders such as `<PERSON>`.
+- The model that drives the screen is never scrubbed: it must read real
+  labels to click the right control.
+- `OPERANT_PRIVACY__EVIDENCE=scrubbed` also scrubs the evidence log
+  (slower).
 
 ## Useful commands
 

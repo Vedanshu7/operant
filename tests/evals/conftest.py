@@ -14,6 +14,7 @@ every trial is appended to ``state/evals/<session>.jsonl``.
 from __future__ import annotations
 
 import collections
+import collections.abc
 import os
 import pathlib
 from typing import Any, Dict, List, Tuple
@@ -22,6 +23,8 @@ import litellm
 import pytest
 
 import operant.adapters.llm.litellm_client as litecli
+import operant.adapters.observability.factory as aofactor
+import operant.adapters.privacy.factory as apfactor
 import operant.adapters.secrets.env as env
 import operant.infra.settings as settings
 import operant.ports.llm as plllm
@@ -68,6 +71,29 @@ def real_llm() -> plllm.LlmClient:
 @pytest.fixture(scope="session")
 def secret_store() -> pssecret.SecretStore:
     return env.EnvSecretStore({})
+
+
+@pytest.fixture(scope="session")
+def eval_env(
+    real_llm: plllm.LlmClient, secret_store: pssecret.SecretStore
+) -> collections.abc.Iterator[harness.EvalEnv]:
+    """
+    Bundle the model, tracer and scrubber every trial runs with.
+
+    Traces go to Langfuse when
+    ``OPERANT_OBSERVABILITY__BACKEND=langfuse``; the scrubber follows
+    ``OPERANT_PRIVACY__*`` (Presidio when installed).
+    """
+    loaded = settings.OperantSettings.load()
+    tracer = aofactor.tracer(loaded.observability)
+    bundle = harness.EvalEnv(
+        llm=real_llm,
+        secret_store=secret_store,
+        tracer=tracer,
+        scrubber=apfactor.scrubber(loaded.privacy),
+    )
+    yield bundle
+    tracer.flush()
 
 
 def pytest_terminal_summary(terminalreporter: Any) -> None:

@@ -317,6 +317,29 @@ class PrivacySettings(pydantic.BaseModel):
 
 
 # #############################################################################
+# ObservabilitySettings
+# #############################################################################
+
+
+class ObservabilitySettings(pydantic.BaseModel):
+    """
+    Where model calls are traced.
+
+    Langfuse keys come from ``LANGFUSE_PUBLIC_KEY`` and
+    ``LANGFUSE_SECRET_KEY``.
+
+    :ivar backend:``"none"`` or ``"langfuse"``.
+    :ivar host: The Langfuse base URL (self-hosted by default).
+    :ivar content:``"scrubbed"`` sends prompts after exact redaction and
+        PII scrubbing; ``"metadata"`` sends model, usage and tags only.
+    """
+
+    backend: Literal["none", "langfuse"] = "none"
+    host: str = "http://localhost:3000"
+    content: Literal["scrubbed", "metadata"] = "scrubbed"
+
+
+# #############################################################################
 # OperantSettings
 # #############################################################################
 
@@ -342,6 +365,7 @@ class OperantSettings(pydantic_settings.BaseSettings):
     browser: BrowserSettings = BrowserSettings()
     secrets: SecretsSettings = SecretsSettings()
     privacy: PrivacySettings = PrivacySettings()
+    observability: ObservabilitySettings = ObservabilitySettings()
     log_level: str = "INFO"
     legacy_sources: List[str] = []
 
