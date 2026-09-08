@@ -12,6 +12,7 @@ import operant.application.discovery.agents.consult as daconsul
 from __future__ import annotations
 
 import json
+import time
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import operant.application.discovery.agents.prompts as daprompt
@@ -71,21 +72,25 @@ def ask(
         scrubber=None,
     )
     answer: Optional[Dict[str, Any]] = None
-    try:
-        with session.deps.tracer.generation(
-            session.trace_context(role, turn),
-            model=session.deps.role_models.get(role, session.deps.model_name),
-            prompt=traced,
-        ) as generation:
-            reply = client.complete(messages, tools=tools)
-            generation.finish(reply, output=dsobserv.turn_output(reply))
-        wanted = {tool.name for tool in tools}
-        call = next((c for c in reply.tool_calls if c.name in wanted), None)
-        answer = _parse(call.arguments) if call is not None else None
-    # A failed role call degrades the run (fallback plan, no verdict); it
-    # never crashes it.
-    except errors.LlmError:
-        answer = None
+    for attempt in range(max(1, session.deps.llm_retries)):
+        try:
+            with session.deps.tracer.generation(
+                session.trace_context(role, turn),
+                model=session.deps.role_models.get(role, session.deps.model_name),
+                prompt=traced,
+            ) as generation:
+                reply = client.complete(messages, tools=tools)
+                generation.finish(reply, output=dsobserv.turn_output(reply))
+            wanted = {tool.name for tool in tools}
+            call = next((c for c in reply.tool_calls if c.name in wanted), None)
+            answer = _parse(call.arguments) if call is not None else None
+            break
+        # A failed role call degrades the run (fallback plan, no verdict);
+        # it never crashes it. Retryable errors (rate limits) back off.
+        except errors.LlmError as err:
+            if not err.retryable:
+                break
+            time.sleep(session.deps.retry_base_delay_s * (attempt + 1))
     return answer
 
 

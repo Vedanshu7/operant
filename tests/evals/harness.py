@@ -536,7 +536,9 @@ def run_scenario(
         llm=recording,
         secret_store=env.secret_store,
         model_name="eval",
-        retry_base_delay_s=0.0,
+        # Live runs back off on rate limits; scripted tests never wait.
+        llm_retries=int(os.environ.get("OPERANT_EVAL_LLM_RETRIES", "3")),
+        retry_base_delay_s=float(os.environ.get("OPERANT_EVAL_RETRY_DELAY", "0")),
         window_budget=window_budget or dswindow.WindowBudget(),
         tracer=tracer,
         scrubber=env.scrubber,
