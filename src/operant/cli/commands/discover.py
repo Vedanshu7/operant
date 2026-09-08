@@ -56,10 +56,9 @@ def register(app: typer.Typer) -> None:
         """
         deps: cddeps.CliDeps = ctx.obj
         try:
-            llm = litecli.LiteLlmClient(deps.settings.discovery)
+            clients = litecli.build_clients(deps.settings.discovery)
             tracer = aofactor.tracer(deps.settings.observability)
             scrubber = apfactor.scrubber(deps.settings.privacy)
-            roles, role_models = litecli.role_clients(deps.settings.discovery)
         except errors.ConfigError as err:
             typer.echo(f"  {err}", err=True)
             raise typer.Exit(1) from err
@@ -80,19 +79,17 @@ def register(app: typer.Typer) -> None:
             artifacts=deps.artifacts,
             graphs=deps.graphs,
             profiles=deps.profiles,
-            llm=llm,
+            llm=clients.executor,
             secret_store=deps.secret_store,
-            model_name=deps.settings.discovery.model or "",
+            model_name=clients.models["executor"],
             clarifier=tty.TtyClarifier(),
             approver=_approver(deps),
             credential_requester=tty.TtyCredentialRequester(),
-            token_counter=litecli.LiteLlmTokenCounter(
-                deps.settings.discovery.model or ""
-            ),
+            token_counter=litecli.LiteLlmTokenCounter(clients.models["executor"]),
             tracer=tracer,
             scrubber=scrubber,
-            role_llms=roles,
-            role_models=role_models,
+            role_llms=clients.roles,
+            role_models=clients.models,
         )
         _report(outcome)
 

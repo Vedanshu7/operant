@@ -1,0 +1,33 @@
+# litellm Router config for discovery: one model group per agent role.
+# Point OPERANT_DISCOVERY__ROUTER_CONFIG at this file to use it.
+#
+# Groups: executor (drives the screen), planner (splits the goal),
+# reviewer (verifier panel, extract helper, recording reviews). A role whose
+# group is missing uses executor. Keys come from the environment
+# (os.environ/NAME) - never write a key in this file.
+# Reference: https://docs.litellm.ai/docs/routing
+
+model_list:
+  - model_name: executor
+    litellm_params:
+      model: anthropic/claude-haiku-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 60
+
+  - model_name: planner
+    litellm_params:
+      model: anthropic/claude-haiku-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 60
+
+  - model_name: reviewer
+    litellm_params:
+      model: anthropic/claude-haiku-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+      timeout: 60
+
+router_settings:
+  # The discovery loop also retries; keep the Router's own retries small.
+  num_retries: 2
+  timeout: 60
+  retry_after: 5

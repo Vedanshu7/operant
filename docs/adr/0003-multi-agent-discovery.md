@@ -97,6 +97,10 @@ and better on multi-step tasks. The cost difference is reported with it.
 - Regex candidates are only drawn when the executor's own pattern misses.
 - The executor gains one tool, `subgoal_done`; `goal_complete` is
   verified before it finishes.
+- Models per role come from a litellm Router config (`router.yml`,
+  `OPERANT_DISCOVERY__ROUTER_CONFIG`): one model group per role
+  (`executor`, `planner`, `reviewer`) with timeouts, retries and
+  fallbacks. Without it, `__PLANNER_MODEL` and `__VERIFIER_MODEL` apply.
 - Settings: `OPERANT_DISCOVERY__AGENTS`, `__PLANNER_MODEL`,
   `__VERIFIER_MODEL`, `__MAX_REPLANS`, `__MAX_REJECTIONS_PER_SUBGOAL`,
   `__STALL_TURNS`, `__PLANNER_SAMPLES`, `__EXTRACT_CANDIDATES`,

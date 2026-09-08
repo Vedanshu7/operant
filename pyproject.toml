@@ -65,6 +65,7 @@ dev = [
     "pydocstyle",
     "pylint",
     "pyment",
+    "pillow>=12.3.0",
 ]
 
 [build-system]

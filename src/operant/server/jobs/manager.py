@@ -448,28 +448,25 @@ class RunManager:
             lambda status: self._set_status(handle, status),
             timeout_s=self._settings.approval.clarification_timeout_s,
         )
-        llm = litecli.LiteLlmClient(self._settings.discovery)
-        roles, role_models = litecli.role_clients(self._settings.discovery)
+        clients = litecli.build_clients(self._settings.discovery)
         outcome = discover.execute_discovery(
             request,
             factory=self._factory,
             artifacts=self._artifacts,
             graphs=self._graphs,
             profiles=self._profiles,
-            llm=llm,
+            llm=clients.executor,
             secret_store=self._secret_store,
-            model_name=self._settings.discovery.model or "",
+            model_name=clients.models["executor"],
             clarifier=clarifier,
             approver=approver,
             credential_requester=credentials,
             run_identifier=handle.run_id,
-            token_counter=litecli.LiteLlmTokenCounter(
-                self._settings.discovery.model or ""
-            ),
+            token_counter=litecli.LiteLlmTokenCounter(clients.models["executor"]),
             tracer=aofactor.tracer(self._settings.observability),
             scrubber=apfactor.scrubber(self._settings.privacy),
-            role_llms=roles,
-            role_models=role_models,
+            role_llms=clients.roles,
+            role_models=clients.models,
             on_context=lambda ctx: self._wire(handle, ctx),
         )
         self._finish_discovery(handle, outcome)

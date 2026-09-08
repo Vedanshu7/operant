@@ -116,8 +116,10 @@ def main() -> int:
         return 1
     out = _ROOT / "state" / "gepa" / time.strftime("%Y%m%d-%H%M%S")
     out.mkdir(parents=True, exist_ok=True)
+    clients = litecli.build_clients(loaded.discovery)
     eval_env = harness.EvalEnv(
-        llm=litecli.LiteLlmClient(loaded.discovery),
+        llm=clients.executor,
+        role_llms=dict(clients.roles),
         secret_store=env.EnvSecretStore({}),
         tracer=aofactor.tracer(loaded.observability),
         scrubber=apfactor.scrubber(loaded.privacy),

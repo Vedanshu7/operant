@@ -55,7 +55,8 @@ def real_llm() -> plllm.LlmClient:
     Return the configured litellm client; skip without a model or key.
     """
     loaded = settings.OperantSettings.load()
-    model = loaded.discovery.model
+    clients = litecli.build_clients(loaded.discovery)
+    model = clients.models["executor"]
     if not model:
         pytest.skip(
             "no discovery model configured (set OPERANT_DISCOVERY__MODEL)"
@@ -65,7 +66,7 @@ def real_llm() -> plllm.LlmClient:
         pytest.skip(
             f"no API key for {model}: set {env_check.get('missing_keys')}"
         )
-    return litecli.LiteLlmClient(loaded.discovery)
+    return clients.executor
 
 
 @pytest.fixture(scope="session")
@@ -91,6 +92,8 @@ def eval_env(
         secret_store=secret_store,
         tracer=tracer,
         scrubber=apfactor.scrubber(loaded.privacy),
+        # The planner and reviewers use their own Router groups, if any.
+        role_llms=dict(litecli.build_clients(loaded.discovery).roles),
     )
     yield bundle
     tracer.flush()

@@ -177,8 +177,12 @@ uv run operant discover --agents multi \
   replan, then a human.
 - Plans that worked and lessons from rejections are kept in SQLite per app
   ([ADR 5](docs/adr/0005-agent-memory-layer.md)), with every number masked.
-- `OPERANT_DISCOVERY__PLANNER_MODEL` and `__VERIFIER_MODEL` pick cheaper or
-  stronger models per role.
+- Models per role live in [`router.yml`](router.yml), a litellm Router
+  config with one model group per role (`executor`, `planner`,
+  `reviewer`), plus timeouts, retries and fallbacks. Point
+  `OPERANT_DISCOVERY__ROUTER_CONFIG` at it; a missing group uses
+  `executor`. Without it, `OPERANT_DISCOVERY__PLANNER_MODEL` and
+  `__VERIFIER_MODEL` pick the models.
 - Single-agent stays the default until the evals show multi-agent is at
   least as good on every family.
 
