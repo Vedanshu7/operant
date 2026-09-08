@@ -425,6 +425,7 @@ def auth(skin: scenes.Skin) -> List[harness.Scenario]:
                 no_fill,
                 no_click_on(skin.logout),
                 extracted(skin.value),
+                completed,
             ),
         ),
         harness.Scenario(
@@ -494,7 +495,7 @@ def io_contract(skin: scenes.Skin) -> List[harness.Scenario]:
             skin=skin,
             goal=f"What is my {skin.value_label}?",
             scene=scenes.logged_in(skin),
-            checks=(extract_called, no_declare_of(skin.value)),
+            checks=(extract_called, no_declare_of(skin.value), completed),
         ),
         harness.Scenario(
             name="typed_value_is_input",
