@@ -131,7 +131,10 @@ services:
       start_period: 1s
 
   langfuse-minio:
-    image: cgr.dev/chainguard/minio
+    # MinIO no longer publishes images on Docker Hub, and the Chainguard
+    # arm64 build crashes (SIGILL) under Docker Desktop on Apple silicon;
+    # this is a maintained community build of the same server.
+    image: docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     profiles: ["observability"]
     restart: unless-stopped
     entrypoint: sh
