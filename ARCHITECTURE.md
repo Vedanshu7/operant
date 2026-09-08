@@ -74,9 +74,10 @@ env/Keychain source, out of the model's sight (the web UI has a credential
 card). The trusted process swaps the placeholder for the real value at the
 moment of filling, and the value is never written to a log or an artifact.
 
-## Planned: multi-agent discovery and fan-out
+## Multi-agent discovery and fan-out
 
-Not built yet. See [ADR 3](docs/adr/0003-multi-agent-discovery.md).
+Optional (`--agents multi`). See
+[ADR 3](docs/adr/0003-multi-agent-discovery.md).
 
 - A plain-code coordinator runs three roles in turn: a planner splits the
   goal into subgoals, an executor (today's loop) acts on one subgoal at a
@@ -139,11 +140,15 @@ the host.
   events.
 - The `operant audit` command cross-checks the two so they cannot drift apart
   without being noticed.
-- Planned: eval results in `state/evals/` and prompt optimization runs in
+- Eval results go to `state/evals/` and prompt optimization runs to
   `state/gepa/` ([ADR 1](docs/adr/0001-eval-harness-and-trials.md),
   [ADR 4](docs/adr/0004-gepa-prompt-optimization.md)).
-- Planned: plan and lesson memory as new SQLite tables
+- Plan and lesson memory live in SQLite (`plan_memory`, `lessons`), with
+  numbers masked; `operant audit` checks they hold no values
   ([ADR 5](docs/adr/0005-agent-memory-layer.md)).
+- Each model call sends a bounded window of the history: the newest
+  screenshot and the last few full screens, within a per-model token
+  budget ([ADR 6](docs/adr/0006-context-layer.md)).
 
 ## The web server and threads
 

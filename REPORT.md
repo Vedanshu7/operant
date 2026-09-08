@@ -162,9 +162,12 @@ Safety is enforced at the actuation boundary and around secrets.
   `OPERANT_RUN_LLM_EVALS=1`) drives discovery against the real model over
   synthetic screens and asserts on the tool-call trace: credentials go
   through `request_secret`, and an already-logged-in screen is not
-  re-authenticated (with and without a recognized state). Three scenarios
-  exist today. A stronger harness with repeated trials and wider coverage is
-  proposed in [ADR 1](docs/adr/0001-eval-harness-and-trials.md).
+  re-authenticated, credentials are never typed or asked for in the open,
+  a missing target is asked for rather than invented, read values are
+  outputs, mutations are approved and denials not retried. Every action
+  passes the real policy gate; each scenario runs over three app skins,
+  both agent modes, and several trials against a pass rate
+  ([ADR 1](docs/adr/0001-eval-harness-and-trials.md)).
 
 ## 7. Cuts
 
@@ -181,13 +184,11 @@ Deliberately out of scope, with the reasoning:
 - **Distributed / off-host driver** - the driver runs on the same host as the
   UI target because macOS grants permissions per launching app; a remote
   driver is a documented extension.
-- **Tracing** - a Jaeger profile exists in compose, but OpenTelemetry export is
-  not wired; the JSONL evidence log is the run record. Model tracing with
-  self-hosted Langfuse is proposed in
-  [ADR 2](docs/adr/0002-langfuse-observability.md).
-- **Multi-agent discovery** - discovery is one agent today. A planner,
-  executor, and verifier design, with memory, a context budget, and local
-  PII scrubbing, is proposed in [ADR 3](docs/adr/0003-multi-agent-discovery.md),
-  [ADR 5](docs/adr/0005-agent-memory-layer.md),
-  [ADR 6](docs/adr/0006-context-layer.md), and
-  [ADR 7](docs/adr/0007-local-pii-scrubbing-presidio.md). Not built yet.
+- **Tracing by default** - model tracing to self-hosted Langfuse is opt-in
+  ([ADR 2](docs/adr/0002-langfuse-observability.md)); the JSONL evidence
+  log stays the run record.
+- **Multi-agent by default** - a planner, executor, and verifier panel with
+  memory exist behind `--agents multi`
+  ([ADR 3](docs/adr/0003-multi-agent-discovery.md),
+  [ADR 5](docs/adr/0005-agent-memory-layer.md)); single-agent stays the
+  default until the evals show multi-agent is at least as good.

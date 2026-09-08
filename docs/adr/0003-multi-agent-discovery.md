@@ -1,6 +1,6 @@
 # 3. Multi-agent discovery with fan-out
 
-Status: Proposed
+Status: Accepted (implemented)
 
 ## Context
 
@@ -84,3 +84,20 @@ and better on multi-step tasks. The cost difference is reported with it.
 - Parallel executors. Rejected: there is one screen and one driver.
 - Stay single-agent and add only a verifier call. Still possible: the
   `single` mode stays, and the evals decide.
+
+## Implementation notes
+
+- Code: `application/discovery/team.py` (coordinator),
+  `blackboard.py`, `agents/` (planner, verifier panel, reviewers, prompts),
+  and `application/fanout.py`.
+- The planner has one tool, `submit_plan`. A missing target is left for
+  the executor to ask about, so only the executor talks to people.
+- The verifier panel is an outputs checker and a safety auditor (model
+  calls, in parallel) plus a leak audit in plain code.
+- Regex candidates are only drawn when the executor's own pattern misses.
+- The executor gains one tool, `subgoal_done`; `goal_complete` is
+  verified before it finishes.
+- Settings: `OPERANT_DISCOVERY__AGENTS`, `__PLANNER_MODEL`,
+  `__VERIFIER_MODEL`, `__MAX_REPLANS`, `__MAX_REJECTIONS_PER_SUBGOAL`,
+  `__STALL_TURNS`, `__PLANNER_SAMPLES`, `__EXTRACT_CANDIDATES`,
+  `__FANOUT_WORKERS`, `__COMPILE_REVIEW`. CLI: `operant discover --agents`.

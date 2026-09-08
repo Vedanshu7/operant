@@ -1,6 +1,6 @@
 # 5. Agent memory layer
 
-Status: Proposed
+Status: Accepted (implemented)
 
 ## Context
 
@@ -73,3 +73,17 @@ Two layers: a blackboard for each run and a store that lasts across runs.
   same port.
 - A managed memory service such as Mem0. Rejected: memory would leave the
   process, and redaction and scoping become hard to prove.
+
+## Implementation notes
+
+- Code: `application/memory.py`, `ports/memory.py`,
+  `infra/repositories/memory.py`, migration `0002_agent_memory`.
+- Memory is used by multi-agent runs only (`OPERANT_DISCOVERY__MEMORY`).
+- Numbers and amounts are masked as `<n>` before storage, on top of
+  redaction and scrubbing, so goals and plans keep no record ids.
+- The audit check is shape-based: evidence logs are already redacted, so
+  it flags any stored text with unmasked numbers or sensitive value
+  shapes (IBAN, SSN, email).
+- History compaction happens per verified subgoal, so it applies to
+  multi-agent runs only; single-agent runs rely on the context layer
+  (ADR 6).

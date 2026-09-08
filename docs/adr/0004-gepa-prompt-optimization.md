@@ -1,6 +1,6 @@
 # 4. GEPA for prompt optimization
 
-Status: Proposed
+Status: Accepted (implemented)
 
 ## Context
 
@@ -50,3 +50,9 @@ Add an opt-in GEPA runner on top of the eval harness.
 - DSPy with GEPA. Rejected: it would mean rewriting the loop as DSPy
   modules.
 - Manual prompt tuning only. Rejected: no measure of improvement.
+
+## Implementation notes
+
+- Adapter: `tests/evals/gepa_adapter.py`. Runner:
+  `scripts/optimize_prompt.py` (`--mode`, `--budget`,
+  `--reflection-model`). Optional extra: `optimize`.

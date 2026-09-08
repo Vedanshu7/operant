@@ -1,6 +1,6 @@
 # 2. Langfuse for model observability
 
-Status: Proposed
+Status: Accepted (implemented)
 
 ## Context
 
@@ -59,3 +59,13 @@ Use Langfuse, self-hosted, as the model observability backend.
   local.
 - Wire OpenTelemetry to the existing Jaeger stub. Rejected: Jaeger shows
   spans, not prompts, tokens, cost, or eval scores.
+
+## Implementation notes
+
+- The `LlmClient` port is unchanged. A separate `Tracer` port
+  (`ports/tracing.py`) wraps each model call in the loop, which owns the
+  run's redactor, so it can redact and scrub before anything is traced.
+  Adapter: `adapters/observability/langfuse_tracer.py` (Langfuse SDK v5).
+- Settings: `OPERANT_OBSERVABILITY__BACKEND` (`none`/`langfuse`),
+  `__HOST`, `__CONTENT` (`scrubbed`/`metadata`).
+- Optional extra: `observability`.

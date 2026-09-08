@@ -1,6 +1,6 @@
 # 7. Local PII scrubbing with Presidio
 
-Status: Proposed
+Status: Accepted (implemented)
 
 ## Context
 
@@ -60,3 +60,13 @@ the right control. It still never sees secret values.
 - Regex only. Rejected: misses names and addresses.
 - A cloud DLP service. Rejected: the text would leave the machine to be
   scrubbed.
+
+## Implementation notes
+
+- Code: `ports/privacy.py`, `adapters/privacy/` (Presidio, no-op,
+  factory). Optional extra: `privacy`; the spaCy model is installed
+  separately (see the README) or via the Docker build args.
+- Evidence scrubbing scrubs string values after exact redaction, never the
+  JSON text, so a match cannot break the structure.
+- The small spaCy model masks some UI labels as `<PERSON>`; this is why
+  the executor is never scrubbed.

@@ -15,7 +15,7 @@ More reading:
   headings.
 - [docs/conventions.md](docs/conventions.md): the coding standard the
   linter enforces.
-- [docs/adr/](docs/adr/): design decisions. All are proposed, not built yet:
+- [docs/adr/](docs/adr/): design decisions, each with implementation notes:
   - [0001](docs/adr/0001-eval-harness-and-trials.md): eval harness and
     repeated trials.
   - [0002](docs/adr/0002-langfuse-observability.md): Langfuse for model
@@ -157,6 +157,44 @@ cd web && pnpm dev                               # terminal 3 (dev only): the UI
 
 Open the UI, paste the token from `state/server-token` (or your
 `OPERANT_SERVER__AUTH_TOKEN`), and start a run.
+
+## Multi-agent discovery (optional)
+
+`--agents multi` (or `OPERANT_DISCOVERY__AGENTS=multi`) runs a planner, the
+usual executor, and a verifier panel
+([ADR 3](docs/adr/0003-multi-agent-discovery.md)):
+
+```bash
+uv run operant discover --agents multi \
+  --goal "Log in and read the current balance of the first account" \
+  --profile parabank --tenant tenant-b --capability savings-balance
+```
+
+- The planner splits the goal into subgoals; only the executor touches the
+  screen.
+- The verifier panel checks each subgoal against the screen before the
+  run moves on. Repeated rejections, a give-up, or a stall trigger a
+  replan, then a human.
+- Plans that worked and lessons from rejections are kept in SQLite per app
+  ([ADR 5](docs/adr/0005-agent-memory-layer.md)), with every number masked.
+- `OPERANT_DISCOVERY__PLANNER_MODEL` and `__VERIFIER_MODEL` pick cheaper or
+  stronger models per role.
+- Single-agent stays the default until the evals show multi-agent is at
+  least as good on every family.
+
+## Prompt optimization (optional)
+
+GEPA tunes the prompts against the eval scenarios
+([ADR 4](docs/adr/0004-gepa-prompt-optimization.md)):
+
+```bash
+uv sync --extra optimize
+uv run python scripts/optimize_prompt.py --mode single --budget 150
+```
+
+It writes the best prompts, a diff, and validation scores to
+`state/gepa/<time>/`. It never edits source: review `diff.patch`, apply it,
+and re-run the evals.
 
 ## Model tracing (optional)
 

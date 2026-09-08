@@ -1,6 +1,6 @@
 # 6. Context layer for model calls
 
-Status: Proposed
+Status: Accepted (implemented)
 
 ## Context
 
@@ -52,3 +52,12 @@ history stays complete as the record. Only what is sent changes.
   is not deterministic.
 - Keep everything and raise `max_turns`. Rejected: cost grows with every
   turn.
+
+## Implementation notes
+
+- Code: `application/discovery/window.py` (the name `ContextBuilder` was
+  already taken by the run-context factory). Token counting:
+  `adapters/llm/litellm_client.py:LiteLlmTokenCounter`, behind the
+  `TokenCounter` port, with a length estimate as the fallback.
+- `context_compacted` is logged only when the budget forces fewer full
+  digests than configured, not on every turn.

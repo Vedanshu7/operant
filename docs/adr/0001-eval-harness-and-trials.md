@@ -1,6 +1,6 @@
 # 1. Eval harness and repeated trials
 
-Status: Proposed
+Status: Accepted (implemented)
 
 ## Context
 
@@ -82,3 +82,17 @@ Scenarios:
   non-deterministic model cannot catch a regression reliably.
 - Record and replay model responses. Rejected for evals: it tests the
   recording, not the current prompt. It is still useful for unit tests.
+
+## Implementation notes
+
+- Code: `tests/evals/` (`harness.py`, `scenes.py`, `catalog.py`, one test
+  file per family). Self-tests: `tests/unit/evals/`.
+- Every scenario also runs in both agent modes (`OPERANT_EVAL_MODES`,
+  default `single,multi`), so the multi-agent decision gate (ADR 3) reads
+  straight from the summary table.
+- A global check fails any trial whose traced text holds a person's name
+  while a PII scrubber is configured (ADR 7).
+- The read-only scenarios also require `goal_complete`: an early live run
+  looped on `extract` until the turn budget and still passed.
+- The first live run showed the model batching several tool calls in one
+  turn; `one_call_per_turn` catches it.
