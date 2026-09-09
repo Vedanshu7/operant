@@ -40,6 +40,7 @@ export function GoalForm(): ReactElement {
   const [rows, setRows] = useState<InputRow[]>([]);
   const [screenshots, setScreenshots] = useState(true);
   const [capture, setCapture] = useState(false);
+  const [agents, setAgents] = useState<"single" | "multi">("single");
   const [replayCapability, setReplayCapability] = useState("");
   const [replayTenant, setReplayTenant] = useState("");
   const [freshSession, setFreshSession] = useState(false);
@@ -70,6 +71,7 @@ export function GoalForm(): ReactElement {
       inputs: rowsToRecord(rows),
       screenshots,
       capture,
+      agents,
     };
     if (capabilityName.trim()) body.name = capabilityName.trim();
     if (tenant) body.tenant = tenant;
@@ -194,6 +196,21 @@ export function GoalForm(): ReactElement {
             hint="Values the agent should use; they become typed capability inputs."
           >
             <InputsEditor rows={rows} onChange={setRows} />
+          </Field>
+          <Field
+            label="Agents"
+            htmlFor="agents"
+            hint="Multi-agent adds a planner and a verifier panel that checks each step."
+          >
+            <select
+              id="agents"
+              className="input"
+              value={agents}
+              onChange={(e) => setAgents(e.target.value as "single" | "multi")}
+            >
+              <option value="single">Single agent</option>
+              <option value="multi">Multi-agent (planner, executor, verifier)</option>
+            </select>
           </Field>
           <div className="flex flex-wrap gap-6 text-sm">
             <label className="inline-flex items-center gap-2">

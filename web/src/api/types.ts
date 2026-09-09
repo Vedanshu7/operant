@@ -277,6 +277,7 @@ export interface DiscoveryRequest {
   inputs: Record<string, string>;
   screenshots?: boolean;
   capture?: boolean;
+  agents?: "single" | "multi";
 }
 
 export interface ReplayRequest {

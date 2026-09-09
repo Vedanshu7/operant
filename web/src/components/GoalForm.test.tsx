@@ -37,7 +37,24 @@ describe("GoalForm", () => {
       inputs: { amount: "25" },
       screenshots: true,
       capture: false,
+      agents: "single",
     });
+  });
+
+  it("multi-agent mode is sent when chosen", async () => {
+    const bodies: DiscoveryRequest[] = [];
+    server.use(
+      http.post("/api/v1/runs/discovery", async ({ request }) => {
+        bodies.push((await request.json()) as DiscoveryRequest);
+        return HttpResponse.json(runFixtures[0]);
+      }),
+    );
+    renderWithProviders(<GoalForm />);
+    await userEvent.type(screen.getByLabelText("Goal"), "Read my balance");
+    await userEvent.selectOptions(screen.getByLabelText("Agents"), "multi");
+    await userEvent.click(screen.getByRole("button", { name: "Start discovery" }));
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]?.agents).toBe("multi");
   });
 
   it("bootstrap profile sends profile_id null", async () => {

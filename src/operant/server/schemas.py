@@ -14,7 +14,7 @@ import operant.server.schemas as schemas
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 import pydantic
 
@@ -41,6 +41,8 @@ class StartDiscoveryBody(pydantic.BaseModel):
     :ivar screenshots: Whether to send the model screenshots.
     :ivar max_turns: Override the turn budget; ``None`` uses the
         default.
+    :ivar agents:``single`` or ``multi`` (planner, executor, verifier);
+        ``None`` uses the configured default.
     """
 
     goal: str
@@ -51,6 +53,7 @@ class StartDiscoveryBody(pydantic.BaseModel):
     inputs: Dict[str, str] = pydantic.Field(default_factory=dict)
     screenshots: bool = True
     max_turns: Optional[int] = None
+    agents: Optional[Literal["single", "multi"]] = None
 
     def to_request(self) -> discover.DiscoverRequest:
         """
@@ -65,6 +68,7 @@ class StartDiscoveryBody(pydantic.BaseModel):
             inputs=dict(self.inputs),
             screenshots=self.screenshots,
             max_turns=self.max_turns,
+            agents=self.agents,
         )
         return request
 
