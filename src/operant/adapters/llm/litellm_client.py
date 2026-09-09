@@ -81,6 +81,11 @@ class LiteLlmClient:
             "messages": [_encode_message(m) for m in messages],
             "tools": [_encode_tool(t) for t in tools],
             "tool_choice": "required",
+            # The loop runs one action per turn; without this, models batch
+            # several calls and every call after the first is discarded.
+            "parallel_tool_calls": False,
+            # Providers without the option ignore it instead of failing.
+            "drop_params": True,
         }
         try:
             if self._router is not None:

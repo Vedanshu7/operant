@@ -94,3 +94,20 @@ def test_the_shipped_router_config_loads() -> None:
         settings.DiscoverySettings(router_config=path)
     )
     assert set(clients.roles) == set(litecli.ROLE_GROUPS) - {"executor"}
+
+
+def test_every_request_asks_for_one_tool_call(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = []
+
+    def fake_completion(**kwargs: object) -> object:
+        seen.append(kwargs)
+        raise RuntimeError("stop")
+
+    monkeypatch.setattr(litecli.litellm, "completion", fake_completion)
+    client = litecli.LiteLlmClient(settings.DiscoverySettings(model="m"))
+    with pytest.raises(errors.LlmError):
+        client.complete([llm.ChatMessage(role="user", content="hi")], tools=[])
+    assert seen[0]["parallel_tool_calls"] is False
+    assert seen[0]["timeout"] == 60.0
