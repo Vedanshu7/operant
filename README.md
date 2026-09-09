@@ -158,6 +158,24 @@ cd web && pnpm dev                               # terminal 3 (dev only): the UI
 Open the UI, paste the token from `state/server-token` (or your
 `OPERANT_SERVER__AUTH_TOKEN`), and start a run.
 
+## Desktop app (Electron)
+
+Operant also runs as a desktop app, so there are no terminals to juggle:
+
+```bash
+cd desktop && pnpm install && pnpm start   # builds the web UI, then opens the app
+```
+
+- The app starts `operant serve` itself, on a free local port with a fresh
+  token each launch, and signs the UI in for you.
+- The server drives the screen in-process, as a child of the app, so macOS
+  asks for Accessibility and Screen Recording for the app instead of your
+  terminal.
+- Quitting the app stops the server. Server output goes to
+  `state/desktop-server.log`.
+- It runs Operant from this checkout with `uv`. A standalone `.dmg` (frozen
+  Python sidecar, signed build) is the next step.
+
 ## Multi-agent discovery (optional)
 
 `--agents multi` (or `OPERANT_DISCOVERY__AGENTS=multi`) runs a planner, the

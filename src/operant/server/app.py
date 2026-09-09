@@ -23,6 +23,9 @@ from typing import Optional
 import fastapi
 import fastapi.middleware.cors as cors
 import fastapi.staticfiles
+import starlette.exceptions
+import starlette.responses
+import starlette.types
 
 import operant.adapters.http.common as common
 import operant.adapters.secrets.factory as sffactor
@@ -109,6 +112,37 @@ def _build_state(
     return state
 
 
+# #############################################################################
+# SpaStaticFiles
+# #############################################################################
+
+
+class SpaStaticFiles(fastapi.staticfiles.StaticFiles):
+    """
+    Serve the built UI, answering client-side routes with ``index.html``.
+
+    The UI routes in the browser (``/login``, ``/runs/<id>``); without
+    this fallback, opening or reloading such a URL returned 404. API
+    paths and missing assets (anything with a file extension) still 404.
+    """
+
+    async def get_response(
+        self, path: str, scope: starlette.types.Scope
+    ) -> starlette.responses.Response:
+        try:
+            response = await super().get_response(path, scope)
+        except starlette.exceptions.HTTPException as err:
+            is_route = (
+                err.status_code == 404
+                and not path.startswith("api/")
+                and "." not in path.rsplit("/", 1)[-1]
+            )
+            if not is_route:
+                raise
+            response = await super().get_response("index.html", scope)
+        return response
+
+
 def create_app(
     settings: issettin.OperantSettings,
     *,
@@ -165,9 +199,7 @@ def create_app(
     if settings.server.static_dir is not None:
         app.mount(
             "/",
-            fastapi.staticfiles.StaticFiles(
-                directory=settings.server.static_dir, html=True
-            ),
+            SpaStaticFiles(directory=settings.server.static_dir, html=True),
             name="ui",
         )
     return app

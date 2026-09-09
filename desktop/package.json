@@ -1,0 +1,23 @@
+{
+  "name": "operant-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Operant as a macOS desktop app: Electron shell around the local server and web UI.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "web": "pnpm --dir ../web build",
+    "dev": "pnpm build && electron .",
+    "start": "pnpm web && pnpm dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "electron": "^37.2.0",
+    "typescript": "^5.6.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
+  }
+}
