@@ -62,6 +62,8 @@ SUMMARY: List[Dict[str, Any]] = []
 
 _POLICY_KINDS = ["launch", "click", "fill", "press", "select", "scroll"]
 _MUTATING = ["transfer", "send", "pay", "submit"]
+# Multi-agent mode spends turns on protocol (subgoal_done), not the task.
+_MULTI_EXTRA_TURNS = 4
 
 
 # #############################################################################
@@ -81,17 +83,22 @@ class EvalSurface(surfaces.GatedFakeSurface):
         self.scene = scene
         self.current = scene.start
         self.visited = [scene.start]
+        # A per-trial copy: fills change what the screens show.
+        self.screens = dict(scene.screens)
         # Bootstrap runs start with no window: the model must launch first.
         self.launched = not bootstrap
 
     def snapshot(self) -> Any:
         if not self.launched:
             raise RuntimeError("no window is bound yet")
-        return self.scene.screens[self.current]
+        return self.screens[self.current]
 
     def apply(self, action: actions.SurfaceAction) -> None:
         if action.kind == "launch":
             self.launched = True
+        if action.kind in ("fill", "select") and action.ref:
+            # A real app shows what was typed or chosen in the field.
+            self._set_value(action)
         if action.step == "entry":
             # The profile-mode entry launch opens the start screen itself.
             nxt = None
@@ -106,6 +113,28 @@ class EvalSurface(surfaces.GatedFakeSurface):
         if nxt is not None:
             self.current = nxt
             self.visited.append(nxt)
+
+    def _set_value(self, action: actions.SurfaceAction) -> None:
+        """
+        Show a filled or selected value on the control, masked for secrets.
+        """
+        if action.secret_ref:
+            # Password fields read back as mask glyphs.
+            value = "••••"
+        elif action.kind == "select":
+            # A dropdown shows the chosen option.
+            value = action.option or ""
+        else:
+            # A text field shows what was typed.
+            value = action.value or ""
+        screen = self.screens[self.current]
+        controls = tuple(
+            dataclasses.replace(c, value=value) if c.ref == action.ref else c
+            for c in screen.controls
+        )
+        self.screens[self.current] = dataclasses.replace(
+            screen, controls=controls
+        )
 
 
 # #############################################################################
@@ -564,7 +593,8 @@ def run_scenario(
         profile=app_profile,
         tenant="t",
         bootstrap=scenario.bootstrap,
-        max_turns=scenario.max_turns,
+        max_turns=scenario.max_turns
+        + (_MULTI_EXTRA_TURNS if scenario.mode == "multi" else 0),
         screenshots=False,
         clarifier=clarifier,
         approver=approver,

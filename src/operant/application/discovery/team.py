@@ -130,6 +130,9 @@ class Team:
             args.get("intent") or args.get("name") or args.get("ref") or ""
         )
         first = (reply or "").splitlines()[0] if reply else ""
+        if tool == "act" and first.startswith("OK"):
+            # A UI action that worked is progress, even before a check.
+            self._board().progress_turn = turn
         self._board().steps.append(
             dsblackb.StepNote(turn=turn, tool=tool, intent=intent, result=first)
         )

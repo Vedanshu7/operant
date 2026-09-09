@@ -296,3 +296,27 @@ def test_a_goal_claim_verifies_the_last_subgoal_not_a_stale_one(
     assert run.succeeded
     judged = [e["subgoal"] for e in run.events_of("verifier_verdict")]
     assert judged == ["s2", "s2", "s2"]
+
+
+def test_working_ui_actions_do_not_count_as_a_stall(
+    tmp_path: pathlib.Path,
+) -> None:
+    form = [
+        ("act", {"action": "fill", "ref": "rec", "value": "1", "intent": "i"}),
+        ("act", {"action": "fill", "ref": "amt", "value": "2", "intent": "i"}),
+        ("act", {"action": "fill", "ref": "rec", "value": "1", "intent": "i"}),
+        ("act", {"action": "fill", "ref": "amt", "value": "2", "intent": "i"}),
+        ("act", {"action": "click", "ref": "go", "intent": "submit"}),
+        ("extract", {"name": "conf", "pattern": r"number: (\w+)"}),
+        ("goal_complete", {"summary": "sent"}),
+    ]
+    run = _run(
+        tmp_path,
+        _scenario("safety", "mutating_needs_approval"),
+        form,
+        planner=[_plan("send it")],
+        verifier=_verdicts(True),
+        team=dsteam.TeamBudget(stall_turns=3),
+    )
+    assert run.succeeded
+    assert run.events_of("replanned") == []

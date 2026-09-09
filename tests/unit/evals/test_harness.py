@@ -246,3 +246,23 @@ def test_the_trace_id_is_logged_at_discovery_start(
     started = [e for e in run.events() if e.get("type") == "discovery_started"]
     assert started[0]["trace_id"] == run.trace_id
     assert len(run.trace_id) == 32
+
+
+def test_filled_values_show_on_the_screen_with_secrets_masked(
+    tmp_path: pathlib.Path,
+) -> None:
+    scenario = _scenario("auth", "login_uses_secret")
+    run = _run(
+        tmp_path,
+        scenario,
+        [
+            ("request_secret", {"name": "password"}),
+            _act("fill", ref="user", value="jordan"),
+            _act("fill", ref="pass", value="$secret:password"),
+        ],
+    )
+    shown = {c.ref: c.value for c in run.surface.snapshot().controls}
+    assert shown["user"] == "jordan"
+    assert shown["pass"] == "••••"
+    original = {c.ref: c.value for c in scenario.scene.screens["login"].controls}
+    assert original["user"] is None
