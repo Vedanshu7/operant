@@ -107,6 +107,11 @@ trials, because the model is not deterministic:
 - Every trial is appended to `state/evals/<session>.jsonl`, and the run
   ends with a pass-rate table per scenario.
 - The harness itself is tested in the normal suite with a scripted model.
+- Each trial is also scored against a minimal reference trajectory
+  (in-order recall, precision, efficiency), and in multi-agent mode the
+  verifier's verdicts are labelled true or false accepts and rejects.
+- `uv run python scripts/eval_report.py --set before=<jsonl> --set
+  after=<jsonl>` prints the comparison tables.
 
 ## Demo path: discover then replay
 

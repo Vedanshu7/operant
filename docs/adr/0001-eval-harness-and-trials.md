@@ -96,3 +96,13 @@ Scenarios:
   looped on `extract` until the turn budget and still passed.
 - The first live run showed the model batching several tool calls in one
   turn; `one_call_per_turn` catches it.
+- Trajectory metrics (`tests/evals/trajectory.py`) score how a run got
+  there, not only whether it passed. Each scenario has a minimal reference
+  trajectory; every trial records in-order recall, precision, efficiency
+  (reference steps / steps taken) and whether all reference steps came in
+  order. In multi-agent mode, each verifier verdict on a `goal_complete`
+  claim is labelled a true or false accept or reject against the window it
+  was made on. These are metrics, not checks, so pass rates stay
+  comparable across runs. They are also sent to Langfuse as `traj:*`
+  scores.
+- `scripts/eval_report.py` turns result files into the README tables.
