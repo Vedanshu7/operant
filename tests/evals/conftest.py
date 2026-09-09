@@ -30,6 +30,7 @@ import operant.infra.settings as settings
 import operant.ports.llm as plllm
 import operant.ports.secrets as pssecret
 import tests.evals.harness as harness
+import tests.evals.trajectory as trajecto
 
 _ENABLE = "OPERANT_RUN_LLM_EVALS"
 
@@ -114,14 +115,23 @@ def pytest_terminal_summary(terminalreporter: Any) -> None:
     write("")
     write(
         f"{'family':<10} {'scenario':<26} {'mode':<7} {'pass':>7} "
-        f"{'turns':>6} {'tokens':>8}"
+        f"{'turns':>6} {'tokens':>8} {'effic':>6}"
     )
     for (family, scenario, mode), rows in sorted(groups.items()):
         passed = sum(1 for r in rows if r["passed"])
         turns = sum(r["turns"] for r in rows) / len(rows)
         tokens = sum(r["tokens_in"] + r["tokens_out"] for r in rows) / len(rows)
+        efficiency = trajecto.summarize(rows)["efficiency"]
         write(
             f"{family:<10} {scenario:<26} {mode:<7} {passed:>3}/{len(rows):<3} "
-            f"{turns:>6.1f} {tokens:>8.0f}"
+            f"{turns:>6.1f} {tokens:>8.0f} {efficiency:>6.2f}"
         )
+    verifier = trajecto.summarize(harness.SUMMARY)
+    write(
+        "verifier (goal claims): "
+        f"{verifier['true_accept']:.0f} true accept, "
+        f"{verifier['false_accept']:.0f} false accept, "
+        f"{verifier['true_reject']:.0f} true reject, "
+        f"{verifier['false_reject']:.0f} false reject"
+    )
     write(f"results: {harness.RESULTS_DIR / (harness.SESSION + '.jsonl')}")

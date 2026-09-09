@@ -148,9 +148,9 @@ class Team:
                 "Every subgoal is already verified - call goal_complete."
             )
         else:
-            outcome = self._verify(str(args.get("summary", "")), turn) or (
-                tools.ToolOutcome(self._advanced_reply())
-            )
+            outcome = self._verify(
+                str(args.get("summary", "")), turn, claim="subgoal"
+            ) or (tools.ToolOutcome(self._advanced_reply()))
         return outcome
 
     def on_goal_complete(
@@ -161,7 +161,7 @@ class Team:
         """
         board = self._board()
         rejected = (
-            self._verify(str(args.get("summary", "")), turn)
+            self._verify(str(args.get("summary", "")), turn, claim="goal")
             if board.current is not None
             else None
         )
@@ -321,11 +321,20 @@ class Team:
 
     # ── verification ───────────────────────────────────────────────────
 
-    def _verify(self, summary: str, turn: int) -> Optional[tools.ToolOutcome]:
+    def _verify(
+        self, summary: str, turn: int, *, claim: str
+    ) -> Optional[tools.ToolOutcome]:
         """
         Run the panel; return a rejection reply, or advance and return ``None``
         when every member passes.
+
+        :param summary: The executor's summary of what it achieved.
+        :param turn: The executor turn of the claim.
+        :param claim:``subgoal`` or ``goal`` - which tool made the claim,
+            logged so evals can score the verifier against the screen.
         """
+        screen = self._session.state.screen
+        window = screen.window_title if screen is not None else ""
         board = self._board()
         subgoal = board.current
         if subgoal is None:
@@ -338,6 +347,8 @@ class Team:
                     passed=verdict.passed,
                     reason=verdict.reason,
                     reviewer=verdict.reviewer,
+                    claim=claim,
+                    window=window,
                     summary=(
                         f"{verdict.reviewer}: {subgoal.id} "
                         f"{'passed' if verdict.passed else 'rejected'}"

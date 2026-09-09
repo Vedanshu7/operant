@@ -51,6 +51,7 @@ import operant.ports.privacy as ppprivac
 import operant.ports.secrets as pssecret
 import operant.ports.tracing as pttracin
 import tests.evals.scenes as scenes
+import tests.evals.trajectory as trajecto
 import tests.support.ports as ports
 import tests.support.surfaces as surfaces
 
@@ -644,6 +645,8 @@ def _row(
         "tokens_out": tokens_out,
         "result_class": result_class,
         "trace_id": run.trace_id,
+        "trajectory": trajecto.metrics(run),
+        "verifier": trajecto.verifier_confusion(run),
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
     return row
@@ -677,6 +680,11 @@ def _post_scores(run: EvalRun, scored: Dict[str, List[str]]) -> None:
             value=0.0 if fs else 1.0,
             comment="; ".join(fs),
         )
+    for name, value in (trajecto.metrics(run) or {}).items():
+        if name in ("recall", "precision", "efficiency", "in_order"):
+            run.tracer.score(
+                trace_id=run.trace_id, name=f"traj:{name}", value=value
+            )
 
 
 def run_trials(

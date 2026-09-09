@@ -757,6 +757,9 @@ class VerifierVerdict(BaseEvent):
     :ivar passed: Whether it judged the subgoal achieved.
     :ivar reason: Its one-sentence reason.
     :ivar reviewer: Which panel member decided.
+    :ivar claim:``subgoal`` (``subgoal_done``) or ``goal``
+        (``goal_complete``).
+    :ivar window: The window title the verdict was made on.
     """
 
     type: Literal["verifier_verdict"] = "verifier_verdict"
@@ -764,6 +767,8 @@ class VerifierVerdict(BaseEvent):
     passed: bool
     reason: str = ""
     reviewer: str = "verifier"
+    claim: str = "subgoal"
+    window: str = ""
 
 
 # #############################################################################
