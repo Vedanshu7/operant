@@ -176,7 +176,23 @@ def handle_clarify(
     Route the agent's question to the clarifier channel, if any.
     """
     question = str(args.get("question", ""))
-    if session.cfg.clarifier is None:
+    if sensv.asks_for_credential(question):
+        # Clarify answers are shown to the model: a credential must never
+        # travel this way, so the human is not asked at all.
+        session.log.emit(
+            events.Clarify(
+                question=question,
+                answered=False,
+                summary="clarify refused: it asked for a credential",
+            )
+        )
+        outcome = ToolOutcome(
+            "Not asked: credentials are never requested with clarify, because "
+            "the answer would be shown to you. Call request_secret with the "
+            'credential\'s name (e.g. request_secret(name="password")) and fill '
+            'the field with "$secret:<name>".'
+        )
+    elif session.cfg.clarifier is None:
         outcome = ToolOutcome(
             "No clarification channel is available. Determine the value "
             "from the goal/screen if at all possible, else give_up."

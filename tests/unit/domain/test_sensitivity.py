@@ -116,3 +116,18 @@ def test_is_sensitive() -> None:
     assert not sensv.is_sensitive("none")
     assert not sensv.is_sensitive(None)
     assert sensv.is_sensitive("pii")
+
+
+def test_questions_that_ask_for_credentials_are_recognised() -> None:
+    for question in (
+        "What is your username and password?",
+        "What are your Acme CRM login credentials?",
+        "Please give me the one-time code",
+        "What are your login details?",
+    ):
+        assert sensv.asks_for_credential(question), question
+    for question in (
+        "Which URL should I open?",
+        "Which account number should receive the transfer?",
+    ):
+        assert not sensv.asks_for_credential(question), question

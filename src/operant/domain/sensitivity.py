@@ -73,6 +73,28 @@ VALUE_PATTERNS: Final[Dict[str, re.Pattern[str]]] = {
 }
 
 
+_ASKS_CREDENTIAL_RE: Final = re.compile(
+    r"\bcredentials?\b|\blog\s?in\s+details\b", re.IGNORECASE
+)
+
+
+def asks_for_credential(text: str) -> bool:
+    """
+    Report whether ``text`` asks for a credential (username, password...).
+
+    Used to keep credential questions out of the visible clarify
+    channel.
+
+    :param text: A question the agent wants to put to a human.
+    :return: Whether it names a credential.
+    """
+    found = bool(
+        _NAME_PATTERNS["credential"].search(text)
+        or _ASKS_CREDENTIAL_RE.search(text)
+    )
+    return found
+
+
 def strongest(
     *classes: Optional[Union[artifact.DataClass, str]],
 ) -> artifact.DataClass:

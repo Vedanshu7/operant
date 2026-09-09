@@ -23,6 +23,9 @@ import operant.domain.secrets as odsec
 import operant.infra.evidence.run_log as run_log
 import operant.infra.repositories.artifacts as artifact
 import operant.infra.repositories.graphs as graphs
+import tests.evals.catalog as catalog
+import tests.evals.harness as harness
+import tests.evals.scenes as scenes
 import tests.support.llm as llm
 import tests.support.surfaces as surfaces
 
@@ -532,3 +535,35 @@ def test_recognized_state_is_logged_as_evidence(tmp_path):
     localized = [e for e in events if e.get("type") == "localized"]
     assert localized, "recognition should emit a localized event"
     assert any("discovery recognized" in e.get("summary", "") for e in localized)
+
+
+def test_a_clarify_question_for_credentials_never_reaches_the_human(
+    tmp_path: pathlib.Path,
+) -> None:
+    scenario = next(
+        s
+        for s in catalog.FAMILIES["auth"](scenes.SKINS[0])
+        if s.name == "login_uses_secret"
+    )
+    run = harness.run_scenario(
+        tmp_path,
+        harness.EvalEnv(
+            llm.scripted(
+                [
+                    (
+                        "clarify",
+                        {"question": "What is your username and password?"},
+                    ),
+                    ("request_secret", {"name": "password"}),
+                ]
+            ),
+            env.EnvSecretStore({}),
+        ),
+        scenario,
+    )
+    assert run.clarifier.asked == []
+    replies = [
+        harness.message_text(m) for m in run.llm.sent[1] if m.role == "tool"
+    ]
+    assert any("request_secret" in reply for reply in replies)
+    assert run.credentials.requested == ["password"]

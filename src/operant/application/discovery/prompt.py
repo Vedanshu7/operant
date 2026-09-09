@@ -223,11 +223,21 @@ TOOL_SCHEMAS: Final[Tuple[llm.ToolSchema, ...]] = (
         description=(
             "Ask the human ONE precise question when a required value is "
             "missing from the goal and cannot be determined from the "
-            "screen. The answer is returned to you."
+            "screen. The answer is returned to you, so NEVER use clarify "
+            "for a username, password, code or any other credential - call "
+            "request_secret for those."
         ),
         parameters={
             "type": "object",
-            "properties": {"question": {"type": "string"}},
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "description": (
+                        "the missing non-secret value you need, e.g. the "
+                        "target URL or an account number - never a credential"
+                    ),
+                }
+            },
             "required": ["question"],
         },
     ),
