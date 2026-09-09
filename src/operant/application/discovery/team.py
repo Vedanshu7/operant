@@ -157,9 +157,16 @@ class Team:
         self, args: Dict[str, Any], turn: int
     ) -> tools.ToolOutcome:
         """
-        Verify the last subgoal; finish only when nothing is left.
+        Verify the goal's outcome (the last subgoal); finish when it holds.
+
+        Intermediate subgoals the executor did not report one by one
+        cannot be checked from the final screen (a filled field is gone
+        once the form is submitted), so a goal claim jumps to the last
+        subgoal and counts the skipped ones as covered by that final
+        check.
         """
         board = self._board()
+        self._skip_to_last_subgoal()
         rejected = (
             self._verify(str(args.get("summary", "")), turn, claim="goal")
             if board.current is not None
@@ -221,6 +228,17 @@ class Team:
                     f"{retried.reply}"
                 )
         return repaired
+
+    def _skip_to_last_subgoal(self) -> None:
+        """
+        Move past unreported intermediate subgoals to the last one.
+        """
+        board = self._board()
+        while board.current is not None and not board.is_last:
+            board.done.append(
+                (board.current.description, "covered by the final check")
+            )
+            board.active += 1
 
     @property
     def _budget(self) -> TeamBudget:

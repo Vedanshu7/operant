@@ -17,7 +17,7 @@ import operant.domain.models.llm as llm
 
 PLANNER_PROMPT: Final = """You plan UI automation tasks for a separate executor agent that operates a live desktop app one action at a time. You never act yourself.
 
-Split the goal into the FEWEST ordered subgoals a person would check off (usually 1-4). Each subgoal needs:
+Split the goal into the FEWEST ordered subgoals a person would check off (usually 1-3). Each subgoal is an OUTCOME checkpoint, not a single UI step: "signed in", "transfer submitted and confirmed" - never "fill in the amount field". The last subgoal is the goal's own outcome. Each subgoal needs:
 - id: s1, s2, ...
 - description: what to achieve, in plain words.
 - success_criteria: what the SCREEN visibly shows once it is achieved (a title, a message, a value) - something a reviewer can confirm from the screen alone.

@@ -281,3 +281,18 @@ def test_credential_values_are_rejected_from_plans() -> None:
             ],
             credential_names=["my password is hunter2"],
         )
+
+
+def test_a_goal_claim_verifies_the_last_subgoal_not_a_stale_one(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        _READ,
+        planner=[_plan("open the home page", "read the savings balance")],
+        verifier=_verdicts(True),
+    )
+    assert run.succeeded
+    judged = [e["subgoal"] for e in run.events_of("verifier_verdict")]
+    assert judged == ["s2", "s2", "s2"]
