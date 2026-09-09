@@ -223,7 +223,12 @@ def evals_gif(results: pathlib.Path) -> None:
     """
     Build the evals GIF: the summary table typed out like a terminal.
     """
-    rows = [json.loads(line) for line in results.read_text().splitlines() if line]
+    rows = [
+        json.loads(line)
+        for path in str(results).split(",")
+        for line in pathlib.Path(path).read_text(encoding="utf-8").splitlines()
+        if line
+    ]
     lines = [
         "$ OPERANT_RUN_LLM_EVALS=1 uv run pytest tests/evals",
         f"  {len(rows)} trials - 3 app skins x single/multi agent",
