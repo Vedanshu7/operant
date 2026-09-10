@@ -183,6 +183,7 @@ class AppLauncher:
         # so a browser launch always lands in the automation's dedicated
         # instance instead of failing and burning a turn.
         result = None
+        reused = False
         binary = self._binary_for(app_name) or self._binary_for(
             self._browser.default_app
         )
@@ -205,17 +206,17 @@ class AppLauncher:
                         reason="dedicated browser did not start",
                     )
             elif url:
-                # Live instance: open the URL in a new window.
-                subprocess.run(
-                    [binary, marker, "--new-window", url],
-                    check=False,
-                    timeout=20,
-                )
+                # Live instance: open the URL as a tab in its window, so
+                # repeated runs do not stack up browser windows.
+                subprocess.run([binary, marker, url], check=False, timeout=20)
+                reused = True
             if result is None:
                 if pid is not None:
                     self.session.bind_pid(pid)
                     self._await_window(binary, marker, url)
                     time.sleep(1.5)
+                    if reused:
+                        self.session.close_stale_tabs()
                 result = tools.ToolResult(status="ok", verified=True)
         return result
 

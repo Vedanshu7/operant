@@ -147,6 +147,41 @@ class WindowSession:
                 return found
             time.sleep(0.4)
 
+    def close_stale_tabs(self) -> int:
+        """
+        Close this app's background tabs in the bound browser.
+
+        Re-launching an app in the automation's browser opens it in a
+        new tab; without this, every run leaves another copy behind.
+        Only unselected tabs whose title matches this app's pattern
+        close, so another app's tab (a cross-app capability may switch
+        back to it) is left alone.
+
+        :return: How many tabs were closed.
+        """
+        pattern = re.compile(self.window_title_pattern, re.IGNORECASE)
+        closed = 0
+        try:
+            for tab in self.app().locator("tab").elements():
+                if tab.selected or not pattern.search(tab.name or ""):
+                    continue
+                button = next(
+                    (
+                        child
+                        for child in tab.children()
+                        if child.role == "button"
+                        and (child.name or "").lower() == "close"
+                    ),
+                    None,
+                )
+                if button is not None:
+                    button.press()
+                    closed += 1
+        except xa11y.XA11yError:
+            # App restarted; re-resolve on the next call.
+            self._app = None
+        return closed
+
     def element_for(self, ref: str) -> xa11y.Element:
         """
         Return the element behind a control ref from the last observe.
