@@ -425,6 +425,18 @@ class DiscoverySession:
             safe = self.deps.scrubber.scrub(safe)
         return safe
 
+    def _observe(self) -> None:
+        """
+        Re-read the live screen before the model decides.
+
+        The screen is otherwise read right after an action, which can be
+        before a page finishes navigating; tools that do not act
+        (extract, declare_input) would then keep reasoning over the old
+        page while the screenshot shows the new one.
+        """
+        if self.state.screen is not None:
+            self.state.screen = self.snapshot_or_none() or self.state.screen
+
     def _plan_block(self) -> str:
         """
         Return the multi-agent plan context for this turn, if any.
@@ -528,6 +540,7 @@ class DiscoverySession:
         """
         if self.team is not None:
             self.team.before_turn(turn)
+        self._observe()
         self.state.messages.append(self._user_message(turn))
         completed = self._complete_with_retry(turn)
         if isinstance(completed, config.DiscoveryFailure):

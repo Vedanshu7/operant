@@ -567,3 +567,50 @@ def test_a_clarify_question_for_credentials_never_reaches_the_human(
     ]
     assert any("request_secret" in reply for reply in replies)
     assert run.credentials.requested == ["password"]
+
+
+# #############################################################################
+# LaggingSurface
+# #############################################################################
+
+
+class LaggingSurface(FakeSurface):
+    """
+    Like a browser mid-navigation: the first read after a click still shows the
+    old page.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._stale_reads = 0
+
+    def snapshot(self) -> digest.ScreenDigest:
+        if self._stale_reads:
+            self._stale_reads -= 1
+            stage, self._stage = self._stage, "login"
+            shown = super().snapshot()
+            self._stage = stage
+            return shown
+        return super().snapshot()
+
+    def perform(self, action, *, approval=None) -> object:
+        result = super().perform(action, approval=approval)
+        if action.kind == "click":
+            self._stale_reads = 1
+        return result
+
+
+def test_each_turn_reads_the_screen_again_after_a_slow_navigation(
+    tmp_path: pathlib.Path,
+) -> None:
+    result, _, _, _ = _run(
+        tmp_path,
+        [
+            ("act", {"action": "click", "ref": "c0", "intent": "open account"}),
+            ("extract", {"name": "balance", "pattern": r"Balance: \$(\S+)"}),
+            ("goal_complete", {"summary": "done"}),
+        ],
+        surface=LaggingSurface(),
+    )
+    assert isinstance(result, config.DiscoveryResult), result
+    assert "balance" in result.recording.outputs
