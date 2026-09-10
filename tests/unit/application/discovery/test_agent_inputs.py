@@ -594,10 +594,10 @@ class LaggingSurface(FakeSurface):
         return super().snapshot()
 
     def perform(self, action, *, approval=None) -> object:
-        result = super().perform(action, approval=approval)
+        super().perform(action, approval=approval)
         if action.kind == "click":
             self._stale_reads = 1
-        return result
+        return None
 
 
 def test_each_turn_reads_the_screen_again_after_a_slow_navigation(
