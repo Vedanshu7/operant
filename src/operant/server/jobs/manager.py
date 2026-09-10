@@ -414,6 +414,7 @@ class RunManager:
             profiles=self._profiles,
             approver=approver,
             run_identifier=handle.run_id,
+            should_stop=handle.cancelled.is_set,
             on_context=lambda ctx: self._wire(handle, ctx),
         )
         if request.capability_id:
@@ -422,7 +423,11 @@ class RunManager:
                 handle.run_id,
                 succeeded=replay.is_success(result),
             )
-        status = _RESULT_STATUS.get(result.status, "failed")
+        status = (
+            "cancelled"
+            if handle.cancelled.is_set()
+            else _RESULT_STATUS.get(result.status, "failed")
+        )
         self._runs.update_status(handle.run_id, status, result=result)
         self._emit_terminal(handle, status, f"replay {result.status}")
 
@@ -467,6 +472,7 @@ class RunManager:
             scrubber=apfactor.scrubber(self._settings.privacy),
             role_llms=clients.roles,
             role_models=clients.models,
+            should_stop=handle.cancelled.is_set,
             on_context=lambda ctx: self._wire(handle, ctx),
         )
         self._finish_discovery(handle, outcome)
@@ -479,7 +485,13 @@ class RunManager:
         """
         Settle the run's row and stream from the discovery outcome.
         """
-        if isinstance(outcome, config.DiscoveryFailure):
+        if handle.cancelled.is_set():
+            # The operator cancelled: say so, whatever the run returned.
+            self._runs.update_status(
+                handle.run_id, "cancelled", error="run cancelled by the operator"
+            )
+            self._emit_terminal(handle, "cancelled", "discovery cancelled")
+        elif isinstance(outcome, config.DiscoveryFailure):
             # Discovery failed: settle the row with the reason.
             self._runs.update_status(
                 handle.run_id, "failed", error=outcome.reason

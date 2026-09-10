@@ -17,6 +17,7 @@ import operant.application.replay.options as options
 
 from __future__ import annotations
 
+import collections.abc
 import dataclasses
 from typing import Dict, Optional
 
@@ -67,6 +68,8 @@ class ReplayOptions:
     :ivar settle_ms: Arrival-poll floor after an action.
     :ivar settle_short_ms: Settle-wait cap after an action.
     :ivar goal_poll_s: Time to wait for the goal node at end of run.
+    :ivar should_stop: Polled before every edge; true ends the replay as
+        cancelled (the operator pressed Cancel).
     """
 
     tenant: str
@@ -82,3 +85,4 @@ class ReplayOptions:
     settle_ms: int = 4000
     settle_short_ms: int = 2000
     goal_poll_s: float = 6.0
+    should_stop: collections.abc.Callable[[], bool] = lambda: False

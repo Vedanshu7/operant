@@ -113,3 +113,20 @@ def test_list_runs_and_unknown_run(tmp_path: pathlib.Path) -> None:
         assert len(listed["items"]) == 1
         missing = client.get("/api/v1/runs/nope", headers=_AUTH)
         assert missing.status_code == 404
+
+
+def test_cancelling_a_run_waiting_for_approval_ends_it_cancelled(
+    tmp_path: pathlib.Path,
+) -> None:
+    app, capability_id = _build(tmp_path)
+    with starlette.testclient.TestClient(app) as client:
+        run_id = client.post(
+            "/api/v1/runs/replay",
+            headers=_AUTH,
+            json={"capability_id": capability_id},
+        ).json()["id"]
+        _poll(client, run_id, {"waiting_approval"})
+        cancelled = client.post(f"/api/v1/runs/{run_id}/cancel", headers=_AUTH)
+        assert cancelled.status_code == 200
+        final = _poll(client, run_id, {"cancelled", "failed", "succeeded"})
+        assert final["status"] == "cancelled"

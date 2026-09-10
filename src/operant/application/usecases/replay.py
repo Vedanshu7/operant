@@ -53,6 +53,7 @@ def execute_replay(
     profiles: rpprofil.FileProfileRepository,
     approver: Optional[hitl.Approver] = None,
     run_identifier: Optional[str] = None,
+    should_stop: Optional[collections.abc.Callable[[], bool]] = None,
     on_context: Optional[
         collections.abc.Callable[[accontex.RunContext], None]
     ] = None,
@@ -68,6 +69,7 @@ def execute_replay(
     :param approver: Answers approvals; deny-by-default when ``None``.
     :param run_identifier: Fixes the run id and evidence directory; the
         server passes the id it tracks the run under.
+    :param should_stop: Polled before every step; true cancels the run.
     :param on_context: Called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
     :return: The typed replay result.
@@ -85,6 +87,7 @@ def execute_replay(
             tenant=request.tenant or capability.default_tenant,
             params=dict(request.inputs or {}),
             inject_session_expiry_before=request.inject_session_expiry_before,
+            should_stop=should_stop or (lambda: False),
         )
         result = traverse.run_capability(
             capability,

@@ -208,3 +208,26 @@ def test_fill_from_output_reads_the_eagerly_extracted_value(
     result, surface = _run(tmp_path, cap, app_graph, FillSurface())
     assert result.status == "success"
     assert surface.filled == ["42.00"]
+
+
+def test_a_cancelled_replay_stops_before_acting(tmp_path: pathlib.Path) -> None:
+    log = run_log.RunLog(
+        tmp_path, "run", operant.domain.redaction.Redactor(), echo=False
+    )
+    surface = surfaces.TitledSurface(TITLES, TEXTS)
+    cap = _cap()
+    result = operant.application.replay.engine.replay_path(
+        cap,
+        GRAPH,
+        [GRAPH.edge(e) for e in cap.compiled_path],
+        surface,
+        _broker(),
+        log,
+        operant.domain.redaction.Redactor(),
+        operant.application.replay.options.ReplayOptions(
+            tenant="t", params={}, should_stop=lambda: True
+        ),
+    )
+    assert result.status == "failure"
+    assert result.failure.failure_class == "cancelled"
+    assert surface.performed == []

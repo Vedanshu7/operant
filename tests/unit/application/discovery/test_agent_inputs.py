@@ -614,3 +614,23 @@ def test_each_turn_reads_the_screen_again_after_a_slow_navigation(
     )
     assert isinstance(result, config.DiscoveryResult), result
     assert "balance" in result.recording.outputs
+
+
+def test_a_cancelled_discovery_stops_before_the_next_turn(
+    tmp_path: pathlib.Path,
+) -> None:
+    surface = FakeSurface()
+    deps = _deps(tmp_path, surface, [("goal_complete", {"summary": "x"})])
+    deps.should_stop = lambda: True
+    cfg = config.DiscoveryConfig(
+        goal="read the balance",
+        capability_id="cap",
+        capability_name="cap",
+        inputs={},
+        profile=_profile(),
+        tenant="tenant-a",
+        screenshots=False,
+    )
+    result = loop.run_discovery(cfg, deps)
+    assert isinstance(result, config.DiscoveryFailure)
+    assert result.failure_class == "cancelled"

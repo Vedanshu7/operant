@@ -128,6 +128,20 @@ def _run(
     """
 
     def run_edge(edge: graph.Edge, *, allow_recovery: bool = True) -> None:
+        if ctx.opts.should_stop():
+            # The operator cancelled: stop before acting on the screen.
+            raise context.Finished(
+                results.FailureResult(
+                    failure=results.Failure(
+                        at_edge=edge.id,
+                        failure_class="cancelled",
+                        expected="the run to continue",
+                        observed="cancelled by the operator",
+                        evidence_refs=[],
+                    ),
+                    evidence_dir=str(ctx.log.dir),
+                )
+            )
         reedge.EdgeExecutor(
             ctx,
             edge,

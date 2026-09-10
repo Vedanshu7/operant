@@ -121,6 +121,8 @@ class DiscoveryDeps:
     :ivar memory: Cross-run plan and lesson memory, when enabled.
     :ivar settle: Wait for the screen after navigating actions; ``None``
         reads it at once (fakes and evals have no page loads).
+    :ivar should_stop: Polled before every turn; true ends the run as
+        cancelled (the operator pressed Cancel).
     """
 
     surface: pssurfac.Surface
@@ -154,6 +156,7 @@ class DiscoveryDeps:
     team: dsteam.TeamBudget = dataclasses.field(default_factory=dsteam.TeamBudget)
     memory: Optional[apmemory.AgentMemory] = None
     settle: Optional[acting.SettlePolicy] = None
+    should_stop: collections.abc.Callable[[], bool] = lambda: False
 
 
 # #############################################################################
@@ -395,6 +398,10 @@ class DiscoverySession:
         if self.team is not None:
             self.team.start(0)
         for turn in range(1, self.cfg.max_turns + 1):
+            if self.deps.should_stop():
+                return config.DiscoveryFailure(
+                    "run cancelled by the operator", failure_class="cancelled"
+                )
             finished = self._turn(turn)
             if finished is not None:
                 return finished

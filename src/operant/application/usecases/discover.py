@@ -114,6 +114,7 @@ def execute_discovery(
     scrubber: Optional[ppprivac.TextScrubber] = None,
     role_llms: Optional[collections.abc.Mapping[str, plllm.LlmClient]] = None,
     role_models: Optional[Dict[str, str]] = None,
+    should_stop: Optional[collections.abc.Callable[[], bool]] = None,
     on_context: Optional[
         collections.abc.Callable[[accontex.RunContext], None]
     ] = None,
@@ -139,6 +140,7 @@ def execute_discovery(
     :param scrubber: Masks personal data in traced text.
     :param role_llms: Clients for the multi-agent roles, by role name.
     :param role_models: Model ids for those roles, for tracing.
+    :param should_stop: Polled between turns; true cancels the run.
     :param on_context: Called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
     :return: A committed outcome, or a typed failure.
@@ -201,6 +203,7 @@ def execute_discovery(
             memory=_memory(context.settings, cfg.agents),
             # A real app loads pages after clicks; record the settled screen.
             settle=acting.SettlePolicy(),
+            should_stop=should_stop or (lambda: False),
         )
         result = loop.run_discovery(cfg, deps)
     finally:

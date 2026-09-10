@@ -29,6 +29,7 @@ FailureClass = Literal[
     "launch_failed",
     "policy_violation",
     "approval_denied",
+    "cancelled",
 ]
 
 
