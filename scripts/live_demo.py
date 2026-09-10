@@ -11,7 +11,7 @@ appended to ``state/live/<session>.jsonl``.
 
 Run: ``uv run python scripts/live_demo.py --base
 http://127.0.0.1:7080
-  --token <token> --profile <id> --tenant <tenant> --goal "<goal>"
+   --token <token> --profile <id> --tenant <tenant> --goal "<goal>"
 [--agents multi] [--replay] [--clarify "url=
 http://..."]``
 """
@@ -181,6 +181,24 @@ def run(
     return record
 
 
+def _reason(record: Dict[str, Any]) -> str:
+    """
+    Say why a run ended: its error, or a replay's failure class.
+    """
+    failure = (record.get("result") or {}).get("failure") or {}
+    reason = (
+        record.get("error")
+        or (
+            f"{failure.get('failure_class')}: expected "
+            f"{failure.get('expected')}"
+            if failure
+            else ""
+        )
+        or "ok"
+    )
+    return str(reason)
+
+
 def main() -> int:
     """
     Run one discovery (and optionally its replay) and report the result.
@@ -239,7 +257,7 @@ def main() -> int:
     for record in results:
         print(
             f"{record.get('kind')}: {record.get('status')} "
-            f"({record.get('error') or 'ok'}) evidence={record.get('evidence_dir')}"
+            f"({_reason(record)}) evidence={record.get('evidence_dir')}"
         )
         for note in record.get("operator_notes", []):
             print(f"  - {note}")

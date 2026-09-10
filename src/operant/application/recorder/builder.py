@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import dataclasses
 import re
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Final, List, Optional, Set, Tuple
 
 import operant.application.recorder.recording as recdng
 import operant.domain.models.artifact as artifact
@@ -107,7 +107,9 @@ def build(
         window_title_pattern=profile.window_title_pattern,
         tenants=profile.tenants,
         default_tenant=profile.default_tenant,
-        inputs=_typed_inputs(state, input_classes or {}),
+        inputs=_require_used(
+            _typed_inputs(state, input_classes or {}), state.edges
+        ),
         outputs=_typed_outputs(outputs, output_classes or {}),
         nodes=nodes,
         edges=state.edges,
@@ -351,6 +353,37 @@ def _typed_inputs(
     }
     typed = {**declared, **state.promoted_inputs}
     return typed
+
+
+_PARAM_RE: Final = re.compile(r'\{\{(\w+)\}\}|"param":\s*"(\w+)"')
+
+
+def _require_used(
+    typed: Dict[str, artifact.IoField], edges: List[graph.Edge]
+) -> Dict[str, artifact.IoField]:
+    """
+    Mark every input a recorded step depends on as required.
+
+    A step that types an input or locates a control by it (``{{name}}``)
+    cannot run without it; requiring it lets replay refuse up front with
+    a clear precondition failure instead of failing to find a control.
+
+    :param typed: Inputs as recorded.
+    :param edges: The recorded steps.
+    :return: The inputs, with those the steps use marked required.
+    """
+    used = {
+        name
+        for edge in edges
+        for match in _PARAM_RE.finditer(edge.model_dump_json())
+        for name in match.groups()
+        if name
+    }
+    required = {
+        name: spec.model_copy(update={"required": True}) if name in used else spec
+        for name, spec in typed.items()
+    }
+    return required
 
 
 def _typed_outputs(

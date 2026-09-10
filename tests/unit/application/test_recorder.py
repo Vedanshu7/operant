@@ -262,3 +262,21 @@ def test_model_declared_class_is_unioned_with_the_detector() -> None:
     )
     assert rec.inputs["note"].data_class == "credential"
     assert rec.inputs["note"].sensitive
+
+
+def test_inputs_a_step_uses_are_required_and_unused_ones_are_not() -> None:
+    recorder = operant.application.recorder.recording.Recorder()
+    recorder.start("Overview - Acme")
+    tests.support.recording.record(
+        recorder,
+        action=graph.Action(kind="click"),
+        control=tests.support.recording.control("13344"),
+        description="open account 13344",
+        pre="Overview - Acme",
+        post="Activity - Acme",
+    )
+    rec = tests.support.recording.build_recording(
+        recorder, {"accountId": "13344", "note": "unused"}, {}
+    )
+    assert rec.inputs["accountId"].required is True
+    assert rec.inputs["note"].required is False
