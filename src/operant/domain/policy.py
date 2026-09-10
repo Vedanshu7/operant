@@ -160,6 +160,45 @@ def _mutating_match(policy: Policy, text: str) -> Optional[str]:
     return found
 
 
+# Control names that say nothing about what a click does; for these the
+# nearby label is what describes the action.
+_GENERIC_NAMES: Final = frozenset(
+    {
+        "",
+        "go",
+        "ok",
+        "submit",
+        "continue",
+        "confirm",
+        "send",
+        "next",
+        "yes",
+        "apply",
+        "save",
+        "done",
+        "proceed",
+    }
+)
+
+
+def _click_text(target_text: str) -> str:
+    """
+    Return the text that describes what a click does.
+
+    Target text is ``"name | label"``. The label is anchored from nearby
+    text, so it can belong to a neighbouring control (a navigation link
+    labelled with the next link's text). The control's own name decides,
+    unless it is empty or generic ("Go", "Submit"), when the label is
+    the only description of the action.
+
+    :param target_text: The control's ``"name | label"`` text.
+    :return: The name, or the whole text when the name is uninformative.
+    """
+    name = target_text.split(" | ", 1)[0].strip()
+    text = target_text if name.lower() in _GENERIC_NAMES else name
+    return text
+
+
 def _mutating_trigger(
     policy: Policy,
     action: actions.SurfaceAction,
@@ -179,7 +218,7 @@ def _mutating_trigger(
         ``None``.
     """
     if action.kind == "click":
-        pattern = _mutating_match(policy, action.target_text)
+        pattern = _mutating_match(policy, _click_text(action.target_text))
         return (f'click "{action.target_text}"', pattern) if pattern else None
     is_enter = (action.key or "").lower() in _ENTER_KEYS
     if action.kind == "press" and is_enter and screen is not None:

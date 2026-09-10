@@ -345,3 +345,21 @@ def test_secret_reference_fills_run_unattended_unless_policy_says_always() -> (
     strict = _with_approval(approval.ApprovalPolicy(sensitive_fill="always"))
     d = policy.evaluate_action(strict, held, control=field)
     assert d.approval is not None and d.approval.kind == "sensitive_fill"
+
+
+def _click_risk(target_text: str) -> str:
+    click = actions.SurfaceAction(kind="click", target_text=target_text)
+    return policy.classify_risk(POLICY, click, None)
+
+
+def test_a_neighbours_label_does_not_make_navigation_mutating() -> None:
+    assert _click_risk("Accounts Overview | Open New Account") == "safe"
+
+
+def test_a_generic_button_is_judged_by_its_label() -> None:
+    assert _click_risk("Go | Transfer Funds") == "mutating"
+    assert _click_risk(" | Transfer Funds") == "mutating"
+
+
+def test_a_mutating_name_is_mutating_whatever_its_label() -> None:
+    assert _click_risk("Transfer Funds | Accounts") == "mutating"
