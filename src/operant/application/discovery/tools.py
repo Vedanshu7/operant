@@ -664,6 +664,7 @@ def _perform_act(
             pre_digest=state.screen,
             click_point=planned.click_point,
             on_grant=state.grants.append,
+            settle=session.deps.settle,
         )
     except errors.ApprovalDeniedError as denied:
         session.undo_retarget(prev_target)

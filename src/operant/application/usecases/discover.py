@@ -12,6 +12,7 @@ import collections.abc
 import dataclasses
 from typing import Dict, Optional, Union
 
+import operant.application.acting as acting
 import operant.application.capabilities as capab
 import operant.application.context as accontex
 import operant.application.discovery.config as config
@@ -198,6 +199,8 @@ def execute_discovery(
             role_models=dict(role_models or {}),
             team=_team_budget(context.settings.discovery),
             memory=_memory(context.settings, cfg.agents),
+            # A real app loads pages after clicks; record the settled screen.
+            settle=acting.SettlePolicy(),
         )
         result = loop.run_discovery(cfg, deps)
     finally:

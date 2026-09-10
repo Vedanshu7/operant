@@ -30,6 +30,7 @@ import time
 import uuid
 from typing import Dict, FrozenSet, List, Optional, Tuple, Union
 
+import operant.application.acting as acting
 import operant.application.approval as approval
 import operant.application.discovery.agents.prompts as daprompt
 import operant.application.discovery.bootstrap as bstrap
@@ -118,6 +119,8 @@ class DiscoveryDeps:
     :ivar role_models: Model ids for those roles, for tracing.
     :ivar team: Bounds on the multi-agent coordinator.
     :ivar memory: Cross-run plan and lesson memory, when enabled.
+    :ivar settle: Wait for the screen after navigating actions; ``None``
+        reads it at once (fakes and evals have no page loads).
     """
 
     surface: pssurfac.Surface
@@ -150,6 +153,7 @@ class DiscoveryDeps:
     role_models: Dict[str, str] = dataclasses.field(default_factory=dict)
     team: dsteam.TeamBudget = dataclasses.field(default_factory=dsteam.TeamBudget)
     memory: Optional[apmemory.AgentMemory] = None
+    settle: Optional[acting.SettlePolicy] = None
 
 
 # #############################################################################
