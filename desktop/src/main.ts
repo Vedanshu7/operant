@@ -125,8 +125,10 @@ async function launch(): Promise<void> {
   });
   await window.loadURL(splash());
 
-  const port = await freePort();
-  const token = randomBytes(24).toString("hex");
+  // Scripted demos pin the port and token so a driver can use the same
+  // server the window shows; normal launches pick fresh ones.
+  const port = Number(process.env.OPERANT_DESKTOP_PORT) || (await freePort());
+  const token = process.env.OPERANT_DESKTOP_TOKEN || randomBytes(24).toString("hex");
   const base = `http://127.0.0.1:${port}`;
   server = startServer(port, token);
   if (!(await waitHealthy(base))) {
@@ -139,6 +141,22 @@ async function launch(): Promise<void> {
   }
   await signIn(window, base, token);
   await window.loadURL(base);
+  const record = process.env.OPERANT_DESKTOP_RECORD;
+  if (record) {
+    // For the README demo: save the window every 700 ms as numbered frames.
+    mkdirSync(record, { recursive: true });
+    let frame = 0;
+    const timer = setInterval(() => {
+      window.webContents
+        .capturePage()
+        .then((image) => {
+          const name = `frame-${String(frame++).padStart(5, "0")}.png`;
+          writeFileSync(path.join(record, name), image.toPNG());
+        })
+        .catch(() => undefined);
+    }, 700);
+    window.on("closed", () => clearInterval(timer));
+  }
   const snapshot = process.env.OPERANT_DESKTOP_SNAPSHOT;
   if (snapshot) {
     // For docs and checks: save what the window shows once it settles.

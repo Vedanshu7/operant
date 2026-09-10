@@ -11,7 +11,7 @@ appended to ``state/live/<session>.jsonl``.
 
 Run: ``uv run python scripts/live_demo.py --base
 http://127.0.0.1:7080
-   --token <token> --profile <id> --tenant <tenant> --goal "<goal>"
+     --token <token> --profile <id> --tenant <tenant> --goal "<goal>"
 [--agents multi] [--replay] [--clarify "url=
 http://..."]``
 """
@@ -213,6 +213,18 @@ def main() -> int:
     parser.add_argument("--agents", choices=("single", "multi"), default="single")
     parser.add_argument("--replay", action="store_true")
     parser.add_argument("--clarify", action="append", default=[])
+    parser.add_argument(
+        "--input",
+        action="append",
+        default=[],
+        help="NAME=VALUE typed input for the discovery (repeatable)",
+    )
+    parser.add_argument(
+        "--replay-input",
+        action="append",
+        default=[],
+        help="NAME=VALUE input for the replay (repeatable)",
+    )
     parser.add_argument("--timeout", type=float, default=600.0)
     args = parser.parse_args()
     clarify = dict(item.split("=", 1) for item in args.clarify)
@@ -233,6 +245,7 @@ def main() -> int:
                 "profile_id": args.profile,
                 "tenant": args.tenant,
                 "agents": args.agents,
+                "inputs": dict(item.split("=", 1) for item in args.input),
             },
             operator,
             kind="discovery",
@@ -243,7 +256,13 @@ def main() -> int:
         results.append(
             run(
                 client,
-                {"capability_id": capability, "tenant": args.tenant},
+                {
+                    "capability_id": capability,
+                    "tenant": args.tenant,
+                    "inputs": dict(
+                        item.split("=", 1) for item in args.replay_input
+                    ),
+                },
                 operator,
                 kind="replay",
                 timeout_s=args.timeout,
