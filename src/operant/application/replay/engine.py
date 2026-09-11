@@ -201,7 +201,11 @@ def _resume_from_launch(
                 # No route from here: fall back to the recorded rest.
                 resumed = remaining
             else:
-                # Route found: replay the replanned edges instead.
+                # Route found: on a look-alike of that node (same content,
+                # its own checks fail), first click the link that reaches
+                # it, then replay the replanned edges.
+                hop = _arrival_hop(ctx, screen, current)
+                found = ([hop] if hop is not None else []) + found
                 ctx.log.emit(
                     events.PathPlanned(
                         path=[edge.id for edge in found],
@@ -210,6 +214,7 @@ def _resume_from_launch(
                         summary=(
                             f"resumed at {current}; replanned "
                             f"{len(found)} edge(s) past launch"
+                            + (f' (via "{hop.description}")' if hop else "")
                         ),
                     )
                 )
@@ -263,6 +268,29 @@ def _at_or_toward_goal(
             )
             plan = [nav]
     return plan
+
+
+def _arrival_hop(
+    ctx: context.ReplayContext, screen: digest.ScreenDigest, node_id: str
+) -> Optional[graph.Edge]:
+    """
+    Return a click onto ``node_id`` when the screen only looks like it.
+
+    Content localization can match a page that shares a node's menu but
+    is not that page (its title check fails). The real page names itself
+    in that menu, so clicking the link reaches it; ``None`` when the
+    node's checks already hold or nothing on screen names it.
+    """
+    node = ctx.graph.node(node_id)
+    checks = [
+        params.substitute_condition(c, ctx.opts.params) for c in node.checks
+    ]
+    hop = (
+        None
+        if dooutcom.on_node(checks, screen)
+        else _affordance_toward(ctx, screen, node)
+    )
+    return hop
 
 
 def _affordance_toward(

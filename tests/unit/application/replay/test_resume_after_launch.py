@@ -313,3 +313,118 @@ def test_adjacent_landing_navigates_to_goal_via_menu_link(
     # launch, then the menu-link click - never the recorded login click.
     assert kinds == ["launch", "click"]
     assert surface.performed[-1].ref == "Accounts Overview"
+
+
+# -----------------------------------------------------------------------------
+# Look-alike of an intermediate node: the landing shares the overview's menu,
+# but the goal is one step further (an account's activity page).
+# -----------------------------------------------------------------------------
+
+ACTIVITY_TITLE = "ParaBank | Account Activity"
+ACCOUNT_LINK = (_control("link", "13344", "content>table>row>link"),)
+TRANSACTIONS = (
+    _control("cell", "Funds Transfer Received", "content>activity>row>cell"),
+    _control("cell", "Bill Payment", "content>activity>row>cell"),
+)
+
+DEEP_NODES = [
+    *ADJ_NODES,
+    graph.Node(
+        id="activity",
+        description="activity",
+        checks=[graph.TitleMatches(pattern=re.escape(ACTIVITY_TITLE))],
+        fingerprint=_fp(MENU + TRANSACTIONS),
+    ),
+]
+DEEP_EDGES = [
+    *ADJ_EDGES,
+    capab.edge(
+        {
+            "id": "e3",
+            "from": "overview",
+            "to": "activity",
+            "description": "open account {{accountId}}",
+            "action": {"kind": "click"},
+            "target": {
+                "strategies": [
+                    {"kind": "role", "role": "link", "name": "{{accountId}}"}
+                ],
+                "reasoning": "r",
+            },
+            "wait": {"kind": "settle", "timeout_ms": 1},
+        }
+    ),
+]
+
+
+# #############################################################################
+# DeepLandingSurface
+# #############################################################################
+
+
+class DeepLandingSurface(LandingSurface):
+    """
+    Landing -> (Accounts Overview) -> overview -> (account link) -> activity.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._on_activity = False
+
+    def snapshot(self) -> digest.ScreenDigest:
+        if self._on_activity:
+            return digest.ScreenDigest(
+                app=self.app,
+                window_title=ACTIVITY_TITLE,
+                text="Balance: $10.00",
+                controls=MENU + TRANSACTIONS,
+            )
+        shown = super().snapshot()
+        if self._on_overview:
+            shown = digest.ScreenDigest(
+                app=shown.app,
+                window_title=shown.window_title,
+                text=shown.text,
+                controls=shown.controls + ACCOUNT_LINK,
+            )
+        return shown
+
+    def apply(self, action) -> None:
+        if self._on_overview and action.kind == "click" and action.ref == "13344":
+            self._on_activity = True
+        super().apply(action)
+
+
+def test_a_look_alike_of_an_intermediate_page_hops_onto_it_first(
+    tmp_path: pathlib.Path,
+) -> None:
+    app_graph = graph.AppGraph(
+        vendor_id="parabank", nodes=DEEP_NODES, edges=DEEP_EDGES
+    )
+    cap = capab.capability(
+        vendor_id="parabank",
+        start_node="login",
+        goal_node="activity",
+        compiled_path=["e1", "e2", "e3"],
+    )
+    surface = DeepLandingSurface()
+    result = engine.replay_path(
+        cap,
+        app_graph,
+        DEEP_EDGES,
+        surface,
+        escal.ControlBroker(
+            start_human_capture=lambda cb: None,
+            stop_human_capture=lambda: None,
+            on_transition=lambda a, b, d: None,
+        ),
+        run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False),
+        redact.Redactor(),
+        options.ReplayOptions(tenant="t", params={"accountId": "13344"}),
+        approver=approval.ScriptedApprover([]),
+    )
+    assert result.status == "success", result
+    assert [a.ref for a in surface.performed if a.kind == "click"] == [
+        "Accounts Overview",
+        "13344",
+    ]
