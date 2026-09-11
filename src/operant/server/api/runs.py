@@ -82,6 +82,7 @@ def get_run(run_id: str, state: State) -> Any:
         pending_intervention=pending.pending_intervention(state.runs, run_id),
         pending_clarification=pending.pending_clarification(state.runs, run_id),
         lease_position=position if position > 0 else None,
+        pending_credential=state.manager.pending_credential(run_id),
     )
     return detail
 

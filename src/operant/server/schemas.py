@@ -236,6 +236,7 @@ def run_detail(
     pending_intervention: Optional[runs.InterventionRecord],
     pending_clarification: Optional[runs.ClarificationRecord],
     lease_position: Optional[int],
+    pending_credential: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """
     Render a run plus its pending human-in-the-loop state.
@@ -250,6 +251,7 @@ def run_detail(
             "pending_approval": _asdict(pending_approval),
             "pending_intervention": _asdict(pending_intervention),
             "pending_clarification": _asdict(pending_clarification),
+            "pending_credential": pending_credential,
             "lease_position": lease_position,
         }
     )

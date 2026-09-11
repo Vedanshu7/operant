@@ -59,6 +59,7 @@ export interface RunDetail extends RunSummary {
   pending_approval: Approval | null;
   pending_intervention: Intervention | null;
   pending_clarification: Clarification | null;
+  pending_credential?: CredentialRequest | null;
   lease_position: number | null;
 }
 

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import collections.abc
 import dataclasses
-from typing import Optional
+from typing import Dict, Optional
 
 import operant.domain.approval as approval
 import operant.domain.models.runs as mrruns
@@ -205,12 +205,16 @@ class UiCredentialRequester:
         set_status: SetStatus,
         *,
         timeout_s: float,
+        on_pending: Optional[
+            collections.abc.Callable[[Optional[Dict[str, str]]], None]
+        ] = None,
     ) -> None:
         self._run_id = run_id
         self._emit = emit
         self._register = register
         self._set_status = set_status
         self._timeout_s = timeout_s
+        self._on_pending = on_pending or (lambda pending: None)
 
     def request(
         self, name: str, *, run_id: str, reason: str
@@ -221,6 +225,9 @@ class UiCredentialRequester:
         request_id = f"{self._run_id}~cred~{ids.nonce()}"
         answer = self._register(request_id)
         self._set_status("waiting_clarification")
+        self._on_pending(
+            {"request_id": request_id, "name": name, "reason": reason}
+        )
         self._emit(
             hub.SseEnvelope(
                 run_id=self._run_id,
@@ -231,6 +238,7 @@ class UiCredentialRequester:
             )
         )
         answered = answer.wait(self._timeout_s)
+        self._on_pending(None)
         grant = answered if isinstance(answered, odsec.CredentialGrant) else None
         self._set_status("running")
         self._emit(

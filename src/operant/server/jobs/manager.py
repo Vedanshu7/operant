@@ -93,6 +93,9 @@ class _Handle:
     iv_db_id: Optional[str] = None
     iv_broker_id: Optional[str] = None
     last_state: str = "agent"
+    # The open credential request (id, name, reason - never a value);
+    # live-only events are lost on reconnect, so the run detail carries it.
+    pending_credential: Optional[Dict[str, str]] = None
 
 
 # #############################################################################
@@ -200,6 +203,14 @@ class RunManager:
             for event in self._runs.stream_events(run_id, after_seq)
         ]
         return events
+
+    def pending_credential(self, run_id: str) -> Optional[Dict[str, str]]:
+        """
+        Return the run's open credential request, if any (never a value).
+        """
+        handle = self._handles.get(run_id)
+        pending = handle.pending_credential if handle is not None else None
+        return pending
 
     def is_terminal(self, run_id: str) -> bool:
         """
@@ -452,6 +463,9 @@ class RunManager:
             self._register,
             lambda status: self._set_status(handle, status),
             timeout_s=self._settings.approval.clarification_timeout_s,
+            on_pending=lambda pending: setattr(
+                handle, "pending_credential", pending
+            ),
         )
         clients = litecli.build_clients(self._settings.discovery)
         outcome = discover.execute_discovery(

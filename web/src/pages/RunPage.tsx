@@ -36,7 +36,11 @@ export function RunPage(): ReactElement {
   const clarification =
     stream.pendingClarification ??
     (status === "waiting_clarification" ? detail.pending_clarification : null);
-  const credential = stream.pendingCredential;
+  // Credential requests are live-only events; after a reload the run
+  // detail still carries an open one.
+  const credential =
+    stream.pendingCredential ??
+    (status === "waiting_clarification" ? (detail.pending_credential ?? null) : null);
 
   return (
     <div className="space-y-4">

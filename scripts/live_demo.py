@@ -11,7 +11,7 @@ appended to ``state/live/<session>.jsonl``.
 
 Run: ``uv run python scripts/live_demo.py --base
 http://127.0.0.1:7080
-     --token <token> --profile <id> --tenant <tenant> --goal "<goal>"
+        --token <token> --profile <id> --tenant <tenant> --goal "<goal>"
 [--agents multi] [--replay] [--clarify "url=
 http://..."]``
 """
@@ -25,7 +25,7 @@ import re
 import sys
 import time
 import urllib.parse
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 import httpx
 
@@ -69,12 +69,24 @@ class Operator:
         self._local = host in _LOCAL_HOSTS
         self._clarify = clarify
         self.notes: List[str] = []
+        # Pending items can arrive twice (run detail and stream).
+        self._answered: Set[str] = set()
+
+    def first_time(self, item_id: str) -> bool:
+        """
+        Whether ``item_id`` has not been answered yet (and mark it).
+        """
+        fresh = item_id not in self._answered
+        self._answered.add(item_id)
+        return fresh
 
     def credential(self, data: Dict[str, Any]) -> None:
         """
         Answer a credential request with the profile's bound locator.
         """
         name = str(data.get("name", ""))
+        if not self.first_time(str(data.get("request_id"))):
+            return
         locator = self._refs.get(name) or next(
             (v for k, v in self._refs.items() if k.lower() == name.lower()), None
         )
@@ -94,6 +106,8 @@ class Operator:
         Approve inside a local sandbox only; refuse everywhere else.
         """
         record = data.get("approval") or {}
+        if not self.first_time(str(record.get("id"))):
+            return
         approved = self._local
         self._client.post(
             f"/approvals/{record['id']}",
@@ -111,6 +125,8 @@ class Operator:
         Answer a clarifying question from the --clarify map.
         """
         record = data.get("clarification") or {}
+        if not self.first_time(str(record.get("id"))):
+            return
         question = str(record.get("question", ""))
         answer = next(
             (
@@ -129,21 +145,63 @@ class Operator:
 def _events(client: httpx.Client, run_id: str, timeout_s: float) -> Any:
     """
     Yield the run's SSE envelopes until it reaches a terminal status.
+
+    A quiet stretch can outlast one connection, so the stream reconnects
+    from the last event seen until the run ends or ``timeout_s`` passes.
     """
     deadline = time.monotonic() + timeout_s
-    with client.stream(
-        "GET",
-        f"/runs/{run_id}/events",
-        timeout=httpx.Timeout(timeout_s, read=60.0),
-    ) as stream:
-        for line in stream.iter_lines():
-            if time.monotonic() > deadline:
-                return
-            if line.startswith("data:"):
-                envelope = json.loads(line[5:].strip())
-                yield envelope
-                if envelope.get("run_status") in _TERMINAL:
-                    return
+    seen = -1
+    while time.monotonic() < deadline:
+        # Live-only events sent while disconnected are lost; the run detail
+        # still lists what is waiting for an answer.
+        yield from _pending(client.get(f"/runs/{run_id}").json())
+        try:
+            with client.stream(
+                "GET",
+                f"/runs/{run_id}/events",
+                params={"after": seen},
+                timeout=httpx.Timeout(30.0, read=90.0),
+            ) as stream:
+                for line in stream.iter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    envelope = json.loads(line[5:].strip())
+                    seen = max(seen, int(envelope.get("seq", seen)))
+                    yield envelope
+                    if envelope.get("run_status") in _TERMINAL:
+                        return
+        except httpx.TransportError:
+            # Dropped or idle connection: reconnect from the last event.
+            pass
+        status = client.get(f"/runs/{run_id}").json().get("status")
+        if status in _TERMINAL:
+            return
+
+
+def _pending(detail: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Turn the run detail's open questions into stream-shaped envelopes.
+    """
+    found: List[Dict[str, Any]] = []
+    if detail.get("pending_credential"):
+        found.append(
+            {"type": "credential_requested", "data": detail["pending_credential"]}
+        )
+    if detail.get("pending_approval"):
+        found.append(
+            {
+                "type": "approval_requested",
+                "data": {"approval": detail["pending_approval"]},
+            }
+        )
+    if detail.get("pending_clarification"):
+        found.append(
+            {
+                "type": "clarify",
+                "data": {"clarification": detail["pending_clarification"]},
+            }
+        )
+    return found
 
 
 def run(
