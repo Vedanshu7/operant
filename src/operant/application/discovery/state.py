@@ -104,6 +104,20 @@ class DiscoveryState:
             ]
 
 
+def mask_credentials(text: str, values: List[str]) -> str:
+    """
+    Mask every credential value in ``text``.
+
+    An app can show a credential back (a login field displays what was
+    typed into it), so screen text is masked before the model reads it.
+    """
+    masked = text
+    for value in values:
+        if len(value) >= 3:
+            masked = masked.replace(value, _MASK)
+    return masked
+
+
 def _scrub_message(message: llm.ChatMessage, value: str) -> llm.ChatMessage:
     """
     Replace a credential value everywhere in one chat message.

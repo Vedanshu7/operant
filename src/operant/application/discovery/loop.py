@@ -683,7 +683,9 @@ class DiscoverySession:
             shot = self.log.screenshot(self.surface, f"turn-{turn}")
         self._last_screenshot = shot
         screen_text = (
-            digest.render_digest(state.screen)
+            dsstate.mask_credentials(
+                digest.render_digest(state.screen), self.secrets.held_values()
+            )
             if state.screen is not None
             else "(no window is bound yet - your first action must be a launch)"
         )

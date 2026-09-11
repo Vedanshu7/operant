@@ -4,6 +4,7 @@ driven by a scripted LLM and fake surfaces - no live app, no real model, no
 monkeypatching.
 """
 
+import dataclasses
 import json
 import pathlib
 import re
@@ -395,6 +396,48 @@ def test_secret_fill_runs_unattended_and_never_reaches_the_log(
     assert "demo-pw-1" not in log_text
     recorded = result.recording.edges[-1].action.value
     assert recorded is not None and recorded.secret_ref == "password"
+
+
+# #############################################################################
+# EchoingSurface
+# #############################################################################
+
+
+class EchoingSurface(ParaBankSurface):
+    """
+    A login field shows what was typed into it, as a real text field does.
+    """
+
+    def snapshot(self) -> digest.ScreenDigest:
+        shown = super().snapshot()
+        typed = [a.value or "" for a in self.performed if a.kind == "fill"]
+        return dataclasses.replace(shown, text=" ".join([shown.text, *typed]))
+
+
+def test_a_credential_shown_on_screen_never_reaches_the_model(
+    tmp_path: pathlib.Path,
+) -> None:
+    surface = EchoingSurface(_profile().policy)
+    result, _, deps, _ = _run(
+        tmp_path,
+        [
+            (
+                "act",
+                {
+                    "action": "fill",
+                    "ref": "pw",
+                    "value": "$secret:password",
+                    "intent": "enter the password",
+                },
+            ),
+            ("goal_complete", {"summary": "done"}),
+        ],
+        approver=operant.application.approval.ScriptedApprover([]),
+        surface=surface,
+    )
+    assert isinstance(result, config.DiscoveryResult), result
+    assert "demo-pw-1" in surface.snapshot().text
+    assert "demo-pw-1" not in _prompt_dump(deps)
 
 
 def test_denied_fill_tells_the_model_and_performs_nothing(
