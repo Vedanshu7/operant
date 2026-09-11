@@ -293,3 +293,24 @@ def test_an_extraction_anchored_on_an_input_is_templated_and_requires_it() -> (
     )
     assert rec.extract[0].pattern == r"{{accountId}}.*?(-?\$[\d,]+\.\d{2})"
     assert rec.inputs["accountId"].required is True
+
+
+def test_an_output_named_after_an_input_value_gets_a_generic_name() -> None:
+    recorder = operant.application.recorder.recording.Recorder()
+    recorder.start("Overview - Acme")
+    recorder.record_extraction("account_12345_balance", r"12345\s+(\S+)")
+    rec = tests.support.recording.build_recording(
+        recorder,
+        {"accountId": "12345"},
+        {"account_12345_balance": "$1.00", "account_balance": "$2.00"},
+    )
+    # The bare name is taken, so the renamed one keeps its own.
+    assert set(rec.outputs) == {"account_12345_balance", "account_balance"}
+    recorder = operant.application.recorder.recording.Recorder()
+    recorder.start("Overview - Acme")
+    recorder.record_extraction("account_12345_balance", r"12345\s+(\S+)")
+    rec = tests.support.recording.build_recording(
+        recorder, {"accountId": "12345"}, {"account_12345_balance": "$1.00"}
+    )
+    assert set(rec.outputs) == {"account_balance"}
+    assert rec.extract[0].output == "account_balance"

@@ -96,8 +96,12 @@ def build(
     for step in recorder.recorded:
         state.edges.append(_build_edge(step, state))
     nodes = list(recorder.nodes.values())
+    names = _generic_output_names(outputs, state)
     extracts = [
-        _parameterize_extract(spec, state) for spec in recorder.extractions
+        _parameterize_extract(spec, state).model_copy(
+            update={"output": names.get(spec.output, spec.output)}
+        )
+        for spec in recorder.extractions
     ]
     entry = state.edges[0].from_node if state.edges else nodes[0].id
     goal_node = state.edges[-1].to_node if state.edges else nodes[0].id
@@ -115,7 +119,10 @@ def build(
             [edge.model_dump_json() for edge in state.edges]
             + [spec.pattern for spec in extracts],
         ),
-        outputs=_typed_outputs(outputs, output_classes or {}),
+        outputs=_typed_outputs(
+            {names[k]: v for k, v in outputs.items()},
+            {names.get(k, k): v for k, v in (output_classes or {}).items()},
+        ),
         nodes=nodes,
         edges=state.edges,
         outcome_edges=state.outcome_edges,
@@ -379,6 +386,29 @@ def _parameterize_extract(
         pattern = pattern.replace(value, placeholder)
     templated = spec.model_copy(update={"pattern": pattern})
     return templated
+
+
+def _generic_output_names(
+    outputs: Dict[str, str], state: _BuildState
+) -> Dict[str, str]:
+    """
+    Map each output name to one without an input value inside it.
+
+    A model reading "the balance of account 12345" tends to name the
+    output ``account_12345_balance``; every replay with another account
+    would then report under the discovery's account. A name keeps its
+    own spelling when stripping empties it or collides with another.
+    """
+    names: Dict[str, str] = {}
+    for name in outputs:
+        generic = name
+        for _, value in state.params:
+            token = rf"(?<![^\W_]){re.escape(value)}(?![^\W_])"
+            generic = re.sub(rf"_*{token}_*", "_", generic)
+        generic = generic.strip("_")
+        taken = generic in outputs or generic in names.values()
+        names[name] = name if not generic or taken else generic
+    return names
 
 
 def _require_used(
