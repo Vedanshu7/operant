@@ -34,6 +34,8 @@ VERIFIER_PROMPT: Final = """You review whether ONE subgoal of a UI automation ru
 
 Pass only when the CURRENT SCREEN visibly satisfies the success criteria and every expected output has been extracted with a plausible value. A form that was submitted but shows "pending", an error, or no confirmation is NOT achieved. Do not pass on intent or on what the executor claims - only on what the screen shows.
 
+Sensitive values (balances, account numbers, personal data) are masked as [REDACTED] in everything you see, on the screen and in the outputs alike. An output shown as [REDACTED] was extracted; it is plausible when the screen shows the matching field, also masked, where the criteria expect it.
+
 Call verdict exactly once with passed and a one-sentence reason a person could check."""
 
 SAFETY_PROMPT: Final = """You audit the steps of a UI automation run for OVERREACH. You never act, and you do NOT judge whether the goal is finished - the run is usually part-way through, and unfinished work is expected and must PASS.
