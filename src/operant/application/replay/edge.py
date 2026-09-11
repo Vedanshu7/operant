@@ -26,6 +26,7 @@ import operant.application.replay.outcomes as outcomes
 import operant.application.replay.values as values
 import operant.domain.errors as errors
 import operant.domain.events as events
+import operant.domain.graph.localize as localize
 import operant.domain.locate as locate
 import operant.domain.models.actions as maaction
 import operant.domain.models.digest as digest
@@ -420,6 +421,12 @@ class EdgeExecutor:
         if self._consult(screen, edge.to_node) or self._consult(
             screen, edge.from_node
         ):
+            return
+        if edge.action.kind == "launch" and (
+            localize.locate(screen, ctx.graph, ctx.opts.params) is not None
+        ):
+            # A live session can send the entry URL to any page it knows
+            # (e.g. straight past a login): the caller re-localizes from it.
             return
         shot = ctx.log.screenshot(ctx.surface, f"node-assert-failed-{edge.id}")
         ctx.log.emit(_node_assert_failed_event(edge, shot))

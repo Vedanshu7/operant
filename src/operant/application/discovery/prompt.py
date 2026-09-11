@@ -53,6 +53,8 @@ Task inputs vs outputs - keep them separate:
 
 Outputs:
 - Use "extract" to read a value the goal asks for: a regex over the visible text with exactly ONE capture group.
+- The pattern is saved and reused on later runs with other inputs, so match the value by its label or position and its general shape (any sign, any digit count), never by the literal text you see now.
+- Name outputs for what they mean (account_balance), never after an input value (not account_12345_balance).
 
 Safety - every action is policy-checked:
 - Launches outside scope, mutating controls (send/submit/pay/transfer/delete...), and sensitive fills pause for human approval before they run. This is expected; wait for the decision.
@@ -171,7 +173,10 @@ TOOL_SCHEMAS: Final[Tuple[llm.ToolSchema, ...]] = (
         name="extract",
         description=(
             "Extract one output value from the visible screen text via a "
-            "regex with one capture group."
+            "regex with one capture group. The pattern is reused on later "
+            "runs with other inputs: match the value's label and general "
+            "shape (optional sign, any number of digits), not the literal "
+            "value shown now."
         ),
         parameters={
             "type": "object",

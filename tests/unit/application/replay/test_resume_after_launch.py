@@ -428,3 +428,50 @@ def test_a_look_alike_of_an_intermediate_page_hops_onto_it_first(
         "Accounts Overview",
         "13344",
     ]
+
+
+# #############################################################################
+# GoalLandingSurface
+# #############################################################################
+
+
+class GoalLandingSurface(LandingSurface):
+    """
+    A live session sends the launch URL straight to the goal page.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._on_overview = True
+
+
+def test_a_launch_landing_on_another_known_page_resumes_there(
+    tmp_path: pathlib.Path,
+) -> None:
+    app_graph = graph.AppGraph(
+        vendor_id="parabank", nodes=ADJ_NODES, edges=ADJ_EDGES
+    )
+    cap = capab.capability(
+        vendor_id="parabank",
+        start_node="login",
+        goal_node="overview",
+        compiled_path=["e1", "e2"],
+    )
+    surface = GoalLandingSurface()
+    result = engine.replay_path(
+        cap,
+        app_graph,
+        ADJ_EDGES,
+        surface,
+        escal.ControlBroker(
+            start_human_capture=lambda cb: None,
+            stop_human_capture=lambda: None,
+            on_transition=lambda a, b, d: None,
+        ),
+        run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False),
+        redact.Redactor(),
+        options.ReplayOptions(tenant="t", params={}),
+        approver=approval.ScriptedApprover([]),
+    )
+    assert result.status == "success", result
+    assert [a.kind for a in surface.performed] == ["launch"]
