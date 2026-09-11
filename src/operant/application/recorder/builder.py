@@ -97,12 +97,18 @@ def build(
         state.edges.append(_build_edge(step, state))
     nodes = list(recorder.nodes.values())
     names = _generic_output_names(outputs, state)
-    extracts = [
-        _parameterize_extract(spec, state).model_copy(
-            update={"output": names.get(spec.output, spec.output)}
+    # A re-extracted output keeps its last pattern: earlier tries are the
+    # ones the model refined away (replay requires every recorded one).
+    latest = {
+        renamed.output: renamed
+        for renamed in (
+            _parameterize_extract(spec, state).model_copy(
+                update={"output": names.get(spec.output, spec.output)}
+            )
+            for spec in recorder.extractions
         )
-        for spec in recorder.extractions
-    ]
+    }
+    extracts = list(latest.values())
     entry = state.edges[0].from_node if state.edges else nodes[0].id
     goal_node = state.edges[-1].to_node if state.edges else nodes[0].id
     recording = recdng.Recording(
@@ -396,18 +402,23 @@ def _generic_output_names(
 
     A model reading "the balance of account 12345" tends to name the
     output ``account_12345_balance``; every replay with another account
-    would then report under the discovery's account. A name keeps its
-    own spelling when stripping empties it or collides with another.
+    would then report under the discovery's account. A name that already
+    exists with the same value is the same output and merges into it; a
+    name keeps its own spelling when stripping empties it or collides
+    with a different value.
     """
     names: Dict[str, str] = {}
-    for name in outputs:
+    held: Dict[str, str] = dict(outputs)
+    for name, value in outputs.items():
         generic = name
-        for _, value in state.params:
-            token = rf"(?<![^\W_]){re.escape(value)}(?![^\W_])"
+        for _, input_value in state.params:
+            token = rf"(?<![^\W_]){re.escape(input_value)}(?![^\W_])"
             generic = re.sub(rf"_*{token}_*", "_", generic)
         generic = generic.strip("_")
-        taken = generic in outputs or generic in names.values()
-        names[name] = name if not generic or taken else generic
+        names[name] = (
+            generic if generic and held.get(generic, value) == value else name
+        )
+        held.setdefault(names[name], value)
     return names
 
 

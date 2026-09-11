@@ -314,3 +314,28 @@ def test_an_output_named_after_an_input_value_gets_a_generic_name() -> None:
     )
     assert set(rec.outputs) == {"account_balance"}
     assert rec.extract[0].output == "account_balance"
+
+
+def test_the_same_value_under_an_input_named_alias_is_one_output() -> None:
+    recorder = operant.application.recorder.recording.Recorder()
+    recorder.start("Overview - Acme")
+    recorder.record_extraction("account_balance", r"12345\s+(\S+)")
+    recorder.record_extraction("account_12345_balance", r"12345\s+(\S+)")
+    rec = tests.support.recording.build_recording(
+        recorder,
+        {"accountId": "12345"},
+        {"account_balance": "$1.00", "account_12345_balance": "$1.00"},
+    )
+    assert set(rec.outputs) == {"account_balance"}
+    assert [spec.output for spec in rec.extract] == ["account_balance"]
+
+
+def test_a_re_extracted_output_keeps_only_its_last_pattern() -> None:
+    recorder = operant.application.recorder.recording.Recorder()
+    recorder.start("Overview - Acme")
+    recorder.record_extraction("balance", r"Account 12345: (\S+)")
+    recorder.record_extraction("balance", r"12345\s+(\S+)")
+    rec = tests.support.recording.build_recording(
+        recorder, {"accountId": "12345"}, {"balance": "$1.00"}
+    )
+    assert [spec.pattern for spec in rec.extract] == [r"{{accountId}}\s+(\S+)"]
