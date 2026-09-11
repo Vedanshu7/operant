@@ -53,3 +53,10 @@ def test_substitute_condition_rewrites_element_visible_only() -> None:
     assert params.substitute_condition(title, PARAMS) is title
     text = graph.TextMatches(pattern="{{account}}")
     assert params.substitute_condition(text, PARAMS) is text
+
+
+def test_pattern_placeholders_are_filled_with_escaped_values() -> None:
+    filled = params.substitute_pattern(
+        r"{{id}}\s+(\d+) {{missing}}", {"id": "a.b"}
+    )
+    assert filled == r"a\.b\s+(\d+) {{missing}}"

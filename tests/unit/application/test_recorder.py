@@ -280,3 +280,16 @@ def test_inputs_a_step_uses_are_required_and_unused_ones_are_not() -> None:
     )
     assert rec.inputs["accountId"].required is True
     assert rec.inputs["note"].required is False
+
+
+def test_an_extraction_anchored_on_an_input_is_templated_and_requires_it() -> (
+    None
+):
+    recorder = operant.application.recorder.recording.Recorder()
+    recorder.start("Overview - Acme")
+    recorder.record_extraction("balance", r"12345.*?(-?\$[\d,]+\.\d{2})")
+    rec = tests.support.recording.build_recording(
+        recorder, {"accountId": "12345"}, {"balance": "$1.00"}
+    )
+    assert rec.extract[0].pattern == r"{{accountId}}.*?(-?\$[\d,]+\.\d{2})"
+    assert rec.inputs["accountId"].required is True

@@ -16,14 +16,16 @@ import operant.application.replay.values as values
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import operant.application.replay.context as context
 import operant.application.replay.options as options
 import operant.domain.errors as errors
+import operant.domain.models.artifact as artifact
 import operant.domain.models.digest as digest
 import operant.domain.models.targets as targets
 import operant.domain.outcomes as outcomes
+import operant.domain.params as params
 import operant.domain.sensitivity as sensv
 
 
@@ -157,7 +159,28 @@ def extract_eagerly(
     :param screen: The digest captured at ``extract_at_node``.
     """
     if ctx.capability.extract:
-        outputs, _missing = outcomes.run_extraction(
-            ctx.capability.extract, screen
-        )
+        outputs, _missing = outcomes.run_extraction(extract_specs(ctx), screen)
         record_outputs(ctx, outputs)
+
+
+def extract_specs(ctx: context.ReplayContext) -> List[artifact.ExtractSpec]:
+    """
+    Return the capability's extraction specs filled with this run's inputs.
+
+    Patterns recorded around an input value carry ``{{name}}``; each
+    replay reads the record its own inputs name.
+
+    :param ctx: The active replay context.
+    :return: The specs with placeholders replaced by escaped values.
+    """
+    specs = [
+        spec.model_copy(
+            update={
+                "pattern": params.substitute_pattern(
+                    spec.pattern, ctx.opts.params
+                )
+            }
+        )
+        for spec in ctx.capability.extract
+    ]
+    return specs

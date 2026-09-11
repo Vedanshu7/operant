@@ -96,6 +96,9 @@ def build(
     for step in recorder.recorded:
         state.edges.append(_build_edge(step, state))
     nodes = list(recorder.nodes.values())
+    extracts = [
+        _parameterize_extract(spec, state) for spec in recorder.extractions
+    ]
     entry = state.edges[0].from_node if state.edges else nodes[0].id
     goal_node = state.edges[-1].to_node if state.edges else nodes[0].id
     recording = recdng.Recording(
@@ -108,7 +111,9 @@ def build(
         tenants=profile.tenants,
         default_tenant=profile.default_tenant,
         inputs=_require_used(
-            _typed_inputs(state, input_classes or {}), state.edges
+            _typed_inputs(state, input_classes or {}),
+            [edge.model_dump_json() for edge in state.edges]
+            + [spec.pattern for spec in extracts],
         ),
         outputs=_typed_outputs(outputs, output_classes or {}),
         nodes=nodes,
@@ -117,7 +122,7 @@ def build(
         entry_node=entry,
         goal_node=goal_node,
         extract_at_node=recorder.extract_node or goal_node,
-        extract=list(recorder.extractions),
+        extract=extracts,
         policy_scope=artifact.PolicyScope(
             policy_id=profile.policy.id,
             required_action_kinds=sorted({e.action.kind for e in state.edges}),
@@ -358,8 +363,26 @@ def _typed_inputs(
 _PARAM_RE: Final = re.compile(r'\{\{(\w+)\}\}|"param":\s*"(\w+)"')
 
 
+def _parameterize_extract(
+    spec: artifact.ExtractSpec, state: _BuildState
+) -> artifact.ExtractSpec:
+    """
+    Replace input values inside an extraction pattern with ``{{name}}``.
+
+    A pattern anchored on an input ("12345.*?(balance)") would otherwise
+    read the same record on every replay, whatever input is passed.
+    """
+    pattern = spec.pattern
+    for name, value in state.params:
+        placeholder = f"{{{{{name}}}}}"
+        pattern = pattern.replace(re.escape(value), placeholder)
+        pattern = pattern.replace(value, placeholder)
+    templated = spec.model_copy(update={"pattern": pattern})
+    return templated
+
+
 def _require_used(
-    typed: Dict[str, artifact.IoField], edges: List[graph.Edge]
+    typed: Dict[str, artifact.IoField], texts: List[str]
 ) -> Dict[str, artifact.IoField]:
     """
     Mark every input a recorded step depends on as required.
@@ -369,13 +392,13 @@ def _require_used(
     a clear precondition failure instead of failing to find a control.
 
     :param typed: Inputs as recorded.
-    :param edges: The recorded steps.
+    :param texts: The recorded steps (as JSON) and extraction patterns.
     :return: The inputs, with those the steps use marked required.
     """
     used = {
         name
-        for edge in edges
-        for match in _PARAM_RE.finditer(edge.model_dump_json())
+        for text in texts
+        for match in _PARAM_RE.finditer(text)
         for name in match.groups()
         if name
     }

@@ -17,6 +17,7 @@ import operant.domain.params as params
 from __future__ import annotations
 
 import collections.abc
+import re
 from typing import List
 
 import operant.domain.models.graph as graph
@@ -77,3 +78,20 @@ def substitute_condition(
         # Title and text conditions carry no target: pass through.
         result = cond
     return result
+
+
+def substitute_pattern(
+    pattern: str, params: collections.abc.Mapping[str, str]
+) -> str:
+    """
+    Fill ``{{name}}`` placeholders in a regex with escaped input values.
+
+    :param pattern: A recorded extraction pattern.
+    :param params: Task inputs keyed by placeholder name.
+    :return: The pattern for this run; unknown placeholders are left in
+        place so a missing input is visible.
+    """
+    filled = pattern
+    for name, value in params.items():
+        filled = filled.replace(f"{{{{{name}}}}}", re.escape(value))
+    return filled

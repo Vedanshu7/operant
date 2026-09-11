@@ -231,3 +231,35 @@ def test_a_cancelled_replay_stops_before_acting(tmp_path: pathlib.Path) -> None:
     assert result.status == "failure"
     assert result.failure.failure_class == "cancelled"
     assert surface.performed == []
+
+
+def test_a_templated_pattern_reads_the_record_the_inputs_name(
+    tmp_path: pathlib.Path,
+) -> None:
+    rows = "12345 $10.00 13344 $99.00"
+    cap = _cap(
+        extract_at_node="goal",
+        extract=[
+            artifact.ExtractSpec(
+                output="balance", pattern=r"{{accountId}}\s+(\$[\d.]+)"
+            )
+        ],
+    )
+    log = run_log.RunLog(
+        tmp_path, "run", operant.domain.redaction.Redactor(), echo=False
+    )
+    surface = surfaces.TitledSurface(TITLES, {**TEXTS, "App | Goal": rows})
+    result = operant.application.replay.engine.replay_path(
+        cap,
+        GRAPH,
+        [GRAPH.edge(e) for e in cap.compiled_path],
+        surface,
+        _broker(),
+        log,
+        operant.domain.redaction.Redactor(),
+        operant.application.replay.options.ReplayOptions(
+            tenant="t", params={"accountId": "13344"}
+        ),
+    )
+    assert result.status == "success", result
+    assert result.outputs == {"balance": "$99.00"}
