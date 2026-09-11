@@ -263,3 +263,45 @@ def test_a_templated_pattern_reads_the_record_the_inputs_name(
     )
     assert result.status == "success", result
     assert result.outputs == {"balance": "$99.00"}
+
+
+# #############################################################################
+# _LateTableSurface
+# #############################################################################
+
+
+class _LateTableSurface(surfaces.TitledSurface):
+    """
+    The goal page arrives before its table, which a script fills in later.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(TITLES, dict(TEXTS))
+        self._goal_reads = 0
+
+    def snapshot(self) -> digest.ScreenDigest:
+        shown = super().snapshot()
+        if shown.window_title == "App | Goal":
+            self._goal_reads += 1
+            if self._goal_reads > 2:
+                shown = digest.ScreenDigest(
+                    app=shown.app,
+                    window_title=shown.window_title,
+                    text="done 13344 $99.00",
+                    controls=shown.controls,
+                )
+        return shown
+
+
+def test_outputs_that_load_after_the_page_are_still_read(
+    tmp_path: pathlib.Path,
+) -> None:
+    cap = _cap(
+        extract_at_node="goal",
+        extract=[
+            artifact.ExtractSpec(output="balance", pattern=r"13344\s+(\$[\d.]+)")
+        ],
+    )
+    result, _ = _run(tmp_path, cap, surface=_LateTableSurface())
+    assert result.status == "success", result
+    assert result.outputs == {"balance": "$99.00"}

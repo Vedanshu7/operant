@@ -403,7 +403,15 @@ def _extract_declared(
             f"screen at extract_at_node {capability.extract_at_node}",
             "extraction node was never reached on this path",
         )
-    extracted, missing = dooutcom.run_extraction(values.extract_specs(ctx), src)
+    specs = values.extract_specs(ctx)
+    extracted, missing = dooutcom.run_extraction(specs, src)
+    deadline = time.monotonic() + ctx.opts.goal_poll_s
+    while missing and at_goal and time.monotonic() < deadline:
+        # Content can arrive after the page does (a table filled by script):
+        # read the live screen again before calling the output missing.
+        time.sleep(ctx.opts.poll_interval_s)
+        src = ctx.surface.snapshot()
+        extracted, missing = dooutcom.run_extraction(specs, src)
     values.record_outputs(ctx, extracted)
     node = capability.extract_at_node or capability.goal_node
     ctx.log.emit(

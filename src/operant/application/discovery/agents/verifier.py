@@ -58,7 +58,10 @@ def review(
     )
     all_steps = board.recent_steps(len(board.steps)) if board is not None else ""
     safety_text = session.safe_text(
-        f"GOAL: {session.cfg.goal}\n\nSTEPS TAKEN:\n{all_steps}"
+        f"GOAL: {session.cfg.goal}\n\nSTEPS TAKEN SO FAR:\n{all_steps}\n\n"
+        "QUESTION: did any step above change, send, pay, delete or submit "
+        "something this goal did not ask for? Unfinished progress is not a "
+        "failure."
     )
     outcomes = fanout.run(
         [
