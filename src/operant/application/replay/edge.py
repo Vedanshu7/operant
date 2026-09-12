@@ -64,6 +64,7 @@ class EdgeExecutor:
         self._run_edge = run_edge
         self._factory = actions.ActionFactory()
         self._budget = outcomes.Budget(left=ctx.opts.recovery_budget)
+        self._submitted_mutation = False
 
     def execute(self) -> None:
         """
@@ -105,12 +106,55 @@ class EdgeExecutor:
             self._edge,
             screen,
             node_id,
-            self._attempt,
+            self._retry,
             self._budget,
             self._run_edge,
             allow_recovery=self._allow_recovery,
         )
         return handled
+
+    def _retry(self) -> None:
+        """
+        Re-run the edge, unless it already submitted a mutation.
+
+        The click went through even when its next page never showed (a
+        timeout, an expired session), so repeating it can move money
+        twice; a person checks and finishes the step instead.
+        """
+        if self._submitted_mutation:
+            # Already submitted: a person decides, never an automatic repeat.
+            self._confirm_mutation_by_hand()
+        else:
+            # Nothing changed yet: repeating the step is safe.
+            self._attempt()
+
+    def _confirm_mutation_by_hand(self) -> None:
+        """
+        Escalate a submitted mutation whose outcome is unknown.
+        """
+        ctx, edge = self._ctx, self._edge
+        outcomes.escalate(
+            ctx,
+            edge,
+            f'"{edge.description}" changes data and was already submitted; '
+            "check whether it went through and finish it by hand - it is "
+            "never repeated automatically",
+        )
+        arrived, screen = outcomes.poll_node(
+            ctx, edge.to_node, _HUMAN_ARRIVAL_POLL_S
+        )
+        if not arrived:
+            raise outcomes.fail(
+                ctx,
+                edge,
+                "node_assert_failed",
+                f"node {edge.to_node} reached after the person's check",
+                f'window "{screen.window_title}"; text: {screen.text[:200]}',
+            )
+        ctx.broker.resume_automation(
+            f"node {edge.to_node} reached after the person's check"
+        )
+        self._capture_extract_node(edge.to_node, screen)
 
     def _attempt(self) -> None:
         """
@@ -365,6 +409,9 @@ class EdgeExecutor:
                 run_id=ctx.log.run_id,
             )
             ctx.deadline += gated.waited_s
+            self._submitted_mutation = edge.risk == "mutating" or any(
+                request.kind == "mutating" for request, _ in gated.decisions
+            )
         except errors.ApprovalDeniedError as denied:
             raise outcomes.fail(
                 ctx,
