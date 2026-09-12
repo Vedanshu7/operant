@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+import pathlib
+
+import pytest
+
 import operant.domain.approval as approval
 import operant.domain.models.actions as actions
 import operant.domain.models.artifact as artifact
@@ -363,3 +368,72 @@ def test_a_generic_button_is_judged_by_its_label() -> None:
 
 def test_a_mutating_name_is_mutating_whatever_its_label() -> None:
     assert _click_risk("Transfer Funds | Accounts") == "mutating"
+
+
+_BASE_FILE = (
+    pathlib.Path(__file__).parents[3] / "policies" / "discovery-base.json"
+)
+BASE = policy.Policy.model_validate(json.loads(_BASE_FILE.read_text())["policy"])
+
+
+@pytest.mark.parametrize(
+    "target_text, expected",
+    [
+        # Whole words: a mutating word inside another word is not a match.
+        ("Postal code", "safe"),
+        ("Design", "safe"),
+        ("Address", "safe"),
+        # Safe phrases blank out the mutating word they contain.
+        ("Sign in", "safe"),
+        ("Sort order", "safe"),
+        ("Apply filters", "safe"),
+        ("Cancel", "safe"),
+        # Verbs that change data and used to pass as safe.
+        ("Save", "mutating"),
+        ("Create invoice", "mutating"),
+        ("Add to cart", "mutating"),
+        ("Update address", "mutating"),
+        ("Cancel subscription", "mutating"),
+        # A safe phrase does not hide a mutating one next to it.
+        ("View and pay bill", "mutating"),
+        ("Sign up", "mutating"),
+    ],
+)
+def test_the_base_policy_judges_controls_by_whole_words(
+    target_text: str, expected: str
+) -> None:
+    click = actions.SurfaceAction(kind="click", target_text=target_text)
+    assert policy.classify_risk(BASE, click) == expected
+
+
+def test_a_shortcut_chord_is_mutating() -> None:
+    chord = actions.SurfaceAction(kind="press", key="cmd+s")
+    assert policy.classify_risk(POLICY, chord, screens.digest()) == "mutating"
+
+
+def test_delete_is_mutating_only_outside_a_text_field() -> None:
+    delete = actions.SurfaceAction(kind="press", key="Delete")
+    item_list = screens.digest(
+        controls=(screens.control("c1", "row", name="Report.pdf"),)
+    )
+    assert policy.classify_risk(POLICY, delete, item_list) == "mutating"
+    editing = screens.digest(
+        controls=(screens.control("c1", "text_field", label="Message"),)
+    )
+    assert policy.classify_risk(POLICY, delete, editing) == "safe"
+
+
+def test_strict_mode_gates_unlisted_buttons_only() -> None:
+    strict = POLICY.model_copy(
+        update={"strict": True, "safe_control_patterns": ["search"]}
+    )
+    button = screens.control("c1", "button", name="Archive")
+    click = actions.SurfaceAction(kind="click", ref="c1", target_text="Archive")
+    assert policy.classify_risk(strict, click, None, button) == "mutating"
+    assert policy.classify_risk(POLICY, click, None, button) == "safe"
+    link = screens.control("c1", "link", name="Archive")
+    assert policy.classify_risk(strict, click, None, link) == "safe"
+    search = actions.SurfaceAction(kind="click", ref="c1", target_text="Search")
+    assert policy.classify_risk(strict, search, None, button) == "safe"
+    d = policy.evaluate_action(strict, click, control=button)
+    assert d.verdict == "needs_approval"

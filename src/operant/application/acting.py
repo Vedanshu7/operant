@@ -202,7 +202,7 @@ def _record(
             f"{control.name} | {control.label}" if control else action.target_text
         ),
     )
-    risk = policy.classify_risk(app_policy, probe, pre_digest)
+    risk = policy.classify_risk(app_policy, probe, pre_digest, control)
     recorder.record(
         action=recorded,
         target_control=control,

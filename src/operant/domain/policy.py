@@ -37,6 +37,10 @@ import operant.domain.sensitivity as sensv
 DEFAULT_LOCAL_HOSTS: Final[FrozenSet[str]] = frozenset({"localhost", "127.0.0.1"})
 
 _ENTER_KEYS: Final = frozenset({"enter", "return", "kp_enter"})
+_DELETE_KEYS: Final = frozenset({"delete", "backspace", "forwarddelete"})
+_TEXT_ROLES: Final = frozenset(
+    {"text_field", "text_area", "textfield", "search_field"}
+)
 _SUBMIT_ROLES: Final = frozenset({"button", "link", "menu_item"})
 _IP_HOST_RE: Final = re.compile(r"[\d.]+")
 
@@ -55,7 +59,12 @@ class Policy(pydantic.BaseModel):
     :ivar allowed_url_patterns: Regexes a launched URL must match.
     :ivar allowed_action_kinds: Surface action kinds that may run.
     :ivar mutating_control_patterns: Regexes naming controls that mutate
-        application state.
+        application state, matched as whole words.
+    :ivar safe_control_patterns: Read-only phrases ("sign in", "sort
+        order") blanked out before the mutating match, so a mutating
+        word inside them does not count.
+    :ivar strict: Treat a button no pattern names as mutating, for apps
+        where an unlisted button can change data.
     :ivar approval: Which approval gates are on.
     """
 
@@ -64,6 +73,8 @@ class Policy(pydantic.BaseModel):
     allowed_url_patterns: List[str]
     allowed_action_kinds: List[str]
     mutating_control_patterns: List[str]
+    safe_control_patterns: List[str] = []
+    strict: bool = False
     approval: daapprov.ApprovalPolicy = daapprov.ApprovalPolicy()
 
 
@@ -148,13 +159,27 @@ def propose_scope(
     return request
 
 
+def _whole_words(pattern: str) -> str:
+    """
+    Anchor a pattern so it only matches whole words ("post", not "Postal
+    code").
+    """
+    anchored = rf"(?<!\w)(?:{pattern})(?!\w)"
+    return anchored
+
+
 def _mutating_match(policy: Policy, text: str) -> Optional[str]:
     """
     Return the first mutating-control pattern the text matches.
+
+    Safe phrases are blanked out first, so "Sign in" does not match
+    "sign" while "View and pay bill" still matches "pay bill".
     """
+    for safe in policy.safe_control_patterns:
+        text = re.sub(_whole_words(safe), " ", text, flags=re.IGNORECASE)
     found = None
     for pattern in policy.mutating_control_patterns:
-        if re.search(pattern, text, re.IGNORECASE):
+        if re.search(_whole_words(pattern), text, re.IGNORECASE):
             found = pattern
             break
     return found
@@ -199,29 +224,67 @@ def _click_text(target_text: str) -> str:
     return text
 
 
-def _mutating_trigger(
+def _click_trigger(
+    policy: Policy,
+    action: actions.SurfaceAction,
+    control: Optional[mddigest.Control],
+) -> Optional[Tuple[str, str]]:
+    """
+    Find what makes a click mutating: a pattern, or strict mode.
+    """
+    text = _click_text(action.target_text)
+    pattern = _mutating_match(policy, text)
+    what = f'click "{action.target_text}"'
+    if pattern is not None:
+        # A mutating pattern names the control.
+        trigger: Optional[Tuple[str, str]] = (what, pattern)
+    elif (
+        policy.strict
+        and control is not None
+        and control.role == "button"
+        and not any(
+            re.search(_whole_words(p), text, re.IGNORECASE)
+            for p in policy.safe_control_patterns
+        )
+    ):
+        # Strict mode: a button nothing names as safe may change data.
+        trigger = (what, "strict: unlisted button")
+    else:
+        # Nothing marks the click as mutating.
+        trigger = None
+    return trigger
+
+
+def _press_trigger(
     policy: Policy,
     action: actions.SurfaceAction,
     screen: Optional[mddigest.ScreenDigest],
 ) -> Optional[Tuple[str, str]]:
     """
-    Find what makes the action mutating, if anything.
+    Find what makes a key press mutating, if anything.
 
     Enter is a submit when a mutating-labelled control is live on
     screen; that is how a chat sends, and how a click-only check gets
-    bypassed.
-
-    :param policy: The governing policy.
-    :param action: The action about to run.
-    :param screen: The current digest, when one is available.
-    :return:``(what the human would read, matched pattern)`` or
-        ``None``.
+    bypassed. Delete with no text field on screen deletes the selected
+    item, not a character. A chord ("cmd+s") is never typing.
     """
-    if action.kind == "click":
-        pattern = _mutating_match(policy, _click_text(action.target_text))
-        return (f'click "{action.target_text}"', pattern) if pattern else None
-    is_enter = (action.key or "").lower() in _ENTER_KEYS
-    if action.kind == "press" and is_enter and screen is not None:
+    key = (action.key or "").lower()
+    trigger: Optional[Tuple[str, str]] = None
+    if "+" in key.strip("+"):
+        # A shortcut chord: it can save, delete or send.
+        trigger = (f"press shortcut {action.key}", "key chord")
+    elif key in _DELETE_KEYS and screen is not None:
+        # Delete outside any text field removes the selection.
+        editing = any(
+            c.enabled and c.role in _TEXT_ROLES for c in screen.controls
+        )
+        if not editing:
+            trigger = (
+                f"press {action.key} with no text field on screen",
+                "delete key",
+            )
+    elif key in _ENTER_KEYS and screen is not None:
+        # Enter submits whichever mutating control is live.
         for control in screen.controls:
             if not control.enabled or control.role not in _SUBMIT_ROLES:
                 continue
@@ -231,14 +294,41 @@ def _mutating_trigger(
                 what = (
                     f'press {action.key} with {control.role} "{text}" on screen'
                 )
-                return (what, pattern)
-    return None
+                trigger = (what, pattern)
+                break
+    return trigger
+
+
+def _mutating_trigger(
+    policy: Policy,
+    action: actions.SurfaceAction,
+    screen: Optional[mddigest.ScreenDigest],
+    control: Optional[mddigest.Control] = None,
+) -> Optional[Tuple[str, str]]:
+    """
+    Find what makes the action mutating, if anything.
+
+    :param policy: The governing policy.
+    :param action: The action about to run.
+    :param screen: The current digest, when one is available.
+    :param control: The control a click targets, when resolved.
+    :return:``(what the human would read, matched pattern)`` or
+        ``None``.
+    """
+    if action.kind == "click":
+        trigger = _click_trigger(policy, action, control)
+    elif action.kind == "press":
+        trigger = _press_trigger(policy, action, screen)
+    else:
+        trigger = None
+    return trigger
 
 
 def classify_risk(
     policy: Policy,
     action: actions.SurfaceAction,
     digest: Optional[mddigest.ScreenDigest] = None,
+    control: Optional[mddigest.Control] = None,
 ) -> daapprov.Risk:
     """
     Classify an action as ``safe`` or ``mutating``.
@@ -246,12 +336,12 @@ def classify_risk(
     :param policy: The governing policy.
     :param action: The action about to run.
     :param digest: The current digest, when one is available.
+    :param control: The control a click targets, when resolved.
     :return:``mutating`` when a mutating trigger is found, else
         ``safe``.
     """
-    risk: daapprov.Risk = (
-        "mutating" if _mutating_trigger(policy, action, digest) else "safe"
-    )
+    trigger = _mutating_trigger(policy, action, digest, control)
+    risk: daapprov.Risk = "mutating" if trigger else "safe"
     return risk
 
 
@@ -498,13 +588,14 @@ def _evaluate_mutating(
     policy: Policy,
     action: actions.SurfaceAction,
     screen: Optional[mddigest.ScreenDigest],
+    control: Optional[mddigest.Control],
     *,
     app: str,
 ) -> daapprov.PolicyDecision:
     """
     Decides the action against the mutating gate.
     """
-    trigger = _mutating_trigger(policy, action, screen)
+    trigger = _mutating_trigger(policy, action, screen, control)
     if trigger is None:
         # No mutating trigger: the action is safe.
         decision = daapprov.PolicyDecision(
@@ -584,6 +675,6 @@ def evaluate_action(
         decision = (
             found
             if found is not None
-            else _evaluate_mutating(policy, action, digest, app=app)
+            else _evaluate_mutating(policy, action, digest, control, app=app)
         )
     return decision
