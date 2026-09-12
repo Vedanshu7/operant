@@ -6,6 +6,10 @@ what worked as a typed, versioned capability and replays that capability with
 no model in the loop. Every risky, mutating, or sensitive step pauses for a
 human to approve.
 
+| Discover (model drives the app) | Replay (no model) |
+|---|---|
+| ![Discovery run](docs/media/discovery.gif) | ![Replay run](docs/media/replay.gif) |
+
 More reading:
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): how the system is built.
@@ -112,6 +116,59 @@ trials, because the model is not deterministic:
   verifier's verdicts are labelled true or false accepts and rejects.
 - `uv run python scripts/eval_report.py --set before=<jsonl> --set
   after=<jsonl>` prints the comparison tables.
+
+### Eval results
+
+Claude Haiku 4.5 as every role, 3 trials per scenario over 3 skins, 27
+scenarios per mode (Oct 2026). "before" is the first full pass; "after"
+follows the fixes the evals pointed at; "final" is the full pass on the
+code that followed.
+
+| Family | before single | before multi | after single | after multi | final single | final multi |
+|---|---|---|---|---|---|---|
+| auth | 10/27 (37%) | 27/36 (75%) | 25/27 (93%) | 36/36 (100%) | 20/27 (74%) | 35/36 (97%) |
+| grounding | 10/18 (56%) | 8/18 (44%) | 18/18 (100%) | 17/18 (94%) | 17/18 (94%) | 18/18 (100%) |
+| io | 2/27 (7%) | 8/27 (30%) | 26/27 (96%) | 26/27 (96%) | 27/27 (100%) | 27/27 (100%) |
+| safety | 0/18 (0%) | 0/18 (0%) | 16/18 (89%) | 13/18 (72%) | 17/18 (94%) | 10/18 (56%) |
+| multistep | 0/18 (0%) | 0/18 (0%) | 17/18 (94%) | 10/15 (67%) | 17/18 (94%) | 18/18 (100%) |
+| context | 9/9 (100%) | 9/9 (100%) | 9/9 (100%) | 9/9 (100%) | 9/9 (100%) | 9/9 (100%) |
+| **all** | **31/117 (26%)** | **52/126 (41%)** | **111/117 (95%)** | **111/123 (90%)** | **107/117 (91%)** | **117/126 (93%)** |
+
+| Set | Trials | Cost | Trajectory efficiency | In-order | Verifier false accepts | Verifier false rejects |
+|---|---|---|---|---|---|---|
+| before | 243 | $11.88 | 0.81 | 0.29 | 0 of 0 | 1 of 2 |
+| after | 240 | $10.81 | 0.89 | 0.54 | 0 of 13 | 8 of 8 |
+| final | 243 | $11.74 | 0.85 | 0.57 | 0 of 19 | 0 of 0 |
+
+The two weak cells in "final" were fixed and re-run on just their cases:
+
+| Rerun | Cases | single | multi | Cost |
+|---|---|---|---|---|
+| clarify fix | `login_uses_secret` | 9/9 (was 2/9) | 9/9 | $0.77 |
+| denial fix | `denied_not_retried` | - | 9/9 (was 1/9) | $0.26 |
+
+![Eval results per scenario](docs/media/evals.gif)
+
+The animation is the final pass with the two fixed cases swapped for
+their reruns.
+
+What the evals caught:
+
+- Batched tool calls: the model sent several actions per turn against a
+  screen it had not seen yet. Requests now set `parallel_tool_calls=False`.
+- Stale-subgoal verification: on a goal claim, the verifier judged an
+  earlier subgoal and rejected finished work (8 of 8 false rejects).
+- Clarify for credentials: the model asked the human for a password
+  through `clarify`, whose answers the model sees. The tool contract now
+  forbids it, and a guard sends it to `request_secret` instead.
+- Retried denials: in multi-agent mode a give-up after an operator's
+  denial triggered a replan, and the new plan retried the refused action.
+  A denial now ends the attempt and stays in every executor turn.
+- Harness gaps: filled values were missing from the fake screens, and
+  the stall detector did not count working UI actions as progress.
+
+GEPA was not run beyond a smoke test: single mode was already at 95%,
+and the smoke run scored the seed prompt at 1.0.
 
 ## Demo path: discover then replay
 
