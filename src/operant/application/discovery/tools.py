@@ -668,6 +668,7 @@ def _perform_act(
         )
     except errors.ApprovalDeniedError as denied:
         session.undo_retarget(prev_target)
+        state.denials.append(denied.request.summary)
         return _blocked_reply(
             session,
             f"DENIED by human ({denied.request.kind}): "

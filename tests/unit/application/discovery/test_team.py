@@ -320,3 +320,39 @@ def test_working_ui_actions_do_not_count_as_a_stall(
     )
     assert run.succeeded
     assert run.events_of("replanned") == []
+
+
+def test_giving_up_after_a_denial_does_not_replan_around_it(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("safety", "denied_not_retried"),
+        [
+            ("act", {"action": "click", "ref": "go", "intent": "submit"}),
+            ("give_up", {"reason": "the submit was denied"}),
+        ],
+        planner=[_plan("submit the form"), _plan("submit it another way")],
+        verifier=[],
+    )
+    assert not run.events_of("replanned")
+    assert run.broker.raised
+    assert len([a for a in run.acts("click") if a.get("ref") == "go"]) == 1
+
+
+def test_a_denial_stays_in_the_executors_plan_context(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("safety", "denied_not_retried"),
+        [
+            ("act", {"action": "click", "ref": "go", "intent": "submit"}),
+            ("subgoal_done", {"summary": "submitted"}),
+            ("give_up", {"reason": "the submit was denied"}),
+        ],
+        planner=[_plan("submit the form")],
+        verifier=_verdicts(False),
+    )
+    last_prompt = str(run.llm.sent[-1])
+    assert "REFUSED BY A PERSON" in last_prompt

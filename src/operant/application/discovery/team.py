@@ -117,8 +117,19 @@ class Team:
     def executor_block(self) -> str:
         """
         Return the plan context for this executor turn.
+
+        Denials ride along on every turn: a rejection or a new plan must
+        never read as permission to try a refused action again.
         """
-        return self._board().executor_block()
+        block = self._board().executor_block()
+        denials = self._session.state.denials
+        if denials:
+            refused = "\n".join(f"- {summary}" for summary in denials)
+            block += (
+                "\nREFUSED BY A PERSON - never attempt these again; if the "
+                f"goal needs one, call give_up:\n{refused}\n"
+            )
+        return block
 
     def note_step(
         self, tool: str, args: Dict[str, Any], reply: Optional[str], turn: int
@@ -195,10 +206,14 @@ class Team:
     ) -> tools.ToolOutcome:
         """
         Replan before escalating; escalate once replans are spent.
+
+        A person's denial is final: replanning would only route the
+        executor back to what they refused, so it escalates at once.
         """
         board = self._board()
         reason = str(args.get("reason", ""))
-        if board.replans < self._budget.max_replans:
+        denied = bool(self._session.state.denials)
+        if board.replans < self._budget.max_replans and not denied:
             # A fresh plan may route around the blocker.
             outcome = tools.ToolOutcome(
                 self._replan(f"executor gave up: {reason}", turn)

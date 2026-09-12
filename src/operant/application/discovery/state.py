@@ -44,6 +44,7 @@ class DiscoveryState:
     :ivar current_binding: The surface binding recording is attributed
         to.
     :ivar screen: The last observed digest, when a window is bound.
+    :ivar denials: What a person refused to approve during the run.
     """
 
     params: Dict[str, str] = dataclasses.field(default_factory=dict)
@@ -58,6 +59,7 @@ class DiscoveryState:
     current_binding: Optional[Tuple[str, str, str]] = None
     screen: Optional[digest.ScreenDigest] = None
     pending_failure: Optional[Tuple[str, str]] = None
+    denials: List[str] = dataclasses.field(default_factory=list)
 
     def shown(self, name: str, value: str) -> str:
         """
