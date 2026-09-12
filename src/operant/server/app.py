@@ -124,6 +124,10 @@ class SpaStaticFiles(fastapi.staticfiles.StaticFiles):
     The UI routes in the browser (``/login``, ``/runs/<id>``); without
     this fallback, opening or reloading such a URL returned 404. API
     paths and missing assets (anything with a file extension) still 404.
+
+    Pages are revalidated on every load: a cached ``index.html`` keeps
+    pointing at the previous build's hashed bundle, so a rebuilt UI
+    would not show until the cache expired.
     """
 
     async def get_response(
@@ -140,6 +144,8 @@ class SpaStaticFiles(fastapi.staticfiles.StaticFiles):
             if not is_route:
                 raise
             response = await super().get_response("index.html", scope)
+        if response.media_type == "text/html":
+            response.headers["cache-control"] = "no-cache"
         return response
 
 

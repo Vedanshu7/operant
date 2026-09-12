@@ -39,3 +39,12 @@ def test_unknown_api_paths_are_not_answered_with_the_ui(
     tmp_path: pathlib.Path,
 ) -> None:
     assert _client(tmp_path).get("/api/v1/nope").status_code == 404
+
+
+def test_the_index_is_revalidated_so_a_rebuilt_ui_shows_at_once(
+    tmp_path: pathlib.Path,
+) -> None:
+    client = _client(tmp_path)
+    for route in ("/", "/runs/run-1"):
+        assert client.get(route).headers["cache-control"] == "no-cache", route
+    assert "cache-control" not in client.get("/app.js").headers
