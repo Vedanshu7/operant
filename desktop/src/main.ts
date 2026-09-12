@@ -11,7 +11,13 @@
 
 import { ChildProcess, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { createWriteStream, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 
@@ -156,6 +162,15 @@ async function launch(): Promise<void> {
         .catch(() => undefined);
     }, 700);
     window.on("closed", () => clearInterval(timer));
+  }
+  const script = process.env.OPERANT_DESKTOP_SCRIPT;
+  if (script) {
+    // For recorded demos: drive the UI the way a person would, in the page.
+    setTimeout(() => {
+      window.webContents
+        .executeJavaScript(readFileSync(script, "utf8"))
+        .catch((err: unknown) => console.error("demo script failed:", err));
+    }, 3000);
   }
   const snapshot = process.env.OPERANT_DESKTOP_SNAPSHOT;
   if (snapshot) {

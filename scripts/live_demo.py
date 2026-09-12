@@ -9,6 +9,11 @@ the tenant's base URL is local (a sandbox on this machine); anything
 else is refused and the run stops for a person. Each finished run is
 appended to ``state/live/<session>.jsonl``.
 
+For a recorded demo, ``--ui-script <file>`` writes a page script that
+types the goal into the desktop app's form and starts it (run it with
+``OPERANT_DESKTOP_SCRIPT=<file>``); ``--attach`` then operates the run
+the UI started instead of starting one over the API.
+
 Run: ``uv run python scripts/live_demo.py --base
 http://127.0.0.1:7080
         --token <token> --profile <id> --tenant <tenant> --goal "<goal>"
@@ -25,7 +30,7 @@ import re
 import sys
 import time
 import urllib.parse
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 import httpx
 
@@ -204,6 +209,28 @@ def _pending(detail: Dict[str, Any]) -> List[Dict[str, Any]]:
     return found
 
 
+def _latest_run(client: httpx.Client) -> str:
+    """
+    Return the newest run's id, or ``""`` when there is none.
+    """
+    items = client.get("/runs", params={"limit": 1}).json().get("items", [])
+    return str(items[0]["id"]) if items else ""
+
+
+def _attached(client: httpx.Client, before: str, timeout_s: float) -> str:
+    """
+    Wait for a run newer than ``before`` (one the UI started).
+    """
+    deadline = time.monotonic() + timeout_s
+    run_id = _latest_run(client)
+    while run_id == before and time.monotonic() < deadline:
+        time.sleep(0.5)
+        run_id = _latest_run(client)
+    if run_id == before:
+        raise SystemExit("no run was started from the UI in time")
+    return run_id
+
+
 def run(
     client: httpx.Client,
     body: Dict[str, Any],
@@ -211,15 +238,21 @@ def run(
     *,
     kind: str,
     timeout_s: float,
+    attach_after: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Start a discovery or replay and operate it to completion.
 
+    :param attach_after: Operate the first run newer than this id
+        instead of starting one (the UI starts it).
     :return: The final run record plus what the operator did.
     """
-    started = client.post(f"/runs/{kind}", json=body)
-    started.raise_for_status()
-    run_id = started.json()["id"]
+    if attach_after is not None:
+        run_id = _attached(client, attach_after, timeout_s)
+    else:
+        started = client.post(f"/runs/{kind}", json=body)
+        started.raise_for_status()
+        run_id = started.json()["id"]
     handlers = {
         "credential_requested": operator.credential,
         "approval_requested": operator.approval,
@@ -257,6 +290,70 @@ def _reason(record: Dict[str, Any]) -> str:
     return str(reason)
 
 
+_UI_SCRIPT = """
+(async () => {
+  const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+  const until = async (find) => {
+    for (let i = 0; i < 100 && !find(); i++) await wait(100);
+    return find();
+  };
+  // React tracks a control's value itself: set it the native way, then
+  // fire the event React listens for.
+  const set = (el, value) => {
+    const proto = Object.getPrototypeOf(el);
+    Object.getOwnPropertyDescriptor(proto, "value").set.call(el, value);
+    el.dispatchEvent(new Event(el.tagName === "SELECT" ? "change" : "input",
+      { bubbles: true }));
+  };
+  const byId = (id) => until(() => document.getElementById(id));
+  const typeSlowly = async (el, text) => {
+    el.focus();
+    for (let i = 1; i <= text.length; i++) { set(el, text.slice(0, i)); await wait(45); }
+  };
+  const form = __FORM__;
+  await typeSlowly(await byId("goal"), form.goal);
+  await wait(400);
+  const profile = await byId("profile");
+  await until(() => [...profile.options].some((o) => o.value === form.profile));
+  set(profile, form.profile);
+  await wait(400);
+  const tenant = await byId("tenant");
+  await until(() => [...tenant.options].some((o) => o.value === form.tenant));
+  set(tenant, form.tenant);
+  await wait(300);
+  const capability = await byId("capability_id");
+  set(capability, form.capability);
+  set(await byId("agents"), form.agents);
+  const buttons = () => [...document.querySelectorAll("button")];
+  for (const [index, [key, value]] of form.inputs.entries()) {
+    buttons().find((b) => b.textContent.trim() === "+ Add input").click();
+    const n = index + 1;
+    await typeSlowly(await until(() =>
+      document.querySelector(`[aria-label="Input ${n} key"]`)), key);
+    await typeSlowly(await until(() =>
+      document.querySelector(`[aria-label="Input ${n} value"]`)), value);
+  }
+  await wait(900);
+  buttons().find((b) => b.textContent.trim() === "Start discovery").click();
+})();
+"""
+
+
+def _ui_script(args: argparse.Namespace, capability: str) -> str:
+    """
+    Build the page script that fills and submits the discovery form.
+    """
+    form = {
+        "goal": args.goal,
+        "profile": args.profile,
+        "tenant": args.tenant,
+        "capability": capability,
+        "agents": args.agents,
+        "inputs": [item.split("=", 1) for item in args.input],
+    }
+    return _UI_SCRIPT.replace("__FORM__", json.dumps(form))
+
+
 def main() -> int:
     """
     Run one discovery (and optionally its replay) and report the result.
@@ -284,7 +381,21 @@ def main() -> int:
         help="NAME=VALUE input for the replay (repeatable)",
     )
     parser.add_argument("--timeout", type=float, default=600.0)
+    parser.add_argument(
+        "--ui-script",
+        type=pathlib.Path,
+        help="write the desktop page script for this goal and exit",
+    )
+    parser.add_argument(
+        "--attach",
+        action="store_true",
+        help="operate the discovery the UI starts instead of starting one",
+    )
     args = parser.parse_args()
+    capability = args.capability or _slug(args.goal)
+    if args.ui_script is not None:
+        args.ui_script.write_text(_ui_script(args, capability))
+        return 0
     clarify = dict(item.split("=", 1) for item in args.clarify)
     client = httpx.Client(
         base_url=f"{args.base}/api/v1",
@@ -293,7 +404,6 @@ def main() -> int:
     )
     profile = client.get(f"/profiles/{args.profile}").json()
     operator = Operator(client, profile, args.tenant, clarify)
-    capability = args.capability or _slug(args.goal)
     results = [
         run(
             client,
@@ -308,6 +418,7 @@ def main() -> int:
             operator,
             kind="discovery",
             timeout_s=args.timeout,
+            attach_after=_latest_run(client) if args.attach else None,
         )
     ]
     if args.replay and results[0].get("status") == "succeeded":
