@@ -7,12 +7,15 @@ Build the README GIFs from real evidence and eval results.
   appearing over the final screen - no model in the loop.
 - ``evals.gif``: the eval summary table from a results JSONL, typed out
   like a terminal.
+- ``demo.gif`` and ``demo.mp4``: the desktop app's own window, recorded
+  frame by frame (``OPERANT_DESKTOP_RECORD``) while a goal is typed in
+  and the run plays out.
 
 Only window screenshots of the public ParaBank demo are used, and the run
 logs are already redacted.
 
 Run: ``uv run python scripts/make_readme_media.py --discovery <dir>
---replay <dir> --evals state/evals/<session>.jsonl``
+--replay <dir> --evals state/evals/<session>.jsonl --demo <frames dir>``
 """
 
 from __future__ import annotations
@@ -21,9 +24,12 @@ import argparse
 import collections
 import json
 import pathlib
+import subprocess
 import sys
+import tempfile
 from typing import Any, Dict, List, Tuple
 
+import PIL.ImageChops as pchops
 import PIL.Image as pimage
 import PIL.ImageDraw as pdraw
 import PIL.ImageFont as pfont
@@ -250,6 +256,69 @@ def evals_gif(results: pathlib.Path) -> None:
     _save(frames, durations, "evals.gif")
 
 
+_FRAME_MS = 700
+_HOLD_MAX_MS = 2500
+
+
+def demo_media(frames_dir: pathlib.Path) -> None:
+    """
+    Build the demo GIF and MP4 from the app window's recorded frames.
+
+    Unchanged frames merge into one longer hold (capped, so a quiet wait
+    does not stall the loop), which keeps the GIF small.
+    """
+    kept: List[pimage.Image] = []
+    durations: List[int] = []
+    for path in sorted(frames_dir.glob("frame-*.png")):
+        frame = pimage.open(path).convert("RGB")
+        frame = frame.resize(
+            (_WIDTH, int(frame.height * _WIDTH / frame.width)),
+            pimage.Resampling.LANCZOS,
+        )
+        if kept and not _changed(kept[-1], frame):
+            durations[-1] = min(durations[-1] + _FRAME_MS, _HOLD_MAX_MS)
+            continue
+        kept.append(frame)
+        durations.append(_FRAME_MS)
+    durations[-1] = 4000
+    _save(kept, durations, "demo.gif")
+    _mp4(kept, durations, _OUT / "demo.mp4")
+
+
+def _changed(first: pimage.Image, second: pimage.Image) -> bool:
+    """
+    Report whether any pixel differs (captures are pixel-exact).
+    """
+    return pchops.difference(first, second).getbbox() is not None
+
+
+def _mp4(frames: List[pimage.Image], durations: List[int], out: pathlib.Path) -> None:
+    """
+    Encode the frames with their hold times as an H.264 MP4 via ffmpeg.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        listing = []
+        for index, (frame, ms) in enumerate(zip(frames, durations)):
+            name = f"{index:05d}.png"
+            frame.save(pathlib.Path(tmp) / name)
+            listing += [f"file '{name}'", f"duration {ms / 1000:.3f}"]
+        # The concat demuxer ignores the last duration without a repeat.
+        listing.append(f"file '{len(frames) - 1:05d}.png'")
+        (pathlib.Path(tmp) / "frames.txt").write_text("\n".join(listing))
+        subprocess.run(
+            [
+                "ffmpeg", "-y", "-loglevel", "error",
+                "-f", "concat", "-safe", "0", "-i", "frames.txt",
+                "-vf", "fps=10,format=yuv420p",
+                "-c:v", "libx264", "-crf", "26", "-movflags", "+faststart",
+                str(out),
+            ],
+            cwd=tmp,
+            check=True,
+        )
+    print(f"wrote {out}")
+
+
 def main() -> int:
     """
     Build whichever GIFs were asked for.
@@ -258,6 +327,7 @@ def main() -> int:
     parser.add_argument("--discovery", type=pathlib.Path)
     parser.add_argument("--replay", type=pathlib.Path)
     parser.add_argument("--evals", type=pathlib.Path)
+    parser.add_argument("--demo", type=pathlib.Path)
     args = parser.parse_args()
     if args.discovery:
         discovery_gif(args.discovery)
@@ -265,6 +335,8 @@ def main() -> int:
         replay_gif(args.replay)
     if args.evals:
         evals_gif(args.evals)
+    if args.demo:
+        demo_media(args.demo)
     return 0
 
 
