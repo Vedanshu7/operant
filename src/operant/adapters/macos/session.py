@@ -19,6 +19,8 @@ import operant.adapters.macos.session as mssessio
 from __future__ import annotations
 
 import collections.abc
+import ctypes
+import functools
 import re
 import subprocess
 import threading
@@ -33,6 +35,11 @@ import xa11y
 import operant.domain.profile as profile
 
 _HEALTHY_STATUSES = frozenset({200, 302})
+SCREEN_LOCKED = (
+    "the screen is locked: macOS hides every app window from "
+    "accessibility until someone unlocks it"
+)
+_CF_UTF8 = 0x08000100
 
 
 # #############################################################################
@@ -132,6 +139,9 @@ class WindowSession:
 
         :raises TimeoutError: If no matching window appears in time.
         """
+        if screen_locked():
+            # Nothing is reachable; searching would only walk a hollow tree.
+            raise TimeoutError(SCREEN_LOCKED)
         deadline = time.monotonic() + timeout
         pattern = re.compile(self.window_title_pattern, re.IGNORECASE)
         first_pass = True
@@ -418,6 +428,51 @@ class WindowSession:
             raise RuntimeError(
                 f"xa11y: {primary}; mss fallback: {fallback}"
             ) from fallback
+
+
+def screen_locked() -> bool:
+    """
+    Report whether the console session's screen is locked.
+    """
+    graphics, foundation = _quartz()
+    session = graphics.CGSessionCopyCurrentDictionary()
+    locked = False
+    if session:
+        key = foundation.CFStringCreateWithCString(
+            None, b"CGSSessionScreenIsLocked", _CF_UTF8
+        )
+        value = foundation.CFDictionaryGetValue(session, key)
+        locked = bool(value) and bool(foundation.CFBooleanGetValue(value))
+        foundation.CFRelease(key)
+        foundation.CFRelease(session)
+    return locked
+
+
+@functools.lru_cache(maxsize=1)
+def _quartz() -> Tuple[ctypes.CDLL, ctypes.CDLL]:
+    """
+    Load CoreGraphics and CoreFoundation with the signatures used here.
+    """
+    frameworks = "/System/Library/Frameworks"
+    graphics = ctypes.cdll.LoadLibrary(
+        f"{frameworks}/CoreGraphics.framework/CoreGraphics"
+    )
+    foundation = ctypes.cdll.LoadLibrary(
+        f"{frameworks}/CoreFoundation.framework/CoreFoundation"
+    )
+    graphics.CGSessionCopyCurrentDictionary.restype = ctypes.c_void_p
+    foundation.CFStringCreateWithCString.restype = ctypes.c_void_p
+    foundation.CFStringCreateWithCString.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_char_p,
+        ctypes.c_uint32,
+    ]
+    foundation.CFDictionaryGetValue.restype = ctypes.c_void_p
+    foundation.CFDictionaryGetValue.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    foundation.CFBooleanGetValue.restype = ctypes.c_bool
+    foundation.CFBooleanGetValue.argtypes = [ctypes.c_void_p]
+    foundation.CFRelease.argtypes = [ctypes.c_void_p]
+    return graphics, foundation
 
 
 def _healthy(url: str) -> bool:

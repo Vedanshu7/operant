@@ -111,7 +111,13 @@ class AppLauncher:
         Open ``action.app``/``action.url``, dedicated for browsers.
         """
         app_name = action.app or self.session.app_name
-        if self._is_browser(app_name):
+        if mssessio.screen_locked():
+            # A locked screen hides every window: launching would only
+            # stack up windows nobody can find.
+            result = tools.ToolResult(
+                status="failed", reason=mssessio.SCREEN_LOCKED
+            )
+        elif self._is_browser(app_name):
             # Browsers get a dedicated, isolated instance.
             result = self._launch_browser(app_name, action.url)
         else:
