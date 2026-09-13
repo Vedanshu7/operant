@@ -37,6 +37,7 @@ _COMMAND_MODULES: Final[Tuple[str, ...]] = (
     "catalog",
     "audit",
     "graph",
+    "evidence",
     "drive",
     "capture",
     "migrate",

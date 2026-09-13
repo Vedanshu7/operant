@@ -360,11 +360,14 @@ class PrivacySettings(pydantic.BaseModel):
     :ivar evidence:``"exact"`` masks only known secret values in the
         evidence log (fast); ``"scrubbed"`` also runs the scrubber on
         every event (slow, opt-in).
+    :ivar evidence_retention_days: How long ``operant evidence prune``
+        keeps a run's evidence; ``None`` keeps it until deleted by hand.
     """
 
     scrubber: Literal["auto", "presidio", "none"] = "auto"
     spacy_model: str = "en_core_web_lg"
     evidence: Literal["exact", "scrubbed"] = "exact"
+    evidence_retention_days: Optional[float] = None
 
 
 # #############################################################################

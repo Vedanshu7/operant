@@ -319,6 +319,10 @@ uv run operant doctor   # reports whether the scrubber is ready
   labels to click the right control.
 - `OPERANT_PRIVACY__EVIDENCE=scrubbed` also scrubs the evidence log
   (slower).
+- Screenshots black out password and other sensitive fields before they are
+  sent to the model or saved as evidence.
+- `OPERANT_PRIVACY__EVIDENCE_RETENTION_DAYS=30` sets how long
+  `operant evidence prune` keeps a run's evidence.
 
 ## Useful commands
 
@@ -327,6 +331,7 @@ uv run operant doctor                     # check config, permissions, tools
 uv run operant catalog list               # list capabilities, stability, gate
 uv run operant catalog canary             # replay approved read-only capabilities once
 uv run operant graph list                 # list saved app graphs
+uv run operant evidence prune --days 30  # delete evidence runs older than 30 days
 uv run operant audit --strict --evidence  # cross-check disk against the database
 uv run i lint                             # run the linter (the coding standard)
 ```
