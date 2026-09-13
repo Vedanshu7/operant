@@ -56,6 +56,8 @@ class PathsSettings(pydantic.BaseModel):
     :ivar gateway_policy: Tool fallback chain configuration.
     :ivar learned_tools: Learned tool preference cache.
     :ivar chrome_profile_dir: Dedicated automation browser profile.
+    :ivar screen_lock: Lock file every process holds while it drives the
+        screen.
     """
 
     root: pathlib.Path = pydantic.Field(default_factory=pathlib.Path.cwd)
@@ -72,6 +74,7 @@ class PathsSettings(pydantic.BaseModel):
     learned_tools: pathlib.Path = pathlib.Path("state/learned-tools.json")
     remediations: pathlib.Path = pathlib.Path("state/remediations.json")
     chrome_profile_dir: pathlib.Path = pathlib.Path("~/.operant/chrome-profile")
+    screen_lock: pathlib.Path = pathlib.Path("state/screen.lock")
 
     @pydantic.model_validator(mode="after")
     def _resolve(self) -> Self:
@@ -92,6 +95,7 @@ class PathsSettings(pydantic.BaseModel):
             "learned_tools",
             "remediations",
             "chrome_profile_dir",
+            "screen_lock",
         ):
             value = getattr(self, name).expanduser()
             if not value.is_absolute():

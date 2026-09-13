@@ -34,3 +34,23 @@ def test_single_holder_blocks_until_release() -> None:
 def test_not_waiting_returns_minus_one() -> None:
     lease = jllease.DriverLease()
     assert lease.position("ghost") == -1
+
+
+def test_a_lease_in_another_process_holds_the_screen(tmp_path) -> None:
+    lock_file = tmp_path / "screen.lock"
+    other_process = jllease.DriverLease(lock_file)
+    other_process.acquire("cli-run")
+    lease = jllease.DriverLease(lock_file)
+    acquired = threading.Event()
+
+    def take() -> None:
+        lease.acquire("server-run")
+        acquired.set()
+
+    worker = threading.Thread(target=take)
+    worker.start()
+    assert not acquired.wait(0.3)
+    other_process.release("cli-run")
+    assert acquired.wait(2.0)
+    lease.release("server-run")
+    worker.join()

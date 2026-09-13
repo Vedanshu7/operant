@@ -78,7 +78,8 @@ def _build_state(
     migrate.upgrade(database)
     run_repo = runs.SqlRunRepository(database)
     hub = jhhub.EventHub(loop)
-    lease = jllease.DriverLease()
+    settings.paths.screen_lock.parent.mkdir(parents=True, exist_ok=True)
+    lease = jllease.DriverLease(settings.paths.screen_lock)
     manager = jmmanage.RunManager(
         settings=settings,
         factory=factory,
