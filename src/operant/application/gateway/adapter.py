@@ -62,6 +62,7 @@ class GatewaySurface:
         )
         if action.ref is not None:
             ctx.target = self._session.element_for(action.ref)
+        self._session.wait_for_person_idle()
         outcome = self._gateway.perform(action, ctx, approval=approval)
         evidence = {
             "tool": outcome.tool,

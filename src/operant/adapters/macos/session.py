@@ -39,7 +39,18 @@ SCREEN_LOCKED = (
     "the screen is locked: macOS hides every app window from "
     "accessibility until someone unlocks it"
 )
+PERSON_ACTIVE = (
+    "a person kept using the mouse or keyboard, so the run stopped "
+    "rather than act under them"
+)
 _CF_UTF8 = 0x08000100
+# kCGEventSourceStateHIDSystemState counts physical input only, never the
+# events this process posts; kCGAnyInputEventType is every input type.
+_HID_SYSTEM_STATE = 1
+_ANY_INPUT_EVENT = 0xFFFFFFFF
+# A person counts as done once the mouse and keyboard rest this long.
+_PERSON_IDLE_S = 3.0
+_PERSON_WAIT_S = 120.0
 
 
 # #############################################################################
@@ -202,6 +213,23 @@ class WindowSession:
         if element is None:
             raise KeyError(f"stale or unknown control ref {ref} (observe again)")
         return element
+
+    def wait_for_person_idle(self) -> None:
+        """
+        Hold the next action while a person is using the mouse or keyboard.
+
+        An action taken under someone's hands clicks where they are
+        pointing or types into what they are typing in, so the run waits
+        until the input rests.
+
+        :raises RuntimeError: With ``PERSON_ACTIVE`` if the person is
+            still active after the wait.
+        """
+        deadline = time.monotonic() + _PERSON_WAIT_S
+        while seconds_since_person_input() < _PERSON_IDLE_S:
+            if time.monotonic() > deadline:
+                raise RuntimeError(PERSON_ACTIVE)
+            time.sleep(0.5)
 
     def raise_window(self) -> None:
         """
@@ -448,6 +476,19 @@ def screen_locked() -> bool:
     return locked
 
 
+def seconds_since_person_input() -> float:
+    """
+    Return the seconds since the last physical mouse or keyboard input.
+    """
+    graphics, _ = _quartz()
+    idle = float(
+        graphics.CGEventSourceSecondsSinceLastEventType(
+            _HID_SYSTEM_STATE, _ANY_INPUT_EVENT
+        )
+    )
+    return idle
+
+
 @functools.lru_cache(maxsize=1)
 def _quartz() -> Tuple[ctypes.CDLL, ctypes.CDLL]:
     """
@@ -461,6 +502,11 @@ def _quartz() -> Tuple[ctypes.CDLL, ctypes.CDLL]:
         f"{frameworks}/CoreFoundation.framework/CoreFoundation"
     )
     graphics.CGSessionCopyCurrentDictionary.restype = ctypes.c_void_p
+    graphics.CGEventSourceSecondsSinceLastEventType.restype = ctypes.c_double
+    graphics.CGEventSourceSecondsSinceLastEventType.argtypes = [
+        ctypes.c_int32,
+        ctypes.c_uint32,
+    ]
     foundation.CFStringCreateWithCString.restype = ctypes.c_void_p
     foundation.CFStringCreateWithCString.argtypes = [
         ctypes.c_void_p,

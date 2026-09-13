@@ -126,3 +126,30 @@ def test_a_locked_screen_refuses_a_launch_without_opening_anything(
     )
     assert result.status == "failed"
     assert "screen is locked" in (result.reason or "")
+
+
+def test_an_action_waits_while_a_person_uses_the_mac(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    idle = iter([0.5, 1.0, 4.0])
+    monkeypatch.setattr(
+        amsessio, "seconds_since_person_input", lambda: next(idle)
+    )
+    monkeypatch.setattr(amsessio.time, "sleep", lambda s: None)
+    amsessio.WindowSession("Google Chrome", "Bank").wait_for_person_idle()
+    assert next(idle, None) is None
+
+
+def test_a_person_who_keeps_working_stops_the_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = iter(range(0, 10_000, 60))
+    monkeypatch.setattr(amsessio, "seconds_since_person_input", lambda: 0.1)
+    monkeypatch.setattr(amsessio.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(amsessio.time, "sleep", lambda s: None)
+    with pytest.raises(RuntimeError, match="person kept using"):
+        amsessio.WindowSession("Google Chrome", "Bank").wait_for_person_idle()
+
+
+def test_person_input_time_is_read_from_the_os() -> None:
+    assert amsessio.seconds_since_person_input() >= 0
