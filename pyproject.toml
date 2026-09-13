@@ -24,6 +24,7 @@ dependencies = [
 [project.optional-dependencies]
 macos = [
     "mss>=10.2.0",
+    "pillow>=12.3.0",
     "xa11y>=0.13.0",
 ]
 capture = [

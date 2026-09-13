@@ -22,6 +22,8 @@ import operant.domain.approval as daapprov
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
 import operant.domain.models.tools as tools
+import operant.domain.policy as policy
+import operant.helpers.images as images
 
 # #############################################################################
 # GatewaySurface
@@ -96,9 +98,18 @@ class GatewaySurface:
 
     def screenshot(self, path: pathlib.Path) -> bool:
         """
-        Write a PNG of the bound window to ``path``.
+        Write a PNG of the bound window to ``path``, sensitive fields blacked
+        out.
+
+        The image goes to the model provider and into evidence, so a
+        password or card field never leaves the machine in pixels.
         """
         wrote: bool = self._session.screenshot(str(path))
+        screen = self._gateway.last_digest
+        if wrote and screen is not None:
+            boxes = policy.sensitive_boxes(self._gateway.policy, screen)
+            if boxes:
+                images.black_out(path, boxes)
         return wrote
 
     def start_human_capture(

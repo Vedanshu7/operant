@@ -71,6 +71,13 @@ class GuardedGateway:
         self.grants.append(grant)
 
     @property
+    def policy(self) -> policy.Policy:
+        """
+        The policy every action is checked against.
+        """
+        return self._policy
+
+    @property
     def last_digest(self) -> Optional[digest.ScreenDigest]:
         """
         The most recent observation, or ``None`` before the first.

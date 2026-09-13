@@ -170,6 +170,37 @@ def propose_scope(
     return request
 
 
+def sensitive_boxes(
+    policy: Policy, screen: mddigest.ScreenDigest
+) -> List[mddigest.Box]:
+    """
+    Return where the screen shows a sensitive field.
+
+    Screenshots go to the model provider and into evidence; these boxes
+    are blacked out first. The same signals that gate a sensitive fill
+    decide: a secure field, a masked value, a sensitive name or label,
+    or the policy's own field patterns.
+
+    :param policy: The governing policy.
+    :param screen: The digest the screenshot was taken with.
+    :return: The window-normalised box of every sensitive field.
+    """
+    boxes = [
+        control.box
+        for control in screen.controls
+        if sensv.is_sensitive(
+            sensv.classify(
+                name=control.name,
+                label=control.label,
+                control_role=control.role,
+                control_value=control.value,
+                extra_patterns=policy.approval.sensitive_field_patterns,
+            )
+        )
+    ]
+    return boxes
+
+
 def _whole_words(pattern: str) -> str:
     """
     Anchor a pattern so it only matches whole words ("post", not "Postal
