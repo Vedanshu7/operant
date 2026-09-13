@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.2.3",
     "sqlalchemy[asyncio]>=2.0.41",
     "sse-starlette>=2.3.0",
+    "tldextract>=5.4.0",
     "typer>=0.16.0",
     "uvicorn>=0.52.3",
 ]

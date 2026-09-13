@@ -138,6 +138,15 @@ def test_local_hosts_are_granted_verbatim() -> None:
     assert policy.registrable_domain("mailto:") is None
 
 
+def test_a_grant_never_widens_to_a_public_suffix() -> None:
+    assert policy.registrable_domain("https://online.bank.co.uk/") == (
+        "bank.co.uk"
+    )
+    assert policy.registrable_domain("https://me.github.io/app") == (
+        "me.github.io"
+    )
+
+
 def test_mutating_click_needs_approval_unless_policy_opts_out() -> None:
     action = actions.SurfaceAction(
         kind="click", ref="c1", target_text='button "Open New Account"'

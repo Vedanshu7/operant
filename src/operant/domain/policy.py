@@ -27,6 +27,7 @@ import urllib.parse
 from typing import Dict, Final, FrozenSet, List, Optional, Tuple
 
 import pydantic
+import tldextract
 
 import operant.domain.approval as daapprov
 import operant.domain.models.actions as actions
@@ -43,6 +44,12 @@ _TEXT_ROLES: Final = frozenset(
 )
 _SUBMIT_ROLES: Final = frozenset({"button", "link", "menu_item"})
 _IP_HOST_RE: Final = re.compile(r"[\d.]+")
+# The bundled public-suffix list, never fetched: a policy decision must
+# not depend on the network. Private suffixes (github.io) count, so a
+# grant never widens to every site on a shared host.
+_SUFFIXES: Final = tldextract.TLDExtract(
+    suffix_list_urls=(), cache_dir=None, include_psl_private_domains=True
+)
 
 
 # #############################################################################
@@ -88,9 +95,10 @@ def registrable_domain(
     :param local_hosts: Host names returned verbatim instead of being
         reduced to a registrable domain; IP literals are always returned
         verbatim.
-    :return: The last two labels of the host (``example.com``), the host
-        itself for local hosts and IP literals, or ``None`` when the URL
-        has no host.
+    :return: The host's domain under its public suffix (``bank.co.uk``,
+        ``example.com``), the last two labels for a suffix the list does
+        not know (``corp.lan``), the host itself for local hosts and IP
+        literals, or ``None`` when the URL has no host.
     """
     host = urllib.parse.urlparse(url).hostname
     if not host:
@@ -100,9 +108,12 @@ def registrable_domain(
         # Local host or IP literal: return it verbatim.
         domain = host
     else:
-        # Otherwise reduce the host to its last two labels.
-        parts = host.split(".")
-        domain = ".".join(parts[-2:]) if len(parts) >= 2 else host
+        # Otherwise reduce the host to its domain under the public suffix.
+        domain = _SUFFIXES(host).top_domain_under_public_suffix
+        if not domain:
+            # An unlisted suffix (an intranet name): keep the last two labels.
+            parts = host.split(".")
+            domain = ".".join(parts[-2:]) if len(parts) >= 2 else host
     return domain
 
 
