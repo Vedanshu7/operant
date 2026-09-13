@@ -659,6 +659,51 @@ def test_each_turn_reads_the_screen_again_after_a_slow_navigation(
     assert "balance" in result.recording.outputs
 
 
+# #############################################################################
+# AccountListSurface
+# #############################################################################
+
+
+class AccountListSurface(FakeSurface):
+    """
+    After the click, a list of accounts read column by column.
+    """
+
+    def snapshot(self) -> digest.ScreenDigest:
+        if self._stage == "login":
+            return super().snapshot()
+        return digest.ScreenDigest(
+            app="Chrome",
+            window_title="ParaBank | Accounts Overview",
+            text="Account 13344 12456 Balance* -$5.00 $10.45",
+            controls=(),
+        )
+
+
+def test_a_pattern_that_reads_only_the_first_record_is_sent_back(
+    tmp_path: pathlib.Path,
+) -> None:
+    first_row = r"Account\s+13344.*?Balance\*\s+([-$\d,.]+)"
+    result, _, deps, _ = _run(
+        tmp_path,
+        [
+            ("declare_input", {"name": "accountId", "value": "13344"}),
+            ("act", {"action": "click", "ref": "c0", "intent": "list"}),
+            ("extract", {"name": "balance", "pattern": first_row}),
+            ("extract", {"name": "balance", "pattern": first_row}),
+            ("goal_complete", {"summary": "done"}),
+        ],
+        surface=AccountListSurface(),
+    )
+    replies = [
+        harness.message_text(m) for m in deps.llm.seen[-1] if m.role == "tool"
+    ]
+    assert any("12456" in r and "Not recorded" in r for r in replies)
+    # The same pattern again is taken as deliberate.
+    assert isinstance(result, config.DiscoveryResult), result
+    assert "balance" in result.recording.outputs
+
+
 def test_a_cancelled_discovery_stops_before_the_next_turn(
     tmp_path: pathlib.Path,
 ) -> None:

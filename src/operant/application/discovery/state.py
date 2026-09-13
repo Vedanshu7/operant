@@ -9,7 +9,7 @@ import operant.application.discovery.state as dsstate
 from __future__ import annotations
 
 import dataclasses
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import operant.application.discovery.bootstrap as bstrap
 import operant.domain.approval as approval
@@ -45,6 +45,9 @@ class DiscoveryState:
         to.
     :ivar screen: The last observed digest, when a window is bound.
     :ivar denials: What a person refused to approve during the run.
+    :ivar warned_patterns: Extraction patterns already flagged as
+        reading only the discovery's record; a repeat is taken as
+        deliberate.
     """
 
     params: Dict[str, str] = dataclasses.field(default_factory=dict)
@@ -60,6 +63,7 @@ class DiscoveryState:
     screen: Optional[digest.ScreenDigest] = None
     pending_failure: Optional[Tuple[str, str]] = None
     denials: List[str] = dataclasses.field(default_factory=list)
+    warned_patterns: Set[str] = dataclasses.field(default_factory=set)
 
     def shown(self, name: str, value: str) -> str:
         """

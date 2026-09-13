@@ -176,7 +176,9 @@ TOOL_SCHEMAS: Final[Tuple[llm.ToolSchema, ...]] = (
             "regex with one capture group. The pattern is reused on later "
             "runs with other inputs: match the value's label and general "
             "shape (optional sign, any number of digits), not the literal "
-            "value shown now."
+            "value shown now. When an input picks one record of a list, "
+            "anchor on that record's own row so another input reads its "
+            "row, not the first one."
         ),
         parameters={
             "type": "object",

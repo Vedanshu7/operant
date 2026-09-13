@@ -71,6 +71,31 @@ def test_extraction_and_missing() -> None:
     assert missing == ["balance"]
 
 
+# Column by column, as an accessibility tree often reads a table.
+_COLUMNS = "Account 12345 12456 13344 Balance* -$2300.00 $10.45 $1231.10"
+# Row by row.
+_ROWS = "Account Balance* 12345 -$2300.00 12456 $10.45 13344 $1231.10"
+
+
+@pytest.mark.parametrize(
+    "pattern, text, unread",
+    [
+        # Reads the first record only: no sibling can take its place.
+        (r"Account\s+12345.*?Balance\*\s+([-$\d,.]+)", _COLUMNS, "12456"),
+        # Anchored on the record's own row: every sibling reads its row.
+        (r"12345\s+([-$\d,.]+)", _ROWS, None),
+        # Matches the same text whatever the input: reads one record.
+        (r"Account Balance\*.*?([-$\d,.]+)(?:.*12345)?", _ROWS, "12456"),
+        # Only one record visible: nothing to compare against.
+        (r"12345\s+([-$\d,.]+)", "Account 12345 Balance -$2300.00", None),
+    ],
+)
+def test_an_input_anchored_pattern_must_read_sibling_records(
+    pattern: str, text: str, unread: object
+) -> None:
+    assert outcomes.unread_sibling(pattern, text, "12345") == unread
+
+
 POLICY = policy.Policy(
     id="test",
     allowed_apps=["Google Chrome"],

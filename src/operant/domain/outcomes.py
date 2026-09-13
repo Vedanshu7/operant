@@ -113,6 +113,51 @@ def extract_one(pattern: str, text: str) -> Optional[str]:
     return result
 
 
+def unread_sibling(pattern: str, text: str, value: str) -> Optional[str]:
+    """
+    Find a sibling record a pattern anchored on ``value`` cannot read.
+
+    A pattern recorded around an input (an account number, an order id)
+    must read the record each replay's input names. Sibling records are
+    other tokens on screen with the input's shape (same length; digits
+    for digits, letters for letters). When swapping ``value`` for any of
+    them reads that record's own value, the pattern generalizes; when
+    none does (no match, or the same match as before), it only works for
+    the discovery's record, e.g. because that record is the first row.
+
+    :param pattern: The extraction regex, containing ``value``.
+    :param text: The screen text it was written against.
+    :param value: The input value inside the pattern.
+    :return: A sibling to cite to the model, or ``None`` when the
+        pattern generalizes or no sibling is visible.
+    """
+    original = re.search(pattern, text, re.IGNORECASE)
+    if original is None or not value:
+        return None
+    group = 1 if original.groups() else 0
+    shape = "".join(
+        r"\d" if c.isdigit() else "[^\\W\\d_]" if c.isalpha() else re.escape(c)
+        for c in value
+    )
+    siblings = list(
+        dict.fromkeys(
+            token
+            for token in re.findall(rf"(?<!\w){shape}(?!\w)", text)
+            if token != value
+        )
+    )[:5]
+    unread = None
+    for sibling in siblings:
+        swapped = pattern.replace(re.escape(value), re.escape(sibling))
+        swapped = swapped.replace(value, re.escape(sibling))
+        match = re.search(swapped, text, re.IGNORECASE)
+        if match is not None and match.span(group) != original.span(group):
+            # One sibling reads its own record: the anchor works.
+            return None
+        unread = unread or sibling
+    return unread
+
+
 def run_extraction(
     specs: collections.abc.Sequence[artifact.ExtractSpec],
     screen: digest.ScreenDigest,

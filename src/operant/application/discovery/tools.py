@@ -233,6 +233,9 @@ def handle_extract(
         return ToolOutcome(f"Invalid regex: {err}")
     if value is None:
         return ToolOutcome("Pattern did not match the visible text. Refine it.")
+    warning = _record_bound_warning(session, pattern)
+    if warning is not None:
+        return ToolOutcome(warning)
     data_class = sensv.classify(name=name, value=value)
     state.extracted[name] = value
     state.output_classes[name] = data_class
@@ -259,6 +262,37 @@ def handle_extract(
         )
     )
     return ToolOutcome(f'Extracted {name} = "{value}".')
+
+
+def _record_bound_warning(
+    session: loop.DiscoverySession, pattern: str
+) -> Optional[str]:
+    """
+    Warn once about a pattern that reads only the discovery's record.
+
+    The pattern is replayed with other inputs; anchored on an input but
+    unable to read any sibling record on screen, it would fail (or read
+    the wrong record) on every other replay. A repeat of the same pattern
+    is accepted: the model may know the screen better than the check.
+    """
+    state = session.state
+    if state.screen is None or pattern in state.warned_patterns:
+        return None
+    for name, value in state.params.items():
+        if value not in pattern and re.escape(value) not in pattern:
+            continue
+        sibling = outcomes.unread_sibling(pattern, state.screen.text, value)
+        if sibling is not None:
+            state.warned_patterns.add(pattern)
+            return (
+                f"Not recorded: the pattern contains input {name} but reads "
+                f"no other record - with {sibling} in its place it does not "
+                "read that record's value, so replays with other inputs "
+                "would fail. Anchor on the record's own row (its value next "
+                "to the input, without spanning other records) and extract "
+                "again; repeat the same pattern only if it is right as is."
+            )
+    return None
 
 
 def handle_goal_complete(
