@@ -271,9 +271,14 @@ class RunRepository(Protocol):
         """
         ...
 
-    def stability(self, capability_id: str) -> artifact.Stability:
+    def stability(
+        self, capability_id: str, window: int = ...
+    ) -> artifact.Stability:
         """
-        Return the capability's track record (zeroes when none).
+        Return the capability's recent track record (zeroes when none).
+
+        :param capability_id: The capability to report on.
+        :param window: How many of the most recent replays to count.
         """
         ...
 

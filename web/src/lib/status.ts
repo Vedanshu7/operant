@@ -1,4 +1,4 @@
-import type { ApprovalKind, RunStatus } from "@/api/types";
+import type { ApprovalKind, CapabilityStatus, RunStatus } from "@/api/types";
 
 export const TERMINAL_STATUSES: ReadonlySet<RunStatus> = new Set<RunStatus>([
   "succeeded",
@@ -71,4 +71,15 @@ export function approvalKindClasses(kind: ApprovalKind): string {
 
 export function approvalKindLabel(kind: ApprovalKind): string {
   return kind.replace(/_/g, " ");
+}
+
+const CAPABILITY_STATUS_CLASSES: Record<CapabilityStatus, string> = {
+  draft: "",
+  approved: "border-transparent bg-success/15 text-success",
+  // Approval revoked after repeated failed replays: needs a person.
+  degraded: "border-transparent bg-warning/15 text-warning",
+};
+
+export function capabilityStatusClasses(status: CapabilityStatus): string {
+  return CAPABILITY_STATUS_CLASSES[status];
 }

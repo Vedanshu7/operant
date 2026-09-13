@@ -153,16 +153,18 @@ class Provenance(pydantic.BaseModel):
 
 class Stability(pydantic.BaseModel):
     """
-    Replay track record.
+    Replay track record over the most recent replays.
 
     :ivar runs: Replays attempted.
     :ivar successes: Replays that succeeded.
     :ivar last_run_at: ISO timestamp of the last replay.
+    :ivar consecutive_failures: Failed replays since the last success.
     """
 
     runs: int = 0
     successes: int = 0
     last_run_at: str = ""
+    consecutive_failures: int = 0
 
 
 # #############################################################################
@@ -178,7 +180,8 @@ class CapabilityArtifact(pydantic.BaseModel):
     :ivar name: Display name.
     :ivar description: What the capability does.
     :ivar version: Monotonic version of this artifact.
-    :ivar status: ``draft`` until a human approves it.
+    :ivar status: ``draft`` until a human approves it; ``degraded``
+        once an approved capability keeps failing, until re-approved.
     :ivar vendor_id: Application graph the capability traverses.
     :ivar graph_version: Graph version the path was compiled against.
     :ivar tenants: Tenant bindings keyed by tenant name.
@@ -204,7 +207,7 @@ class CapabilityArtifact(pydantic.BaseModel):
     name: str
     description: str
     version: int = 1
-    status: Literal["draft", "approved"] = "draft"
+    status: Literal["draft", "approved", "degraded"] = "draft"
     vendor_id: str
     graph_version: int
     tenants: Dict[str, TenantBinding]

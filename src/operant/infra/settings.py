@@ -27,6 +27,8 @@ import dotenv
 import pydantic
 import pydantic_settings
 
+import operant.domain.governance as govern
+
 _DEFAULT_BROWSER_BINARIES: Tuple[str, ...] = (
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
@@ -276,10 +278,27 @@ class GovernanceSettings(pydantic.BaseModel):
     :ivar min_runs: Replays required before a capability can be
         approved.
     :ivar min_success_rate: Success ratio required over those replays.
+    :ivar window: How many recent replays the gate judges.
+    :ivar max_consecutive_failures: Failed replays in a row that degrade
+        an approved capability.
     """
 
     min_runs: int = 3
     min_success_rate: float = 0.8
+    window: int = 20
+    max_consecutive_failures: int = 3
+
+    def gate(self) -> govern.StabilityGate:
+        """
+        Build the stability gate these thresholds describe.
+        """
+        gate = govern.StabilityGate(
+            min_runs=self.min_runs,
+            min_success_rate=self.min_success_rate,
+            window=self.window,
+            max_consecutive_failures=self.max_consecutive_failures,
+        )
+        return gate
 
 
 # #############################################################################

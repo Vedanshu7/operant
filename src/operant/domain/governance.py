@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import dataclasses
 
+import operant.domain.models.artifact as artifact
+
 # #############################################################################
 # StabilityGate
 # #############################################################################
@@ -21,14 +23,34 @@ import dataclasses
 @dataclasses.dataclass(frozen=True)
 class StabilityGate:
     """
-    Minimum evidence before a capability can be approved.
+    Minimum evidence before a capability can be approved, and when it loses
+    that approval.
+
+    Judged over the most recent replays only: a lifetime count kept a
+    capability with many old successes approved through a run of
+    failures after the application's UI changed.
 
     :ivar min_runs: Replays required before approval is possible.
     :ivar min_success_rate: Required ratio of successful replays.
+    :ivar window: How many recent replays the gate judges.
+    :ivar max_consecutive_failures: Failed replays in a row that
+        degrade an approved capability.
     """
 
     min_runs: int = 3
     min_success_rate: float = 0.8
+    window: int = 20
+    max_consecutive_failures: int = 3
+
+    def degrades(self, stability: artifact.Stability) -> bool:
+        """
+        Report whether the track record should revoke an approval.
+
+        :param stability: The recent track record.
+        :return:``True`` after too many failed replays in a row.
+        """
+        degraded = stability.consecutive_failures >= self.max_consecutive_failures
+        return degraded
 
     def passes(self, runs: int, successes: int) -> bool:
         """

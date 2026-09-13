@@ -219,7 +219,12 @@ export const capabilityFixtures: CapabilityDetail[] = [
     version: 2,
     graph_version: 5,
     status: "draft",
-    stability: { runs: 7, successes: 6, last_run_at: "2026-08-22T09:00:41Z" },
+    stability: {
+      runs: 7,
+      successes: 6,
+      last_run_at: "2026-08-22T09:00:41Z",
+      consecutive_failures: 0,
+    },
     gate: { min_runs: 10, min_success_rate: 0.9, passes: false },
     inputs: {
       amount: {
@@ -284,7 +289,12 @@ export const capabilityFixtures: CapabilityDetail[] = [
     version: 1,
     graph_version: 3,
     status: "approved",
-    stability: { runs: 14, successes: 14, last_run_at: "2026-08-21T17:03:12Z" },
+    stability: {
+      runs: 14,
+      successes: 14,
+      last_run_at: "2026-08-21T17:03:12Z",
+      consecutive_failures: 0,
+    },
     gate: { min_runs: 10, min_success_rate: 0.9, passes: true },
     inputs: {
       account_id: {

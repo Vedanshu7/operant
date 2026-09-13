@@ -220,7 +220,7 @@ class FakeRunRepository:
         self.runs: Dict[str, runs.RunRecord] = {}
         self.events: List[runs.RunEventIndex] = []
         self.audit_trail: List[runs.AuditEntry] = []
-        self.track: Dict[str, artifact.Stability] = {}
+        self.samples: Dict[str, List[bool]] = {}
 
     def create(self, run: runs.RunRecord) -> None:
         self.runs[run.id] = run
@@ -288,16 +288,23 @@ class FakeRunRepository:
     def record_stability(
         self, capability_id: str, run_id: str, *, succeeded: bool
     ) -> artifact.Stability:
-        current = self.stability(capability_id)
-        updated = artifact.Stability(
-            runs=current.runs + 1,
-            successes=current.successes + (1 if succeeded else 0),
-        )
-        self.track[capability_id] = updated
-        return updated
+        self.samples.setdefault(capability_id, []).append(succeeded)
+        return self.stability(capability_id)
 
-    def stability(self, capability_id: str) -> artifact.Stability:
-        return self.track.get(capability_id, artifact.Stability())
+    def stability(
+        self, capability_id: str, window: int = 20
+    ) -> artifact.Stability:
+        recent = self.samples.get(capability_id, [])[-window:]
+        failures = 0
+        for succeeded in reversed(recent):
+            if succeeded:
+                break
+            failures += 1
+        return artifact.Stability(
+            runs=len(recent),
+            successes=sum(recent),
+            consecutive_failures=failures,
+        )
 
     def audit(self, entry: runs.AuditEntry) -> None:
         self.audit_trail.append(entry)

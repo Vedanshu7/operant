@@ -27,10 +27,7 @@ def _gate(state: deps.ServerState) -> govern.StabilityGate:
     """
     Build the stability gate from the configured governance thresholds.
     """
-    gate = govern.StabilityGate(
-        min_runs=state.settings.governance.min_runs,
-        min_success_rate=state.settings.governance.min_success_rate,
-    )
+    gate = state.settings.governance.gate()
     return gate
 
 
@@ -41,8 +38,8 @@ def _summary(
     """
     Render a capability with its stability and gate status.
     """
-    stability = state.runs.stability(capability.id)
     gate = _gate(state)
+    stability = state.runs.stability(capability.id, window=gate.window)
     summary = {
         "id": capability.id,
         "name": capability.name,
@@ -97,8 +94,9 @@ def approve_capability(capability_id: str, state: State) -> Any:
     """
     Approve a capability once its stability clears the gate.
     """
-    stability = state.runs.stability(capability_id)
-    if not _gate(state).passes(stability.runs, stability.successes):
+    gate = _gate(state)
+    stability = state.runs.stability(capability_id, window=gate.window)
+    if not gate.passes(stability.runs, stability.successes):
         raise fastapi.HTTPException(
             status_code=409, detail="stability gate not met"
         )

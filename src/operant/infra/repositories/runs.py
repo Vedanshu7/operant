@@ -22,6 +22,7 @@ import sqlalchemy.orm as orm
 import operant.domain.approval as approval
 import operant.domain.errors as errors
 import operant.domain.events as events
+import operant.domain.governance as govern
 import operant.domain.models.artifact as artifact
 import operant.domain.models.results as results
 import operant.domain.models.runs as runs
@@ -30,6 +31,8 @@ import operant.helpers.time as time
 import operant.infra.db.engine as engine
 import operant.infra.db.models as models
 
+# The default gate's window, for callers that do not pass their own.
+_STABILITY_WINDOW = govern.StabilityGate().window
 _HITL_TYPES = frozenset(
     {
         "approval_requested",
@@ -287,7 +290,7 @@ class SqlRunRepository:
             row.successes += 1 if succeeded else 0
             row.last_run_at = now
             row.last_run_id = run_id
-            # Record the individual sample and return the totals.
+            # Record the individual sample the window is judged on.
             session.add(
                 models.StabilitySampleRow(
                     capability_id=capability_id,
@@ -296,27 +299,39 @@ class SqlRunRepository:
                     at=now,
                 )
             )
-            stability = artifact.Stability(
-                runs=row.runs, successes=row.successes, last_run_at=now
-            )
-            return stability
+        stability = self.stability(capability_id)
+        return stability
 
-    def stability(self, capability_id: str) -> artifact.Stability:
+    def stability(
+        self, capability_id: str, window: int = _STABILITY_WINDOW
+    ) -> artifact.Stability:
         """
-        Return the capability's track record (zeroes when none).
+        Return the capability's recent track record (zeroes when none).
+
+        :param capability_id: The capability to report on.
+        :param window: How many of the most recent replays to count.
+        :return: Runs and successes over the window, the last replay's
+            time, and the failures since the last success.
         """
         with self._db.session() as session:
-            row = session.get(models.StabilityRecordRow, capability_id)
-            if row is None:
-                # No record yet: report an empty track record.
-                stability = artifact.Stability(runs=0, successes=0)
-            else:
-                # Fold the stored counters into a track record.
-                stability = artifact.Stability(
-                    runs=row.runs,
-                    successes=row.successes,
-                    last_run_at=row.last_run_at,
-                )
+            samples = session.scalars(
+                sqlalchemy.select(models.StabilitySampleRow)
+                .where(models.StabilitySampleRow.capability_id == capability_id)
+                .order_by(models.StabilitySampleRow.id.desc())
+                .limit(window)
+            ).all()
+            # Failures since the last success, newest first.
+            failures = 0
+            for sample in samples:
+                if sample.succeeded:
+                    break
+                failures += 1
+            stability = artifact.Stability(
+                runs=len(samples),
+                successes=sum(1 for sample in samples if sample.succeeded),
+                last_run_at=samples[0].at if samples else "",
+                consecutive_failures=failures,
+            )
             return stability
 
     def audit(self, entry: runs.AuditEntry) -> None:

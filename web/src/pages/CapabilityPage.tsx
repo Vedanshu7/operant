@@ -17,6 +17,7 @@ import { Loading } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { StabilityBar } from "@/components/StabilityBar";
 import { formatTime } from "@/lib/format";
+import { capabilityStatusClasses } from "@/lib/status";
 
 export function CapabilityPage(): ReactElement {
   const { id = "" } = useParams();
@@ -49,13 +50,7 @@ export function CapabilityPage(): ReactElement {
         actions={
           <>
             <Badge>v{c.version}</Badge>
-            <Badge
-              className={
-                c.status === "approved" ? "border-transparent bg-success/15 text-success" : ""
-              }
-            >
-              {c.status}
-            </Badge>
+            <Badge className={capabilityStatusClasses(c.status)}>{c.status}</Badge>
           </>
         }
       />

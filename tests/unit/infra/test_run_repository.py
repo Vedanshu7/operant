@@ -117,6 +117,20 @@ def test_stability_accumulates_and_reports(
     assert repo.stability("cap").successes == 1
 
 
+def test_stability_counts_only_the_recent_window(
+    repo: rrruns.SqlRunRepository,
+) -> None:
+    for index in range(5):
+        repo.record_stability("cap", f"old-{index}", succeeded=True)
+    for index in range(3):
+        repo.record_stability("cap", f"new-{index}", succeeded=False)
+    recent = repo.stability("cap", window=4)
+    assert (recent.runs, recent.successes) == (4, 1)
+    assert recent.consecutive_failures == 3
+    repo.record_stability("cap", "fixed", succeeded=True)
+    assert repo.stability("cap").consecutive_failures == 0
+
+
 def test_index_event_keeps_hitl_payload_only(
     repo: rrruns.SqlRunRepository,
 ) -> None:

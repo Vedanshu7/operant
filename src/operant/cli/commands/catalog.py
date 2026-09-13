@@ -10,7 +10,6 @@ import typer
 
 import operant.application.usecases.replay as replay
 import operant.cli.deps as cddeps
-import operant.domain.governance as govern
 
 
 def register(app: typer.Typer) -> None:
@@ -29,7 +28,9 @@ def register(app: typer.Typer) -> None:
         database, runs = deps.open_runs()
         try:
             for cap in deps.artifacts.list():
-                stability = runs.stability(cap.id)
+                stability = runs.stability(
+                    cap.id, window=deps.settings.governance.window
+                )
                 inputs = ", ".join(
                     f"{k}: {v.type}" for k, v in cap.inputs.items()
                 )
@@ -60,11 +61,8 @@ def register(app: typer.Typer) -> None:
         deps: cddeps.CliDeps = ctx.obj
         database, runs = deps.open_runs()
         try:
-            stability = runs.stability(capability_id)
-            gate = govern.StabilityGate(
-                min_runs=deps.settings.governance.min_runs,
-                min_success_rate=deps.settings.governance.min_success_rate,
-            )
+            gate = deps.settings.governance.gate()
+            stability = runs.stability(capability_id, window=gate.window)
             if not force and not gate.passes(stability.runs, stability.successes):
                 typer.echo(
                     f"  refusing to approve {capability_id!r}: "

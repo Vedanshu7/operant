@@ -10,6 +10,7 @@ import typer
 
 import operant.adapters.hitl.tty as tty
 import operant.application.approval as approval
+import operant.application.stability as apstabil
 import operant.application.usecases.replay as urreplay
 import operant.cli.deps as cddeps
 import operant.ports.hitl as hitl
@@ -94,7 +95,14 @@ def _run(
             ok = urreplay.is_success(result)
             successes += ok
             last_status = result.status
-            run_repo.record_stability(capability_id, "cli", succeeded=ok)
+            apstabil.record_replay(
+                capability_id,
+                "cli",
+                succeeded=ok,
+                run_repo=run_repo,
+                artifact_repo=deps.artifacts,
+                gate=deps.settings.governance.gate(),
+            )
             typer.echo("\n=== REPLAY RESULT ===")
             typer.echo(result.model_dump_json(indent=2))
         if times > 1:

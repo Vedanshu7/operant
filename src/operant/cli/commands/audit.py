@@ -10,7 +10,6 @@ import typer
 
 import operant.application.audit as aaaudit
 import operant.cli.deps as cddeps
-import operant.domain.governance as govern
 import operant.infra.repositories.memory as rmmemory
 
 
@@ -35,11 +34,10 @@ def register(app: typer.Typer) -> None:
                 deps.artifacts,
                 deps.graphs,
                 deps.settings.paths.evidence_dir if evidence else None,
-                stability_of=runs.stability,
-                gate=govern.StabilityGate(
-                    min_runs=deps.settings.governance.min_runs,
-                    min_success_rate=deps.settings.governance.min_success_rate,
+                stability_of=lambda capability_id: runs.stability(
+                    capability_id, window=deps.settings.governance.window
                 ),
+                gate=deps.settings.governance.gate(),
                 memory_text=rmmemory.SqlMemoryStore(database).all_text(),
             )
         finally:

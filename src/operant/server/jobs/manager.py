@@ -28,6 +28,7 @@ import operant.application.approval as approval
 import operant.application.context as accontex
 import operant.application.discovery.config as config
 import operant.application.escalation as escal
+import operant.application.stability as apstabil
 import operant.application.usecases.discover as discover
 import operant.application.usecases.replay as replay
 import operant.domain.approval as daapprov
@@ -429,10 +430,13 @@ class RunManager:
             on_context=lambda ctx: self._wire(handle, ctx),
         )
         if request.capability_id:
-            self._runs.record_stability(
+            apstabil.record_replay(
                 request.capability_id,
                 handle.run_id,
                 succeeded=replay.is_success(result),
+                run_repo=self._runs,
+                artifact_repo=self._artifacts,
+                gate=self._settings.governance.gate(),
             )
         status = (
             "cancelled"

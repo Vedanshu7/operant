@@ -10,6 +10,7 @@ import { ErrorBox } from "@/components/ErrorBox";
 import { Loading } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { StabilityBar } from "@/components/StabilityBar";
+import { capabilityStatusClasses } from "@/lib/status";
 
 export function CapabilitiesPage(): ReactElement {
   const caps = useCapabilities();
@@ -51,11 +52,7 @@ export function CapabilitiesPage(): ReactElement {
                     <p className="truncate font-mono text-xs text-muted-foreground">{c.id}</p>
                   </div>
                 </div>
-                <Badge
-                  className={
-                    c.status === "approved" ? "border-transparent bg-success/15 text-success" : ""
-                  }
-                >
+                <Badge className={capabilityStatusClasses(c.status)}>
                   {c.status === "approved" && <CheckCircle2 className="size-3" />}
                   {c.status}
                 </Badge>

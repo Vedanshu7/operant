@@ -149,6 +149,7 @@ export interface Stability {
   runs: number;
   successes: number;
   last_run_at: string | null;
+  consecutive_failures: number;
 }
 
 export interface StabilityGate {
@@ -157,6 +158,8 @@ export interface StabilityGate {
   passes: boolean;
 }
 
+export type CapabilityStatus = "draft" | "approved" | "degraded";
+
 export interface CapabilitySummary {
   id: string;
   name: string;
@@ -164,7 +167,7 @@ export interface CapabilitySummary {
   vendor_id: string;
   version: number;
   graph_version: number;
-  status: "draft" | "approved";
+  status: CapabilityStatus;
   stability: Stability;
   gate: StabilityGate;
 }
