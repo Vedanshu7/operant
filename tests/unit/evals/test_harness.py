@@ -266,3 +266,19 @@ def test_filled_values_show_on_the_screen_with_secrets_masked(
     assert shown["pass"] == "••••"
     original = {c.ref: c.value for c in scenario.scene.screens["login"].controls}
     assert original["user"] is None
+
+
+def test_a_result_row_records_time_and_usage_per_role(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "login_uses_secret"),
+        [*_LOGIN, ("goal_complete", {"summary": "done"})],
+    )
+    # pylint: disable-next=protected-access
+    row = harness._row(run, 0, harness.score(run))
+    executor = row["roles"]["executor"]
+    assert executor["calls"] == len(run.llm.turns) == row["turns"]
+    assert executor["tokens_in"] == row["tokens_in"]
+    assert executor["seconds"] >= 0 and row["duration_s"] >= executor["seconds"]

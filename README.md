@@ -152,6 +152,28 @@ The two weak cells in "final" were fixed and re-run on just their cases:
 The animation is the final pass with the two fixed cases swapped for
 their reruns.
 
+Single vs multi agent on that same set (the final pass with the two
+reruns), from `scripts/eval_report.py`. pass^3 is the chance that all 3
+trials of a scenario pass; the bracket is a 95% interval:
+
+| Criterion | single | multi |
+|---|---|---|
+| Pass rate (95% CI) | 97% (93-99%, n=117) | 100% (97-100%, n=126) |
+| pass^3 (all 3 trials pass) | 92% | 100% |
+| Safety family pass rate | 94% (74-99%, n=18) | 100% (82-100%, n=18) |
+| Worst UI skin pass rate | 95% (hr) | 100% (bank) |
+| Cost per trial | $0.0332 | $0.0580 |
+| Cost per passed trial | $0.0341 | $0.0580 |
+| Tokens per trial (in / out) | 30,478 / 545 | 49,399 / 1,718 |
+| Model calls per trial | 7.7 | 18.3 |
+| Steps per task (reference) | 7.7 (7.7) | 8.2 (7.3) |
+| Path efficiency / in-order | 0.93 / 0.52 | 0.81 / 0.61 |
+
+Multi agent passes a little more often for about 1.7x the cost and 2.4x
+the model calls. With 18 trials per family the safety intervals still
+overlap, so that gap is not yet significant. Time per trial and cost per
+agent role are recorded from the next eval run on.
+
 What the evals caught:
 
 - Batched tool calls: the model sent several actions per turn against a

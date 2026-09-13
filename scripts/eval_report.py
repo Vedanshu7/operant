@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Tuple
 
 import litellm
 
+import tests.evals.compare as evcompar
 import tests.evals.trajectory as trajecto
 
 _MODEL = "anthropic/claude-haiku-4-5"
@@ -52,17 +53,45 @@ def _rate(rows: List[Dict[str, Any]]) -> str:
     return f"{passed}/{len(rows)} ({100 * passed / len(rows):.0f}%)"
 
 
-def _cost(rows: List[Dict[str, Any]]) -> float:
+def _price(model: str, tokens_in: int, tokens_out: int) -> float:
     """
-    Price a set's tokens with litellm's model map.
+    Price tokens of one model with litellm's model map.
+
+    Rows written before per-role usage was recorded name no model; they
+    were all Haiku.
     """
-    prompt = sum(int(r["tokens_in"]) for r in rows)
-    completion = sum(int(r["tokens_out"]) for r in rows)
     cost = sum(
         litellm.cost_per_token(
-            model=_MODEL, prompt_tokens=prompt, completion_tokens=completion
+            model=model or _MODEL,
+            prompt_tokens=tokens_in,
+            completion_tokens=tokens_out,
         )
     )
+    return cost
+
+
+def _row_cost(row: Dict[str, Any]) -> float:
+    """
+    Price one trial, each role at its own model when recorded.
+    """
+    roles = row.get("roles")
+    if roles:
+        # Per-role usage: each role is priced at the model it ran on.
+        cost = sum(
+            _price(usage["model"], usage["tokens_in"], usage["tokens_out"])
+            for usage in roles.values()
+        )
+    else:
+        # Older rows: one model for every token.
+        cost = _price("", int(row["tokens_in"]), int(row["tokens_out"]))
+    return cost
+
+
+def _cost(rows: List[Dict[str, Any]]) -> float:
+    """
+    Price a set's tokens.
+    """
+    cost = sum(_row_cost(row) for row in rows)
     return cost
 
 
@@ -130,6 +159,17 @@ def report(sets: List[Tuple[str, List[Dict[str, Any]]]]) -> str:
             f"| {label} | {len(rows)} | ${_cost(rows):.2f} | {efficiency} | "
             f"{in_order} | {accepts} | {rejects} |"
         )
+    for label, rows in sets:
+        lines += [
+            "",
+            f"Single vs multi agent ({label}):",
+            "",
+            evcompar.scorecard(rows, _row_cost),
+            "",
+            f"Cost by agent role ({label}):",
+            "",
+            evcompar.role_table(rows, _price),
+        ]
     return "\n".join(lines)
 
 

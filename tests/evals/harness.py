@@ -268,6 +268,7 @@ class RecordingLlm:
         self.role = role
         self.sent: List[List[mlllm.ChatMessage]] = []
         self.turns: List[mlllm.LlmTurn] = []
+        self.seconds: List[float] = []
 
     def complete(
         self,
@@ -276,7 +277,9 @@ class RecordingLlm:
         tools: collections.abc.Sequence[mlllm.ToolSchema],
     ) -> mlllm.LlmTurn:
         self.sent.append(list(messages))
+        started = time.monotonic()
         turn = self._inner.complete(messages, tools=tools)
+        self.seconds.append(time.monotonic() - started)
         self.turns.append(turn)
         return turn
 
@@ -297,6 +300,21 @@ class RecordingLlm:
             sum(turn.output_tokens for turn in self.turns),
         )
         return totals
+
+    def usage(self) -> Dict[str, Any]:
+        """
+        Return this role's model, calls, tokens and seconds in models.
+        """
+        tokens_in, tokens_out = self.tokens()
+        models = sorted({turn.model for turn in self.turns if turn.model})
+        summary = {
+            "model": ",".join(models),
+            "calls": len(self.turns),
+            "tokens_in": tokens_in,
+            "tokens_out": tokens_out,
+            "seconds": round(sum(self.seconds), 3),
+        }
+        return summary
 
 
 # #############################################################################
@@ -362,6 +380,7 @@ class EvalRun:
     trace_id: str
     scrubbing: bool
     roles: Dict[str, RecordingLlm] = dataclasses.field(default_factory=dict)
+    duration_s: float = 0.0
 
     @property
     def succeeded(self) -> bool:
@@ -604,7 +623,9 @@ def run_scenario(
         prompt_overrides=dict(prompt_overrides or {}),
     )
     session = loop.DiscoverySession(cfg, deps)
+    started = time.monotonic()
     result = session.run()
+    duration_s = time.monotonic() - started
     run = EvalRun(
         scenario=scenario,
         llm=recording,
@@ -621,6 +642,7 @@ def run_scenario(
         scrubbing=env.scrubber is not None
         and not isinstance(env.scrubber, apnoop.NoopScrubber),
         roles=roles,
+        duration_s=duration_s,
     )
     return run
 
@@ -663,6 +685,12 @@ def _row(
         "role_calls": {
             role: len(r.turns) for role, r in run.roles.items() if r.turns
         },
+        "roles": {
+            recording.role: recording.usage()
+            for recording in (run.llm, *run.roles.values())
+            if recording.turns
+        },
+        "duration_s": round(run.duration_s, 3),
         "trial": trial,
         "passed": not failures,
         "failures": failures,
