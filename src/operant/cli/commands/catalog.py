@@ -8,8 +8,11 @@ from typing import Annotated, List
 
 import typer
 
+import operant.application.canary as apcanary
+import operant.application.stability as apstabil
 import operant.application.usecases.replay as replay
 import operant.cli.deps as cddeps
+import operant.helpers.ids as ids
 
 
 def register(app: typer.Typer) -> None:
@@ -114,3 +117,53 @@ def register(app: typer.Typer) -> None:
         )
         typer.echo(result.model_dump_json(indent=2))
         raise typer.Exit(0 if result.status != "failure" else 1)
+
+    @catalog.command("canary")
+    def canary(ctx: typer.Context) -> None:
+        """
+        Replay every approved read-only capability once, for a schedule.
+
+        Each result counts toward the stability gate, so a capability
+        whose application changed is degraded before anyone needs it.
+        Exits non-zero when any canary failed.
+        """
+        deps: cddeps.CliDeps = ctx.obj
+        database, runs = deps.open_runs()
+        failed = 0
+        try:
+            for planned in apcanary.plan_canaries(deps.artifacts, runs):
+                if planned.inputs is None:
+                    # Nothing safe to replay it with: report why.
+                    typer.echo(
+                        f"  {planned.capability_id}: skipped ({planned.skipped})"
+                    )
+                    continue
+                result = replay.execute_replay(
+                    replay.ReplayRequest(
+                        capability_id=planned.capability_id,
+                        tenant="",
+                        inputs=planned.inputs,
+                    ),
+                    factory=deps.run_factory(),
+                    artifacts=deps.artifacts,
+                    graphs=deps.graphs,
+                    profiles=deps.profiles,
+                )
+                ok = replay.is_success(result)
+                stability = apstabil.record_replay(
+                    planned.capability_id,
+                    ids.run_id("canary"),
+                    succeeded=ok,
+                    run_repo=runs,
+                    artifact_repo=deps.artifacts,
+                    gate=deps.settings.governance.gate(),
+                )
+                failed += not ok
+                status = deps.artifacts.get(planned.capability_id).status
+                typer.echo(
+                    f"  {planned.capability_id}: {result.status} "
+                    f"(recent {stability.successes}/{stability.runs}, {status})"
+                )
+        finally:
+            database.close()
+        raise typer.Exit(1 if failed else 0)

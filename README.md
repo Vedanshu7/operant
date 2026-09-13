@@ -325,9 +325,20 @@ uv run operant doctor   # reports whether the scrubber is ready
 ```bash
 uv run operant doctor                     # check config, permissions, tools
 uv run operant catalog list               # list capabilities, stability, gate
+uv run operant catalog canary             # replay approved read-only capabilities once
 uv run operant graph list                 # list saved app graphs
 uv run operant audit --strict --evidence  # cross-check disk against the database
 uv run i lint                             # run the linter (the coding standard)
+```
+
+A capability is approved on its last 20 replays, not its lifetime. Three
+failed replays in a row move an approved capability to `degraded`, which stops
+unattended replays until a person approves it again. Run the canary on a
+schedule to find a broken capability before anyone needs it, for example hourly
+from cron:
+
+```bash
+0 * * * * cd /path/to/operant && uv run operant catalog canary
 ```
 
 ## Layout

@@ -8,6 +8,7 @@ import collections.abc
 import pathlib
 from typing import Any, Dict, List, Optional, Tuple
 
+import operant.domain.errors as errors
 import operant.domain.events as events
 import operant.domain.models.actions as actions
 import operant.domain.models.artifact as artifact
@@ -240,6 +241,8 @@ class FakeRunRepository:
         )
 
     def get(self, run_id: str) -> runs.RunRecord:
+        if run_id not in self.runs:
+            raise errors.NotFoundError(f"no run {run_id!r}")
         return self.runs[run_id]
 
     def list(
