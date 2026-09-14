@@ -124,3 +124,105 @@ def mask_numbers(text: str) -> str:
     """
     masked = _NUMBER_RE.sub("<n>", text)
     return masked
+
+
+# #############################################################################
+# Lessons and recall scoring
+# #############################################################################
+
+# Why a subgoal failed, as a code: the model's own wording is never
+# stored, because it can quote whatever text a page put on screen.
+FAILURE_KINDS: Final = (
+    "not_done",
+    "wrong_output",
+    "unsafe_step",
+    "credential_leak",
+    "no_verdict",
+)
+# Lines in a person's note that read as orders to an assistant, or carry
+# a link: a note is replayed into later prompts, so it must stay data.
+_INSTRUCTION_RE: Final = re.compile(
+    r"https?://|www\.|ignore (all |any )?(previous|prior|above)"
+    r"|disregard|system prompt|you are (now )?an?\b"
+    r"|\b(assistant|agent|ai|model)\s*[,:]",
+    re.IGNORECASE,
+)
+_HALF_LIFE_S: Final = 30 * 86_400
+_HUMAN_BOOST: Final = 2.0
+_OLD_VERSION_WEIGHT: Final = 0.5
+
+
+def failure_kind(reviewer: str, reason: str) -> str:
+    """
+    Map a panel rejection to a failure-kind code.
+
+    :param reviewer: The panel member that rejected (``verifier``,
+        ``safety``, ``leak``).
+    :param reason: Its stated reason; only used to tell kinds apart.
+    :return: One of ``FAILURE_KINDS``.
+    """
+    lowered = reason.lower()
+    if reviewer == "leak":
+        kind = "credential_leak"
+    elif reviewer == "safety":
+        kind = "unsafe_step"
+    elif "no verdict" in lowered:
+        kind = "no_verdict"
+    elif "output" in lowered or "extract" in lowered:
+        kind = "wrong_output"
+    else:
+        kind = "not_done"
+    return kind
+
+
+def lesson_text(subgoal: str, kind: str, worked: str) -> str:
+    """
+    Render a lesson in the one shape memory stores.
+
+    :param subgoal: The planner's subgoal description.
+    :param kind: A failure-kind code.
+    :param worked: What got past it, or ``""`` when nothing did.
+    :return:``On "<subgoal>": <kind>. What worked: <worked>.``
+    """
+    text = f'On "{subgoal}": {kind}. What worked: {worked or "unresolved"}.'
+    return text
+
+
+def memory_safe(text: str) -> str:
+    """
+    Drop the lines of a free-text note that read as instructions or links.
+
+    :param text: A person's note, already redacted and scrubbed.
+    :return: The remaining lines.
+    """
+    kept = [
+        line for line in text.splitlines() if not _INSTRUCTION_RE.search(line)
+    ]
+    safe = "\n".join(kept).strip()
+    return safe
+
+
+def recall_score(
+    relevance: float,
+    *,
+    age_s: float,
+    reinforcements: int,
+    human: bool,
+    current_version: bool,
+) -> float:
+    """
+    Score a lesson for recall: relevance, recency, and how often it held.
+
+    :param relevance: Goal similarity, 0 to 1.
+    :param age_s: Seconds since the lesson was last reinforced.
+    :param reinforcements: How often it recurred.
+    :param human: Whether a person wrote it.
+    :param current_version: Whether it was learned on the app graph
+        version in use now.
+    :return: A non-negative score; higher recalls first.
+    """
+    recency = 0.5 ** (max(age_s, 0.0) / _HALF_LIFE_S)
+    score = relevance * recency * (1 + reinforcements)
+    score *= _HUMAN_BOOST if human else 1.0
+    score *= 1.0 if current_version else _OLD_VERSION_WEIGHT
+    return score
