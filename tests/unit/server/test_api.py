@@ -130,3 +130,17 @@ def test_cancelling_a_run_waiting_for_approval_ends_it_cancelled(
         assert cancelled.status_code == 200
         final = _poll(client, run_id, {"cancelled", "failed", "succeeded"})
         assert final["status"] == "cancelled"
+
+
+def test_memory_is_listed_read_only(tmp_path: pathlib.Path) -> None:
+    app, _ = _build(tmp_path)
+    with starlette.testclient.TestClient(app) as client:
+        empty = client.get("/api/v1/memory", headers=_AUTH)
+        assert empty.status_code == 200
+        assert empty.json() == {
+            "plans": [],
+            "lessons": [],
+            "tools": [],
+            "remedies": [],
+        }
+        assert client.get("/api/v1/memory").status_code == 401

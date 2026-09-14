@@ -22,10 +22,11 @@ from __future__ import annotations
 import collections.abc
 import dataclasses
 import datetime
-from typing import Final, List, Tuple
+from typing import Any, Dict, Final, List, Optional, Tuple
 
 import operant.domain.models.memory as mdmemory
 import operant.domain.models.plan as mdplan
+import operant.domain.remediation as odremed
 import operant.ports.memory as pmmemory
 
 _MIN_PLAN_SIMILARITY: Final = 0.5
@@ -237,6 +238,18 @@ class AgentMemory:
         """
         return self._store.vendors()
 
+    def plans(self, vendor_id: str) -> List[mdmemory.PlanMemory]:
+        """
+        Return every stored plan of an app, recallable or not.
+        """
+        return self._store.plans(vendor_id)
+
+    def lessons(self, vendor_id: str) -> List[mdmemory.Lesson]:
+        """
+        Return every stored lesson of an app.
+        """
+        return self._store.lessons(vendor_id)
+
     def forget(
         self, vendor_id: str, *, plans: bool = True, lessons: bool = True
     ) -> Tuple[int, int]:
@@ -266,6 +279,49 @@ class AgentMemory:
         ]
         self._store.delete(plan_ids, lesson_ids)
         return len(plan_ids), len(lesson_ids)
+
+
+def summary(
+    memory: AgentMemory,
+    *,
+    learned: collections.abc.Mapping[
+        str, collections.abc.Mapping[str, List[int]]
+    ],
+    remedies: collections.abc.Mapping[str, odremed.Remedy],
+    app: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Describe everything remembered, for ``operant memory list`` and the API.
+
+    Plans and lessons are keyed by vendor id; learned tools and remedies
+    by the OS app that ran the action, so a filter matches either.
+
+    :param memory: Plans and lessons.
+    :param learned: The tool learner's counts by signature.
+    :param remedies: Remedies by ``situation||error`` key.
+    :param app: Only this vendor or OS app, when given.
+    :return:``{"plans", "lessons", "tools", "remedies"}`` lists.
+    """
+    vendors = [v for v in memory.vendors() if app is None or v == app]
+    view: Dict[str, Any] = {
+        "plans": [
+            dataclasses.asdict(p) for v in vendors for p in memory.plans(v)
+        ],
+        "lessons": [
+            dataclasses.asdict(lsn) for v in vendors for lsn in memory.lessons(v)
+        ],
+        "tools": [
+            {"signature": sig, "tools": dict(tools)}
+            for sig, tools in sorted(learned.items())
+            if app is None or sig.startswith(f"{app}::")
+        ],
+        "remedies": [
+            {"key": key, **remedy.as_dict()}
+            for key, remedy in sorted(remedies.items())
+            if app is None or key.startswith(f"{app}::")
+        ],
+    }
+    return view
 
 
 def _clean(text: str, safe: collections.abc.Callable[[str], str]) -> str:

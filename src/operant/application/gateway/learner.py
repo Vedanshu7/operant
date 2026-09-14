@@ -17,7 +17,7 @@ import operant.application.gateway.learner as gllearne
 from __future__ import annotations
 
 import re
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
@@ -132,6 +132,25 @@ class ToolLearner:
             tool_names, key=lambda name: -_rate(tools.get(name, [0, 0]))
         )
         return ordered
+
+    def entries(self) -> Dict[str, Dict[str, List[int]]]:
+        """
+        Return every signature's ``{tool: [worked, failed]}`` counts.
+        """
+        return {sig: dict(tools) for sig, tools in self._counts.items()}
+
+    def forget(self, app: str) -> int:
+        """
+        Delete every signature learned on ``app``.
+
+        :return: How many were removed.
+        """
+        doomed = [sig for sig in self._counts if sig.startswith(f"{app}::")]
+        for sig in doomed:
+            del self._counts[sig]
+        if doomed:
+            self._store.save(self._counts)
+        return len(doomed)
 
 
 def _rate(counts: List[int]) -> float:

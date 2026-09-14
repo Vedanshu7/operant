@@ -39,6 +39,7 @@ import operant.infra.repositories.runs as runs
 import operant.infra.settings as issettin
 import operant.server.api.catalog as catalog
 import operant.server.api.hitl as hitl
+import operant.server.api.memory as srmemory
 import operant.server.api.runs as arruns
 import operant.server.api.secrets as secrets
 import operant.server.api.system as system
@@ -198,7 +199,7 @@ def create_app(
         prefix=_API_PREFIX,
         dependencies=[fastapi.Depends(common.bearer_dependency(token))],
     )
-    for module in (arruns, hitl, catalog, secrets, system):
+    for module in (arruns, hitl, catalog, secrets, system, srmemory):
         api.include_router(module.router)
     app.include_router(api)
 
