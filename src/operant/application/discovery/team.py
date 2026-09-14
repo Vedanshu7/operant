@@ -16,7 +16,7 @@ import operant.application.discovery.team as dsteam
 from __future__ import annotations
 
 import dataclasses
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import operant.application.discovery.agents.planner as daplanne
 import operant.application.discovery.agents.reviewers as darevie
@@ -32,6 +32,10 @@ if TYPE_CHECKING:
     import operant.application.discovery.loop as loop
 
 _NO_MATCH = "Pattern did not match"
+# Subgoal descriptions this close name the same step across a replan.
+_SAME_SUBGOAL = 0.5
+# Which rejection names the failure when several reviewers reject at once.
+_KIND_ORDER = ("credential_leak", "unsafe_step", "wrong_output", "not_done")
 
 
 # #############################################################################
@@ -221,8 +225,7 @@ class Team:
         else:
             # Out of replans: hand over to a person as single-agent does.
             outcome = tools.handle_give_up(self._session, args, screenshot)
-            self._learn_from_human(outcome, reason)
-            self._count_failure(outcome)
+            self._learn_from_human(outcome)
         return outcome
 
     def on_extract(
@@ -247,6 +250,45 @@ class Team:
                 )
         return repaired
 
+    def conclude(
+        self,
+        result: Union[config.DiscoveryResult, config.DiscoveryFailure],
+    ) -> None:
+        """
+        Decide what the finished run teaches memory.
+
+        A verified finish keeps its plan. A failure counts against the
+        plans it recalled and keeps every subgoal still rejected as a
+        lesson with nothing that worked.
+        """
+        memory = self._session.deps.memory
+        if memory is None or self.board is None:
+            return
+        vendor, goal = (
+            self._session.cfg.profile.vendor_id,
+            self._session.cfg.goal,
+        )
+        if isinstance(result, config.DiscoveryResult):
+            memory.record_plan(
+                vendor,
+                goal,
+                self.board.plan,
+                safe=self._session.safe_text,
+                graph_version=self._graph_version(),
+            )
+        else:
+            memory.record_failure(self._recalled)
+            for rejection in self.board.open_rejections.values():
+                memory.record_rejection(
+                    vendor,
+                    goal,
+                    rejection,
+                    worked="",
+                    safe=self._session.safe_text,
+                    graph_version=self._graph_version(),
+                )
+        self.board.open_rejections.clear()
+
     def _skip_to_last_subgoal(self) -> None:
         """
         Move past unreported intermediate subgoals to the last one.
@@ -270,7 +312,11 @@ class Team:
         text = ""
         if memory is not None:
             vendor = self._session.cfg.profile.vendor_id
-            recalled = memory.recall(vendor, self._session.cfg.goal)
+            recalled = memory.recall(
+                vendor,
+                self._session.cfg.goal,
+                graph_version=self._graph_version(),
+            )
             text = recalled.render()
             self._recalled = recalled.plans
             self._session.log.emit(
@@ -399,6 +445,7 @@ class Team:
         else:
             # Passed: fold the subgoal's turns away next turn and move on.
             board.done.append((subgoal.description, summary or "done"))
+            self._resolve(subgoal, summary)
             board.active += 1
             board.progress_turn = turn
             board.pending_compaction = board.subgoal_start
@@ -418,15 +465,13 @@ class Team:
         reasons = "; ".join(f"{v.reviewer}: {v.reason}" for v in failed)
         count = board.rejections.get(subgoal.id, 0) + 1
         board.rejections[subgoal.id] = count
-        memory = self._session.deps.memory
-        if memory is not None:
-            memory.record_lesson(
-                self._session.cfg.profile.vendor_id,
-                self._session.cfg.goal,
-                f"'{subgoal.description}' was not done when claimed: {reasons}",
-                source="verifier",
-                safe=self._session.safe_text,
-            )
+        key = mdmemory.goal_key(subgoal.description)
+        seen = board.open_rejections.get(key)
+        board.open_rejections[key] = mdmemory.Rejection(
+            subgoal=subgoal.description,
+            kind=_failure_kind(failed),
+            count=(seen.count if seen is not None else 0) + 1,
+        )
         if count < self._budget.max_rejections_per_subgoal:
             # Keep going on the same subgoal with the reviewers' reasons.
             outcome = tools.ToolOutcome(
@@ -447,16 +492,37 @@ class Team:
                 {"reason": f"{subgoal.id} could not be verified: {reasons}"},
                 "",
             )
-            self._count_failure(outcome)
         return outcome
 
-    def _count_failure(self, outcome: tools.ToolOutcome) -> None:
+    def _resolve(self, subgoal: mdplan.Subgoal, summary: str) -> None:
         """
-        Count a failure for recalled plans when the run ends escalated.
+        Settle earlier rejections of a subgoal that has now passed.
+
+        Rejected once and then passed reads as a reviewer misjudging
+        progress: nothing to learn. Rejected repeatedly before passing is
+        a real difficulty, kept with what finally worked.
         """
+        board = self._board()
+        key = mdmemory.goal_key(subgoal.description)
+        match = next(
+            (
+                k
+                for k in board.open_rejections
+                if k == key or mdmemory.similarity(k, key) >= _SAME_SUBGOAL
+            ),
+            None,
+        )
+        rejection = board.open_rejections.pop(match) if match else None
         memory = self._session.deps.memory
-        if memory is not None and outcome.finished is not None:
-            memory.record_failure(self._recalled)
+        if memory is not None and rejection is not None and rejection.count > 1:
+            memory.record_rejection(
+                self._session.cfg.profile.vendor_id,
+                self._session.cfg.goal,
+                rejection,
+                worked=summary or subgoal.description,
+                safe=self._session.safe_text,
+                graph_version=self._graph_version(),
+            )
 
     def _advanced_reply(self) -> str:
         """
@@ -483,26 +549,40 @@ class Team:
                 darevie.review_recording(
                     self._session, result.recording, turn=turn
                 )
-            memory = self._session.deps.memory
-            if memory is not None:
-                memory.record_plan(
-                    self._session.cfg.profile.vendor_id,
-                    self._session.cfg.goal,
-                    self._board().plan,
-                    safe=self._session.safe_text,
-                )
 
-    def _learn_from_human(self, outcome: tools.ToolOutcome, reason: str) -> None:
+    def _learn_from_human(self, outcome: tools.ToolOutcome) -> None:
         """
         Keep an operator's note from an intervention as a lesson.
+
+        Only the person's own words after "Note:" are kept; the model's
+        give-up reason and the screen are not.
         """
         memory = self._session.deps.memory
-        note = outcome.reply or ""
-        if memory is not None and outcome.finished is None and "Note:" in note:
-            memory.record_lesson(
+        reply = outcome.reply or ""
+        _, marker, note = reply.partition("Note:")
+        if memory is not None and outcome.finished is None and marker:
+            current = self._board().current
+            memory.record_note(
                 self._session.cfg.profile.vendor_id,
                 self._session.cfg.goal,
-                f"stuck on '{reason}'; a person helped: {note}",
-                source="human",
+                current.description if current is not None else "",
+                note,
                 safe=self._session.safe_text,
+                graph_version=self._graph_version(),
             )
+
+    def _graph_version(self) -> int:
+        """
+        Return the app graph version this run plans against (0 with none).
+        """
+        known = self._session.cfg.known_graph
+        return known.graph_version if known is not None else 0
+
+
+def _failure_kind(failed: List[mdplan.Verdict]) -> str:
+    """
+    Name a rejection by its most serious failing reviewer.
+    """
+    kinds = {mdmemory.failure_kind(v.reviewer, v.reason) for v in failed}
+    kind = next((k for k in _KIND_ORDER if k in kinds), "no_verdict")
+    return kind

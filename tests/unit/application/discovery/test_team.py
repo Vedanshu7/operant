@@ -13,7 +13,10 @@ import pytest
 
 import operant.adapters.secrets.env as env
 import operant.application.discovery.team as dsteam
+import operant.application.memory as apmemory
 import operant.domain.models.plan as mdplan
+import operant.infra.db.engine as engine
+import operant.infra.repositories.memory as rmmemory
 import tests.evals.catalog as catalog
 import tests.evals.harness as harness
 import tests.evals.scenes as scenes
@@ -59,6 +62,7 @@ def _run(
     safety: Optional[List[Call]] = None,
     extra: Optional[Dict[str, List[Call]]] = None,
     team: Optional[dsteam.TeamBudget] = None,
+    memory: Optional[apmemory.AgentMemory] = None,
 ) -> harness.EvalRun:
     roles = {
         "planner": sllm.scripted(planner),
@@ -72,7 +76,10 @@ def _run(
     run = harness.run_scenario(
         tmp_path,
         harness.EvalEnv(
-            sllm.scripted(executor), env.EnvSecretStore({}), role_llms=roles
+            sllm.scripted(executor),
+            env.EnvSecretStore({}),
+            role_llms=roles,
+            memory=memory,
         ),
         scenario,
         team=team,
@@ -356,3 +363,90 @@ def test_a_denial_stays_in_the_executors_plan_context(
     )
     last_prompt = str(run.llm.sent[-1])
     assert "REFUSED BY A PERSON" in last_prompt
+
+
+# #############################################################################
+# Memory
+# #############################################################################
+
+
+def _memory() -> Tuple[apmemory.AgentMemory, rmmemory.SqlMemoryStore]:
+    database = engine.Database.open(None)
+    database.create_all()
+    store = rmmemory.SqlMemoryStore(database)
+    return apmemory.AgentMemory(store), store
+
+
+def test_a_rejection_the_run_gets_past_teaches_nothing(
+    tmp_path: pathlib.Path,
+) -> None:
+    memory, store = _memory()
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [("goal_complete", {"summary": "done?"}), *_READ],
+        planner=[_plan("read the savings balance")],
+        verifier=_verdicts(False, True),
+        memory=memory,
+    )
+    assert run.succeeded
+    [vendor] = store.vendors()
+    assert store.lessons(vendor) == []
+    assert len(store.plans(vendor)) == 1
+
+
+def test_a_subgoal_rejected_repeatedly_keeps_what_worked(
+    tmp_path: pathlib.Path,
+) -> None:
+    memory, store = _memory()
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [
+            ("goal_complete", {"summary": "a"}),
+            ("goal_complete", {"summary": "b"}),
+            *_READ,
+        ],
+        planner=[_plan("read the savings balance")] * 2,
+        verifier=_verdicts(False, False, True),
+        memory=memory,
+    )
+    assert run.succeeded
+    [lesson] = store.lessons(store.vendors()[0])
+    assert lesson.lesson == (
+        'On "read the savings balance": not_done. What worked: read it.'
+    )
+
+
+def test_a_failed_run_keeps_the_unresolved_rejection_and_counts_the_plan(
+    tmp_path: pathlib.Path,
+) -> None:
+    memory, store = _memory()
+    scenario = _scenario("auth", "already_logged_in")
+    seeded = _run(
+        tmp_path / "seed",
+        scenario,
+        _READ,
+        planner=[_plan("read the savings balance")],
+        verifier=_verdicts(True),
+        memory=memory,
+    )
+    assert seeded.succeeded
+    run = _run(
+        tmp_path / "fail",
+        scenario,
+        [
+            ("goal_complete", {"summary": "a"}),
+            ("goal_complete", {"summary": "b"}),
+        ],
+        planner=[_plan("read the savings balance")],
+        verifier=_verdicts(False, False),
+        team=dsteam.TeamBudget(max_replans=0),
+        memory=memory,
+    )
+    assert not run.succeeded
+    vendor = store.vendors()[0]
+    [plan] = store.plans(vendor)
+    assert (plan.successes, plan.failures) == (1, 1)
+    [lesson] = store.lessons(vendor)
+    assert lesson.lesson.endswith("What worked: unresolved.")

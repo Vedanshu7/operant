@@ -23,6 +23,12 @@ class MemoryStore(Protocol):
     Persist plans and lessons, scoped per app.
     """
 
+    def vendors(self) -> List[str]:
+        """
+        Return every app that has stored plans or lessons.
+        """
+        ...
+
     def plans(self, vendor_id: str) -> List[mdmemory.PlanMemory]:
         """
         Return every stored plan for ``vendor_id``.
@@ -36,7 +42,13 @@ class MemoryStore(Protocol):
         ...
 
     def save_plan(
-        self, vendor_id: str, goal_key: str, goal_text: str, plan_json: str
+        self,
+        vendor_id: str,
+        goal_key: str,
+        goal_text: str,
+        plan_json: str,
+        *,
+        graph_version: int = 0,
     ) -> None:
         """
         Add a plan, or count one more success for the same goal key.
@@ -45,21 +57,29 @@ class MemoryStore(Protocol):
 
     def mark_plan_failed(self, plan_id: int) -> None:
         """
-        Count a run that used the plan and still escalated.
+        Count a run that recalled the plan and still failed.
         """
         ...
 
     def save_lesson(
-        self, vendor_id: str, goal_key: str, lesson: str, source: str
+        self,
+        vendor_id: str,
+        goal_key: str,
+        lesson: str,
+        source: str,
+        *,
+        subgoal_key: str = "",
+        failure_kind: str = "",
+        graph_version: int = 0,
     ) -> None:
         """
-        Add a lesson, or reinforce the same one.
+        Add a lesson, or reinforce the one it repeats.
         """
         ...
 
-    def touch(self, plan_ids: List[int], lesson_ids: List[int]) -> None:
+    def delete(self, plan_ids: List[int], lesson_ids: List[int]) -> None:
         """
-        Mark plans and lessons as just recalled.
+        Remove plans and lessons by id.
         """
         ...
 

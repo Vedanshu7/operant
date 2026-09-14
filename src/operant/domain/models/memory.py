@@ -43,8 +43,10 @@ class PlanMemory:
     :ivar goal_text: The goal as written (scrubbed).
     :ivar plan_json: The plan (names only, never values).
     :ivar successes: Runs it led to a verified finish.
-    :ivar failures: Runs that used it and still escalated.
-    :ivar last_used_at: ISO time it was last recorded or recalled.
+    :ivar failures: Runs that recalled it and still failed.
+    :ivar last_used_at: ISO time it last led to a verified finish;
+        recalling it does not count, so a plan that keeps failing ages.
+    :ivar graph_version: The app graph version it was learned on.
     """
 
     id: int
@@ -55,6 +57,7 @@ class PlanMemory:
     successes: int
     failures: int
     last_used_at: str
+    graph_version: int = 0
 
 
 # #############################################################################
@@ -73,7 +76,13 @@ class Lesson:
     :ivar lesson: What went wrong (scrubbed).
     :ivar source:``verifier`` or ``human``.
     :ivar reinforcements: How often the same lesson recurred.
-    :ivar last_used_at: ISO time it was last recorded or recalled.
+    :ivar last_used_at: ISO time it last recurred; recalling it does not
+        count.
+    :ivar subgoal_key: The normalised subgoal it is about (``""`` for a
+        person's note).
+    :ivar failure_kind: One of ``FAILURE_KINDS`` (``""`` for a person's
+        note).
+    :ivar graph_version: The app graph version it was learned on.
     """
 
     id: int
@@ -83,6 +92,9 @@ class Lesson:
     source: str
     reinforcements: int
     last_used_at: str
+    subgoal_key: str = ""
+    failure_kind: str = ""
+    graph_version: int = 0
 
 
 def goal_key(goal: str) -> str:
@@ -150,6 +162,26 @@ _INSTRUCTION_RE: Final = re.compile(
 _HALF_LIFE_S: Final = 30 * 86_400
 _HUMAN_BOOST: Final = 2.0
 _OLD_VERSION_WEIGHT: Final = 0.5
+
+
+# #############################################################################
+# Rejection
+# #############################################################################
+
+
+@dataclasses.dataclass(frozen=True)
+class Rejection:
+    """
+    A subgoal the verifier panel rejected, as memory keeps it.
+
+    :ivar subgoal: The planner's subgoal description.
+    :ivar kind: One of ``FAILURE_KINDS``.
+    :ivar count: How often it was rejected in the run.
+    """
+
+    subgoal: str
+    kind: str
+    count: int = 1
 
 
 def failure_kind(reviewer: str, reason: str) -> str:

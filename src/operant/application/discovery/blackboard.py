@@ -14,6 +14,7 @@ from __future__ import annotations
 import dataclasses
 from typing import Dict, List, Optional, Tuple
 
+import operant.domain.models.memory as mdmemory
 import operant.domain.models.plan as mdplan
 
 # #############################################################################
@@ -59,6 +60,9 @@ class Blackboard:
         subgoal's turns begin.
     :ivar pending_compaction: History range of a just-verified subgoal,
         folded away at the start of the next turn.
+    :ivar open_rejections: Rejected subgoals not yet verified, keyed by
+        their normalised description so they survive a replan; memory
+        decides at the end what they teach.
     """
 
     plan: mdplan.Plan
@@ -70,6 +74,9 @@ class Blackboard:
     progress_turn: int = 0
     subgoal_start: int = 0
     pending_compaction: Optional[int] = None
+    open_rejections: Dict[str, mdmemory.Rejection] = dataclasses.field(
+        default_factory=dict
+    )
 
     @property
     def current(self) -> Optional[mdplan.Subgoal]:

@@ -397,17 +397,11 @@ class DiscoverySession:
         )
         if self.team is not None:
             self.team.start(0)
-        for turn in range(1, self.cfg.max_turns + 1):
-            if self.deps.should_stop():
-                return config.DiscoveryFailure(
-                    "run cancelled by the operator", failure_class="cancelled"
-                )
-            finished = self._turn(turn)
-            if finished is not None:
-                return finished
-        return config.DiscoveryFailure(
-            f"max turns ({self.cfg.max_turns}) reached without goal_complete"
-        )
+        result = self._turns()
+        if self.team is not None:
+            # Memory learns from how the run ended, whichever way it did.
+            self.team.conclude(result)
+        return result
 
     def trace_context(self, agent: str, turn: int) -> mlllm.TraceContext:
         """
@@ -435,6 +429,22 @@ class DiscoverySession:
         if self.deps.scrubber is not None:
             safe = self.deps.scrubber.scrub(safe)
         return safe
+
+    def _turns(self) -> Union[config.DiscoveryResult, config.DiscoveryFailure]:
+        """
+        Run turns until the goal finishes, the run fails, or turns run out.
+        """
+        for turn in range(1, self.cfg.max_turns + 1):
+            if self.deps.should_stop():
+                return config.DiscoveryFailure(
+                    "run cancelled by the operator", failure_class="cancelled"
+                )
+            finished = self._turn(turn)
+            if finished is not None:
+                return finished
+        return config.DiscoveryFailure(
+            f"max turns ({self.cfg.max_turns}) reached without goal_complete"
+        )
 
     def _observe(self) -> None:
         """

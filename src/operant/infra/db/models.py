@@ -481,6 +481,9 @@ class PlanMemoryRow(Base):
     last_used_at: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
         sqlalchemy.String(40), nullable=False
     )
+    graph_version: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, nullable=False, default=0, server_default="0"
+    )
 
 
 # #############################################################################
@@ -515,4 +518,13 @@ class LessonRow(Base):
     )
     last_used_at: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
         sqlalchemy.String(40), nullable=False
+    )
+    subgoal_key: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Text, nullable=False, default="", server_default=""
+    )
+    failure_kind: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(32), nullable=False, default="", server_default=""
+    )
+    graph_version: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, nullable=False, default=0, server_default="0"
     )
