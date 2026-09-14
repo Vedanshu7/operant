@@ -6,6 +6,13 @@ what worked as a typed, versioned capability and replays that capability with
 no model in the loop. Every risky, mutating, or sensitive step pauses for a
 human to approve.
 
+Give it a goal and it drives the app. In this recording the goal is typed
+into the desktop app; the agent logs in to a local ParaBank with stored
+credentials and reads the balance, then the saved capability replays for
+another account with no model calls ([MP4](docs/media/demo.mp4)).
+
+![Operant desktop app running a goal](docs/media/demo.gif)
+
 | Discover (model drives the app) | Replay (no model) |
 |---|---|
 | ![Discovery run](docs/media/discovery.gif) | ![Replay run](docs/media/replay.gif) |
