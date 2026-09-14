@@ -179,6 +179,8 @@ class Dispatcher:
                 tools.Attempt(tool.spec.name, result.status, result.reason)
             )
             self._journal_action(action, tool, result)
+            if result.status == "failed":
+                self._record_failure(sig, tool.spec.name)
             if result.status == "ok":
                 self._record_winner(sig, action.kind, tool.spec.name)
                 outcome = DispatchOutcome(
@@ -258,6 +260,13 @@ class Dispatcher:
                     "reason": "recorded winning tool for this surface",
                 }
             )
+
+    def _record_failure(self, sig: Optional[str], tool_name: str) -> None:
+        """
+        Count a failed attempt with the learner, if one is set.
+        """
+        if self.learner is not None and sig is not None:
+            self.learner.record(sig, tool_name, ok=False)
 
     def _skip(
         self,

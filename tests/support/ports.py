@@ -5,6 +5,7 @@ Minimal in-memory fakes that satisfy the port protocols.
 from __future__ import annotations
 
 import collections.abc
+import copy
 import pathlib
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -456,13 +457,15 @@ class FakePreferenceStore:
     An in-memory ``PreferenceStore`` for learner tests.
     """
 
-    def __init__(self, initial: Optional[Dict[str, str]] = None) -> None:
-        self.saved: List[Dict[str, str]] = []
-        self._prefs = dict(initial or {})
+    def __init__(
+        self, initial: Optional[Dict[str, Dict[str, List[int]]]] = None
+    ) -> None:
+        self.saved: List[Dict[str, Dict[str, List[int]]]] = []
+        self._counts = copy.deepcopy(initial or {})
 
-    def load(self) -> Dict[str, str]:
-        return dict(self._prefs)
+    def load(self) -> Dict[str, Dict[str, List[int]]]:
+        return copy.deepcopy(self._counts)
 
-    def save(self, preferences: Dict[str, str]) -> None:
-        self._prefs = dict(preferences)
-        self.saved.append(dict(preferences))
+    def save(self, counts: Dict[str, Dict[str, List[int]]]) -> None:
+        self._counts = copy.deepcopy(counts)
+        self.saved.append(copy.deepcopy(counts))

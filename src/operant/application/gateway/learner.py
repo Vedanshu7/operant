@@ -1,13 +1,13 @@
 """
 The learn layer: the gateway remembers which tool worked and tries it first.
 
-The dispatcher's journal becomes memory. The first time the agent fills
-a field on a page, the chain is explored top-to-bottom and the winner is
-recorded against a compact signature of the situation; later, the
-learned tool leads the chain. Learning is advisory only - it reorders
-the chain, never shrinks it - so a stale preference degrades to the full
-chain, not a failure. Persistence goes through a ``PreferenceStore`` so
-the mechanism has no file I/O of its own.
+The dispatcher's journal becomes memory. Each tool that works or fails
+on a situation is counted against a compact signature of it; later, the
+chain is ordered by each tool's smoothed success rate there, so one lucky
+win does not outrank a tool that keeps working. Learning is advisory only
+- it reorders the chain, never shrinks it - so a stale preference
+degrades to the full chain, not a failure. Persistence goes through a
+``PreferenceStore`` so the mechanism has no file I/O of its own.
 
 Import as:
 
@@ -20,33 +20,63 @@ import re
 from typing import List, Optional
 
 import operant.domain.models.actions as actions
+import operant.domain.models.digest as digest
 import operant.ports.learning as learning
 
 _TITLE_TAIL = re.compile(r"\s*[-|].*$")
 _DIGITS = re.compile(r"\d+")
+_NAME_CHARS = 24
 
 
-def signature(action: actions.SurfaceAction, app: str, window_title: str) -> str:
+def signature(
+    action: actions.SurfaceAction,
+    app: str,
+    screen: Optional[digest.ScreenDigest],
+) -> str:
     """
     Build a coarse, stable key for an action on a kind of target.
 
     The app, the page (title with volatile tails and digits stripped so
-    it generalises across records), the action kind, and the target's
-    role - never the value - so what is learned for one account's field
-    applies to the next.
+    it generalises across records), the action kind, and the target: the
+    control's role and name with digits masked, ``point`` for a click at
+    a coordinate, nothing for actions without a target. Never the value
+    and never the model's wording, so what is learned for one account's
+    link applies to the next.
 
     :param action: The action being dispatched.
-    :param app: The owning application.
-    :param window_title: The current window title.
-    :return: The signature string.
+    :param app: The owning application; the screen's app when empty.
+    :param screen: The screen the action runs on, when known.
+    :return: The signature string; it starts with ``::`` when the app is
+        unknown, and such signatures are never learned.
     """
-    page = _TITLE_TAIL.sub("", window_title)
-    page = _DIGITS.sub("#", page).strip().lower()
-    role = ""
-    if action.target_text:
-        role = action.target_text.split(" | ")[0][:24].lower()
-    sig = f"{app}::{page}::{action.kind}::{role}"
+    title = screen.window_title if screen is not None else ""
+    page = _DIGITS.sub("#", _TITLE_TAIL.sub("", title)).strip().lower()
+    owner = app or (screen.app if screen is not None else "")
+    sig = f"{owner}::{page}::{action.kind}::{_target(action, screen)}"
     return sig
+
+
+def _target(
+    action: actions.SurfaceAction, screen: Optional[digest.ScreenDigest]
+) -> str:
+    """
+    Describe the action's target by role and masked name.
+    """
+    control = (
+        next((c for c in screen.controls if c.ref == action.ref), None)
+        if screen is not None and action.ref
+        else None
+    )
+    if control is not None:
+        name = _DIGITS.sub("#", (control.name or control.label).lower())
+        target = f"{control.role}:{name[:_NAME_CHARS].strip()}"
+    elif action.ref:
+        target = "control"
+    elif action.x is not None and action.y is not None:
+        target = "point"
+    else:
+        target = ""
+    return target
 
 
 # #############################################################################
@@ -56,44 +86,56 @@ def signature(action: actions.SurfaceAction, app: str, window_title: str) -> str
 
 class ToolLearner:
     """
-    Read and updates learned tool preferences through a store.
+    Count tool outcomes per situation and order chains by them.
     """
 
     def __init__(self, store: learning.PreferenceStore) -> None:
         self._store = store
-        self._prefs = store.load()
+        self._counts = store.load()
 
     def preferred(self, sig: str) -> Optional[str]:
         """
-        Return the learned tool for ``sig``, or ``None``.
+        Return the tool with the best record for ``sig``, or ``None``.
         """
-        pref = self._prefs.get(sig)
-        return pref
+        tools = self._counts.get(sig, {})
+        best = max(tools, key=lambda name: _rate(tools[name]), default=None)
+        return best
 
-    def record(self, sig: str, tool: str) -> bool:
+    def record(self, sig: str, tool: str, *, ok: bool = True) -> bool:
         """
-        Remembers the winning tool for ``sig``.
+        Count one outcome of ``tool`` on ``sig``.
 
         :param sig: The situation signature.
-        :param tool: The tool that succeeded.
-        :return:``True`` if this changed the learned preference (worth
+        :param tool: The tool that ran.
+        :param ok: Whether it worked.
+        :return:``True`` if this changed which tool leads (worth
             logging).
         """
-        changed = self._prefs.get(sig) != tool
-        if changed:
-            self._prefs[sig] = tool
-            self._store.save(dict(self._prefs))
-        return changed
+        if sig.startswith("::"):
+            # Unknown app: a key shared by every app would mislead them all.
+            return False
+        before = self.preferred(sig)
+        tools = self._counts.setdefault(sig, {})
+        counts = tools.setdefault(tool, [0, 0])
+        counts[0 if ok else 1] += 1
+        self._store.save(self._counts)
+        return self.preferred(sig) != before
 
     def order_chain(self, sig: str, tool_names: List[str]) -> List[str]:
         """
-        Return the chain with the learned tool moved to the front.
+        Return the chain ordered by success rate on ``sig``.
+
+        Untried tools rate as even; ties keep the configured order.
         """
-        preferred = self._prefs.get(sig)
-        if preferred and preferred in tool_names:
-            # Learned tool still in the chain: lead with it.
-            ordered = [preferred, *(t for t in tool_names if t != preferred)]
-        else:
-            # No usable preference: keep the chain as given.
-            ordered = tool_names
+        tools = self._counts.get(sig, {})
+        ordered = sorted(
+            tool_names, key=lambda name: -_rate(tools.get(name, [0, 0]))
+        )
         return ordered
+
+
+def _rate(counts: List[int]) -> float:
+    """
+    Laplace-smoothed success rate of ``[worked, failed]`` counts.
+    """
+    return (counts[0] + 1) / (counts[0] + counts[1] + 2)

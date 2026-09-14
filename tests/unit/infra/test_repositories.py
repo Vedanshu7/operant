@@ -74,8 +74,12 @@ def test_learned_tools_store_degrades_to_empty(tmp_path: pathlib.Path) -> None:
     path = tmp_path / "state" / "learned-tools.json"
     store = learned_.LearnedToolsStore(path)
     assert store.load() == {}
-    store.save({"chrome::login::fill::text_field": "ax-action"})
-    assert store.load() == {"chrome::login::fill::text_field": "ax-action"}
+    counts = {"chrome::login::fill::text_field:user": {"ax-action": [2, 1]}}
+    store.save(counts)
+    assert store.load() == counts
+    # The old flat format is dropped, not misread.
+    path.write_text(json.dumps({"chrome::login::fill::user": "ax-action"}))
+    assert store.load() == {}
     path.write_text("{not json")
     assert store.load() == {}
     path.write_text(json.dumps([1, 2]))

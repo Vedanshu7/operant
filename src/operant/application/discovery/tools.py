@@ -752,8 +752,7 @@ def _situation_sig(
     Coarse, value-free signature of an action on the current screen.
     """
     app = pre.app if pre is not None else (action.app or "")
-    title = pre.window_title if pre is not None else ""
-    sig = gllearne.signature(action, app, title)
+    sig = gllearne.signature(action, app, pre)
     return sig
 
 
@@ -767,6 +766,9 @@ def _remedy_hint(
     hint = ""
     if memory is not None:
         error_sig = odremed.error_signature(error)
+        if session.state.pending_failure == (situation, error_sig):
+            # The same error again after the hint: it did not help.
+            memory.record_failure(situation, error_sig)
         session.state.pending_failure = (situation, error_sig)
         remedy = memory.query(situation, error_sig)
         if remedy is not None:

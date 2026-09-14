@@ -58,38 +58,70 @@ DIGEST = digest.ScreenDigest(
 )
 
 
+def _screen(title: str, control: digest.Control) -> digest.ScreenDigest:
+    return digest.ScreenDigest(
+        app="Google Chrome", window_title=title, text="", controls=(control,)
+    )
+
+
+def _link(name: str) -> digest.Control:
+    return digest.Control(
+        ref="c1",
+        role="link",
+        name=name,
+        label="",
+        path="p",
+        box=digest.Box(0, 0, 0.1, 0.1),
+    )
+
+
 def test_signature_generalizes_across_records():
-    a = actions.SurfaceAction(
-        kind="fill",
-        ref="c0",
-        value="13344",
-        target_text="text_field | Username",
-    )
-    b = actions.SurfaceAction(
-        kind="fill",
-        ref="c0",
-        value="99999",
-        target_text="text_field | Username",
-    )
-    # Same page/kind/role -> same signature despite different values and
-    # title digits.
+    a = actions.SurfaceAction(kind="click", ref="c1", target_text="open 13344")
+    b = actions.SurfaceAction(kind="click", ref="c1", target_text="open 99999")
+    # Same page, kind and kind of target -> one signature, whatever the
+    # record or the model's wording.
     s1 = gllearne.signature(
-        a, "Google Chrome", "ParaBank | Account 13344 - Google Chrome"
+        a,
+        "Google Chrome",
+        _screen("Bank | Account 13344 - Chrome", _link("13344")),
     )
     s2 = gllearne.signature(
-        b, "Google Chrome", "ParaBank | Account 99999 - Google Chrome"
+        b,
+        "Google Chrome",
+        _screen("Bank | Account 99999 - Chrome", _link("99999")),
     )
-    assert s1 == s2
+    assert s1 == s2 == "Google Chrome::bank::click::link:#"
 
 
-def test_learner_records_and_reorders():
+def test_signature_never_holds_the_models_wording():
+    point = actions.SurfaceAction(
+        kind="click", x=0.5, y=0.5, target_text="click on the password field"
+    )
+    sig = gllearne.signature(point, "", DIGEST)
+    assert sig == "Google Chrome::parabank::click::point"
+
+
+def test_an_unknown_app_is_never_learned():
+    learner = gllearne.ToolLearner(ports.FakePreferenceStore())
+    sig = gllearne.signature(
+        actions.SurfaceAction(kind="press", key="Tab"), "", None
+    )
+    assert sig.startswith("::")
+    assert learner.record(sig, "keys") is False
+    assert learner.preferred(sig) is None
+
+
+def test_learner_orders_by_success_rate():
     store = ports.FakePreferenceStore()
     learner = gllearne.ToolLearner(store)
-    sig = "sig-1"
+    sig = "app::page::fill::text_field:username"
     assert learner.order_chain(sig, ["a", "b", "c"]) == ["a", "b", "c"]
     assert learner.record(sig, "c") is True
-    assert learner.record(sig, "c") is False  # no change second time
+    assert learner.record(sig, "c") is False  # still the leader
     assert learner.order_chain(sig, ["a", "b", "c"]) == ["c", "a", "b"]
+    # One failure puts a tool behind the untried ones.
+    learner.record(sig, "a", ok=False)
+    assert learner.order_chain(sig, ["a", "b", "c"]) == ["c", "b", "a"]
     # Persisted through the store.
     reloaded = gllearne.ToolLearner(store)
     assert reloaded.preferred(sig) == "c"
@@ -110,7 +142,7 @@ def test_dispatcher_learns_winner_then_leads_with_it():
         on_event=events.append,
         learner=learner,
         signature_of=lambda action, digest_: gllearne.signature(
-            action, "Google Chrome", DIGEST.window_title
+            action, "Google Chrome", digest_
         ),
     )
     ctx = tools.ExecutionContext(session=None, digest=DIGEST)

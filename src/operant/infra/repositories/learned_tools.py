@@ -10,9 +10,12 @@ from __future__ import annotations
 
 import json
 import pathlib
-from typing import Dict
+from typing import Dict, List
 
 import operant.helpers.files as files
+
+_VERSION = 2
+
 
 # #############################################################################
 # LearnedToolsStore
@@ -21,38 +24,42 @@ import operant.helpers.files as files
 
 class LearnedToolsStore:
     """
-    A flat ``{signature: tool_name}`` document.
+    ``{"version": 2, "signatures": {sig: {tool: [worked, failed]}}}``.
 
-    A corrupt or missing file reads as empty so learning degrades to
-    "nothing learned yet" rather than failing a run.
+    A corrupt or missing file, or the old flat ``{signature: tool}``
+    format (keyed by the model's wording and record values), reads as
+    empty so learning starts over rather than failing a run.
     """
 
     def __init__(self, path: pathlib.Path) -> None:
         self._path = path
 
-    def load(self) -> Dict[str, str]:
+    def load(self) -> Dict[str, Dict[str, List[int]]]:
         """
-        Return the stored preferences, or ``{}`` when unreadable.
+        Return the stored counts, or ``{}`` when unreadable or old.
         """
-        result: Dict[str, str] = {}
+        result: Dict[str, Dict[str, List[int]]] = {}
         if self._path.exists():
             try:
                 document = files.read_json(self._path)
             except (json.JSONDecodeError, OSError):
-                pass
-            else:
-                if isinstance(document, dict):
-                    result = {
-                        str(key): str(value) for key, value in document.items()
+                document = None
+            if isinstance(document, dict) and document.get("version") == _VERSION:
+                result = {
+                    str(sig): {
+                        str(tool): [int(counts[0]), int(counts[1])]
+                        for tool, counts in tools.items()
                     }
+                    for sig, tools in document.get("signatures", {}).items()
+                }
         return result
 
-    def save(self, preferences: Dict[str, str]) -> None:
+    def save(self, counts: Dict[str, Dict[str, List[int]]]) -> None:
         """
-        Write the full preference map atomically.
+        Write all counts atomically.
         """
+        document = {"version": _VERSION, "signatures": counts}
         with files.locked(self._path):
             files.write_text(
-                self._path,
-                json.dumps(preferences, indent=2, sort_keys=True) + "\n",
+                self._path, json.dumps(document, indent=2, sort_keys=True) + "\n"
             )

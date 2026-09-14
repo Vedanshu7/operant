@@ -8,7 +8,7 @@ import operant.ports.learning as learning
 
 from __future__ import annotations
 
-from typing import Dict, Protocol, runtime_checkable
+from typing import Dict, List, Protocol, runtime_checkable
 
 # #############################################################################
 # PreferenceStore
@@ -18,17 +18,17 @@ from typing import Dict, Protocol, runtime_checkable
 @runtime_checkable
 class PreferenceStore(Protocol):
     """
-    Persist which tool won for a given surface signature.
+    Persist how often each tool worked and failed per surface signature.
     """
 
-    def load(self) -> Dict[str, str]:
+    def load(self) -> Dict[str, Dict[str, List[int]]]:
         """
-        Return the stored ``{signature: tool_name}`` map.
+        Return ``{signature: {tool_name: [worked, failed]}}``.
         """
         ...
 
-    def save(self, preferences: Dict[str, str]) -> None:
+    def save(self, counts: Dict[str, Dict[str, List[int]]]) -> None:
         """
-        Replace the stored map with ``preferences``.
+        Replace the stored counts with ``counts``.
         """
         ...

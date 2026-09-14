@@ -84,9 +84,7 @@ def build_gateway_surface(
     def signature_of(
         action: actions.SurfaceAction, screen: Optional[digest.ScreenDigest]
     ) -> str:
-        return gllearne.signature(
-            action, app_name, screen.window_title if screen else ""
-        )
+        return gllearne.signature(action, app_name, screen)
 
     # Assemble the dispatcher, guard, and surface.
     engine = dispat.Dispatcher(
