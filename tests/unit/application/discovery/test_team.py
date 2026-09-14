@@ -450,3 +450,33 @@ def test_a_failed_run_keeps_the_unresolved_rejection_and_counts_the_plan(
     assert (plan.successes, plan.failures) == (1, 1)
     [lesson] = store.lessons(vendor)
     assert lesson.lesson.endswith("What worked: unresolved.")
+
+
+def test_a_single_agent_given_memory_sees_the_recalled_plan(
+    tmp_path: pathlib.Path,
+) -> None:
+    memory, store = _memory()
+    scenario = _scenario("auth", "already_logged_in")
+    seeded = _run(
+        tmp_path / "seed",
+        scenario,
+        _READ,
+        planner=[_plan("read the savings balance")],
+        verifier=_verdicts(True),
+        memory=memory,
+    )
+    assert seeded.succeeded
+    single = harness.run_scenario(
+        tmp_path / "single",
+        harness.EvalEnv(
+            sllm.scripted(_READ), env.EnvSecretStore({}), memory=memory
+        ),
+        dataclasses.replace(scenario, mode="single"),
+    )
+    assert single.succeeded
+    first_turn = " ".join(harness.message_text(m) for m in single.llm.sent[0])
+    assert "MEMORY (advisory" in first_turn
+    assert "read the savings balance" in first_turn
+    # A single agent has no plan of its own to keep.
+    [plan] = store.plans(store.vendors()[0])
+    assert plan.successes == 1

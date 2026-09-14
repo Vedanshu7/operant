@@ -209,6 +209,7 @@ class DiscoverySession:
             self.cfg.prompt_overrides.get("executor"),
         )
         self._recognized_node: Optional[str] = None
+        self._single_recall: Optional[apmemory.Recalled] = None
         self.team: Optional[dsteam.Team] = (
             dsteam.Team(self) if self.cfg.agents == "multi" else None
         )
@@ -397,11 +398,53 @@ class DiscoverySession:
         )
         if self.team is not None:
             self.team.start(0)
+        elif self.deps.memory is not None:
+            # Single mode reads memory once; it has no plan to keep.
+            self._single_recall = self.recall_memory()
         result = self._turns()
         if self.team is not None:
             # Memory learns from how the run ended, whichever way it did.
             self.team.conclude(result)
+        elif (
+            self.deps.memory is not None
+            and self._single_recall is not None
+            and not isinstance(result, config.DiscoveryResult)
+        ):
+            self.deps.memory.record_failure(self._single_recall.plans)
         return result
+
+    def recall_memory(self) -> Optional[apmemory.Recalled]:
+        """
+        Recall plans and lessons for this goal and log what was offered.
+
+        :return: The recall, or ``None`` without memory.
+        """
+        memory = self.deps.memory
+        if memory is None:
+            return None
+        recalled = memory.recall(
+            self.cfg.profile.vendor_id,
+            self.cfg.goal,
+            graph_version=self.graph_version(),
+        )
+        self.log.emit(
+            events.MemoryRecalled(
+                plans=len(recalled.plans),
+                lessons=len(recalled.lessons),
+                summary=(
+                    f"recalled {len(recalled.plans)} plan(s) and "
+                    f"{len(recalled.lessons)} lesson(s)"
+                ),
+            )
+        )
+        return recalled
+
+    def graph_version(self) -> int:
+        """
+        Return the app graph version this run works against (0 with none).
+        """
+        known = self.cfg.known_graph
+        return known.graph_version if known is not None else 0
 
     def trace_context(self, agent: str, turn: int) -> mlllm.TraceContext:
         """
@@ -460,11 +503,15 @@ class DiscoverySession:
 
     def _plan_block(self) -> str:
         """
-        Return the multi-agent plan context for this turn, if any.
+        Return the plan context for this turn: the multi-agent plan, or a
+        single agent's recalled memory, if any.
         """
-        block = (
-            f"{self.team.executor_block()}\n\n" if self.team is not None else ""
-        )
+        if self.team is not None:
+            block = f"{self.team.executor_block()}\n\n"
+        elif self._single_recall is not None and self._single_recall.render():
+            block = f"{self._single_recall.render()}\n\n"
+        else:
+            block = ""
         return block
 
     def _team_dispatch(

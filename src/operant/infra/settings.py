@@ -220,6 +220,8 @@ class DiscoverySettings(pydantic.BaseModel):
     :ivar compile_review:``"on"`` reviews the saved recording
         (advisory).
     :ivar memory:``"on"`` recalls and records plans and lessons.
+    :ivar memory_in_single: Whether a single-agent run also reads the
+        recalled plans and lessons (off until an eval shows it helps).
     :ivar router_config: A litellm Router config (YAML) naming a model
         group per role (``executor``, ``planner``, ``reviewer``); when
         set it replaces ``model``/``planner_model``/``verifier_model``.
@@ -246,6 +248,7 @@ class DiscoverySettings(pydantic.BaseModel):
     fanout_workers: int = 4
     compile_review: Literal["on", "off"] = "on"
     memory: Literal["on", "off"] = "on"
+    memory_in_single: bool = False
     router_config: Optional[pathlib.Path] = None
     request_timeout_s: float = 60.0
 

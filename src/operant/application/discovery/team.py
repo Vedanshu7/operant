@@ -274,7 +274,7 @@ class Team:
                 goal,
                 self.board.plan,
                 safe=self._session.safe_text,
-                graph_version=self._graph_version(),
+                graph_version=self._session.graph_version(),
             )
         else:
             memory.record_failure(self._recalled)
@@ -285,7 +285,7 @@ class Team:
                     rejection,
                     worked="",
                     safe=self._session.safe_text,
-                    graph_version=self._graph_version(),
+                    graph_version=self._session.graph_version(),
                 )
         self.board.open_rejections.clear()
 
@@ -308,27 +308,11 @@ class Team:
         """
         Render recalled plans and lessons for the planner, if any.
         """
-        memory = self._session.deps.memory
+        recalled = self._session.recall_memory()
         text = ""
-        if memory is not None:
-            vendor = self._session.cfg.profile.vendor_id
-            recalled = memory.recall(
-                vendor,
-                self._session.cfg.goal,
-                graph_version=self._graph_version(),
-            )
+        if recalled is not None:
             text = recalled.render()
             self._recalled = recalled.plans
-            self._session.log.emit(
-                events.MemoryRecalled(
-                    plans=len(recalled.plans),
-                    lessons=len(recalled.lessons),
-                    summary=(
-                        f"recalled {len(recalled.plans)} plan(s) and "
-                        f"{len(recalled.lessons)} lesson(s)"
-                    ),
-                )
-            )
         return text
 
     def _announce(self, plan: mdplan.Plan, *, attempt: int) -> None:
@@ -521,7 +505,7 @@ class Team:
                 rejection,
                 worked=summary or subgoal.description,
                 safe=self._session.safe_text,
-                graph_version=self._graph_version(),
+                graph_version=self._session.graph_version(),
             )
 
     def _advanced_reply(self) -> str:
@@ -568,15 +552,8 @@ class Team:
                 current.description if current is not None else "",
                 note,
                 safe=self._session.safe_text,
-                graph_version=self._graph_version(),
+                graph_version=self._session.graph_version(),
             )
-
-    def _graph_version(self) -> int:
-        """
-        Return the app graph version this run plans against (0 with none).
-        """
-        known = self._session.cfg.known_graph
-        return known.graph_version if known is not None else 0
 
 
 def _failure_kind(failed: List[mdplan.Verdict]) -> str:
