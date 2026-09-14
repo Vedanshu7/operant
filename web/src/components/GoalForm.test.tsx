@@ -41,6 +41,16 @@ describe("GoalForm", () => {
     });
   });
 
+  it("hides the tenant choice for an app with a single instance", async () => {
+    renderWithProviders(<GoalForm />);
+    await screen.findByRole("option", { name: /System Settings/ });
+    expect(screen.queryByLabelText("Tenant")).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Profile"), "system-settings");
+    expect(screen.queryByLabelText("Tenant")).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Profile"), "parabank");
+    expect(screen.getByLabelText("Tenant")).toBeInTheDocument();
+  });
+
   it("multi-agent mode is sent when chosen", async () => {
     const bodies: DiscoveryRequest[] = [];
     server.use(

@@ -149,22 +149,24 @@ export function GoalForm(): ReactElement {
                 ))}
               </select>
             </Field>
-            <Field label="Tenant" htmlFor="tenant">
-              <select
-                id="tenant"
-                className="input"
-                value={tenant}
-                disabled={profileTenants.length === 0}
-                onChange={(e) => setTenant(e.target.value)}
-              >
-                <option value="">Default</option>
-                {profileTenants.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {/* An app with a single instance has nothing to choose. */}
+            {profileTenants.length > 1 && (
+              <Field label="Tenant" htmlFor="tenant">
+                <select
+                  id="tenant"
+                  className="input"
+                  value={tenant}
+                  onChange={(e) => setTenant(e.target.value)}
+                >
+                  <option value="">Default</option>
+                  {profileTenants.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
             <Field
               label="Capability id"
               htmlFor="capability_id"
@@ -260,25 +262,26 @@ export function GoalForm(): ReactElement {
                 ))}
               </select>
             </Field>
-            <Field label="Tenant" htmlFor="replay_tenant">
-              <select
-                id="replay_tenant"
-                className="input"
-                value={replayTenant}
-                disabled={tenantOptions.length === 0}
-                onChange={(e) => setReplayTenant(e.target.value)}
-              >
-                <option value="">
-                  Default
-                  {selectedCapability.data ? ` (${selectedCapability.data.default_tenant})` : ""}
-                </option>
-                {tenantOptions.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+            {tenantOptions.length > 1 && (
+              <Field label="Tenant" htmlFor="replay_tenant">
+                <select
+                  id="replay_tenant"
+                  className="input"
+                  value={replayTenant}
+                  onChange={(e) => setReplayTenant(e.target.value)}
+                >
+                  <option value="">
+                    Default
+                    {selectedCapability.data ? ` (${selectedCapability.data.default_tenant})` : ""}
                   </option>
-                ))}
-              </select>
-            </Field>
+                  {tenantOptions.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
           </div>
           <label className="inline-flex items-center gap-2 text-sm">
             <input
