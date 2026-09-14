@@ -284,8 +284,12 @@ uv run operant discover --agents multi \
 - The verifier panel checks each subgoal against the screen before the
   run moves on. Repeated rejections, a give-up, or a stall trigger a
   replan, then a human.
-- Plans that worked and lessons from rejections are kept in SQLite per app
-  ([ADR 5](docs/adr/0005-agent-memory-layer.md)), with every number masked.
+- Plans that worked, and lessons from subgoals the run kept failing, are
+  kept in SQLite per app ([ADR 5](docs/adr/0005-agent-memory-layer.md)),
+  with every number masked. Lessons are decided when the run ends, so a
+  rejection the run got past teaches nothing. `operant memory list`
+  shows what is remembered; `operant memory forget --app <id>` clears
+  it.
 - Models per role live in [`router.yml`](router.yml), a litellm Router
   config with one model group per role (`executor`, `planner`,
   `reviewer`), plus timeouts, retries and fallbacks. Point

@@ -117,8 +117,8 @@ Optional (`--agents multi`). See
 
 Across runs, a remediation memory remembers fixes for repeated step errors
 and surfaces a matched remedy to discovery as a hint. It is advisory: a
-remedy that keeps working is reinforced, and a stale one simply stops being
-reinforced.
+remedy that keeps working is reinforced, and one that keeps failing is no
+longer offered.
 
 ## The surface seam
 
@@ -146,6 +146,10 @@ the host.
 - Plan and lesson memory live in SQLite (`plan_memory`, `lessons`), with
   numbers masked; `operant audit` checks they hold no values
   ([ADR 5](docs/adr/0005-agent-memory-layer.md)).
+- Memory keeps conclusions from finished runs: lessons are settled when a
+  run ends, recall never writes, and every item carries the app graph
+  version it was learned on. Learned tools and remedies keep success
+  counts.
 - Each model call sends a bounded window of the history: the newest
   screenshot and the last few full screens, within a per-model token
   budget ([ADR 6](docs/adr/0006-context-layer.md)).
