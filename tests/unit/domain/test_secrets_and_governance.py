@@ -56,3 +56,25 @@ def test_redactor_scrubs_string_leaves_after_exact_masking() -> None:
         "nested": ["<PERSON>"],
         "seq": 3,
     }
+
+
+@pytest.mark.parametrize(
+    "secret, field, fits",
+    [
+        ("password", "Password", True),
+        ("account_password", "Verification", False),
+        ("password", "Username", False),
+        ("username", "Email address", True),
+        ("otp", "Verification code", True),
+        ("api_key", "API key", True),
+        ("api_key", "Search", False),
+        ("username", "", False),
+        ("pw_ref", "Password", True),
+        ("logincode", "Login code", True),
+        ("pin", "Shipping address", False),
+    ],
+)
+def test_a_credential_only_fits_a_field_that_asks_for_it(
+    secret: str, field: str, fits: bool
+) -> None:
+    assert secrets.fits_field(secret, field) is fits

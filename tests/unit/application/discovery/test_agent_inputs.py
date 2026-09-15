@@ -316,13 +316,13 @@ def test_request_secret_typed_value_fills_via_placeholder(
     result, surface, _, log_text = _run(
         tmp_path,
         [
-            ("request_secret", {"name": "logincode", "reason": "login"}),
+            ("request_secret", {"name": "passcode", "reason": "login"}),
             (
                 "act",
                 {
                     "action": "fill",
                     "ref": "pw",
-                    "value": "$secret:logincode",
+                    "value": "$secret:passcode",
                     "intent": "enter the code",
                 },
             ),
@@ -333,9 +333,9 @@ def test_request_secret_typed_value_fills_via_placeholder(
         credential_requester=req,
     )
     assert isinstance(result, config.DiscoveryResult), result
-    assert req.asked == ["logincode"]
+    assert req.asked == ["passcode"]
     assert surface.performed[-1].value == "secret-code-9"
-    assert surface.performed[-1].secret_ref == "logincode"
+    assert surface.performed[-1].secret_ref == "passcode"
     assert "secret-code-9" not in log_text
 
 

@@ -11,7 +11,8 @@ import operant.domain.secrets as odsec
 """
 
 import dataclasses
-from typing import Final, FrozenSet, Literal, Optional
+import re
+from typing import Final, FrozenSet, List, Literal, Optional
 
 SecretBackend = Literal["env", "keychain"]
 
@@ -117,3 +118,53 @@ def placeholder_name(text: str) -> Optional[str]:
     else:
         name = None
     return name
+
+
+# Words that tell what a credential is, by kind. A secret's name and the
+# field it goes into must share a kind: a password never goes into a
+# field that is not asking for one.
+_KINDS: Final = (
+    ("pass", "pwd", "pw", "pin", "secret"),
+    ("user", "login", "email"),
+    ("otp", "code", "token", "mfa", "2fa", "verification"),
+)
+_WORD_RE: Final = re.compile(r"[a-z0-9]+")
+
+
+def _words(text: str) -> List[str]:
+    """
+    Lower-case words of a name or label, splitting camelCase and snake_case.
+    """
+    spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+    return _WORD_RE.findall(spaced.lower())
+
+
+def fits_field(secret_name: str, field_text: str) -> bool:
+    """
+    Report whether a credential may be typed into a field.
+
+    The secret's kinds come from its name: a kind word anywhere in it
+    counts (``logincode`` is a login and a code, ``pw_ref`` a password).
+    The field must have a word starting with a word of the same kind, so
+    "Password" fits ``pw_ref`` but "Shipping" never fits ``pin``. A
+    secret of no known kind (``api_key``) needs one of its own words in
+    the field. This keeps a page from collecting a password through a
+    field it labels something else.
+
+    :param secret_name: The secret reference name.
+    :param field_text: The target control's name and label.
+    :return:``True`` when the field asks for this kind of credential.
+    """
+    secret = "".join(_words(secret_name))
+    field = _words(field_text)
+    kinds = [words for words in _KINDS if any(w in secret for w in words)]
+    if kinds:
+        fits = any(
+            word.startswith(keyword)
+            for words in kinds
+            for keyword in words
+            for word in field
+        )
+    else:
+        fits = bool(set(_words(secret_name)) & set(field))
+    return fits
