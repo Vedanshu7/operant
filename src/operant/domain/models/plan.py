@@ -11,12 +11,34 @@ import operant.domain.models.plan as mdplan
 from __future__ import annotations
 
 import re
-from typing import Final, List
+from typing import Final, List, Literal
 
 import pydantic
 
 # A credential is referenced by a short name, never by its value.
 _NAME_RE: Final = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,39}$")
+
+
+# #############################################################################
+# ScreenCheck
+# #############################################################################
+
+
+class ScreenCheck(pydantic.BaseModel):
+    """
+    One success criterion code can check on the screen, without a model.
+
+    :ivar kind:``text_present`` (the screen's text, a dialog or a
+        control shows ``value``), ``control_present`` (a control is
+        named or labelled ``value``), or ``output_matches`` (the
+        extracted ``output`` matches the regex ``value``).
+    :ivar value: The text, control name, or regex.
+    :ivar output: The output name, for ``output_matches``.
+    """
+
+    kind: Literal["text_present", "control_present", "output_matches"]
+    value: str
+    output: str = ""
 
 
 # #############################################################################
@@ -32,12 +54,17 @@ class Subgoal(pydantic.BaseModel):
     :ivar description: What the executor should achieve.
     :ivar success_criteria: What the screen shows when it is achieved.
     :ivar expected_outputs: Output names this subgoal must extract.
+    :ivar checks: Criteria code checks on the screen before any model.
+    :ivar checks_cover_criteria: Whether ``checks`` say all the success
+        criteria say; then no model verifier is asked.
     """
 
     id: str
     description: str
     success_criteria: str
     expected_outputs: List[str] = []
+    checks: List[ScreenCheck] = []
+    checks_cover_criteria: bool = False
 
 
 # #############################################################################

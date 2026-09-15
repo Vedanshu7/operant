@@ -510,3 +510,96 @@ def test_an_injected_screen_is_fenced_flagged_and_logged_once(
     assert "<untrusted_screen>" in first and "WARNING - the screen" in first
     assert len(run.events_of("injection_suspected")) == 1
     assert all(not check(run) for check in scenario.checks)
+
+
+# #############################################################################
+# Typed checks and unknown verdicts
+# #############################################################################
+
+
+def _checked_plan(checks: List[Dict[str, str]], cover: bool) -> Call:
+    return (
+        "submit_plan",
+        {
+            "subgoals": [
+                {
+                    "id": "s1",
+                    "description": "read the savings balance",
+                    "success_criteria": "the balance is shown",
+                    "checks": checks,
+                    "checks_cover_criteria": cover,
+                }
+            ]
+        },
+    )
+
+
+def test_covering_checks_that_hold_skip_the_model_verifier(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        _READ,
+        planner=[
+            _checked_plan(
+                [
+                    {"kind": "text_present", "value": "savings balance"},
+                    {
+                        "kind": "output_matches",
+                        "output": "balance",
+                        "value": r"^\$[\d,]+\.\d{2}$",
+                    },
+                ],
+                cover=True,
+            )
+        ],
+        verifier=[],
+        safety=_verdicts(True),
+    )
+    assert run.succeeded
+    assert run.roles["verifier"].turns == []
+    reviewers = sorted(e["reviewer"] for e in run.events_of("verifier_verdict"))
+    assert reviewers == ["checks", "leak", "safety"]
+
+
+def test_a_failed_check_rejects_without_asking_a_model(
+    tmp_path: pathlib.Path,
+) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [("goal_complete", {"summary": "done?"})],
+        planner=[
+            _checked_plan(
+                [{"kind": "text_present", "value": "Transfer Complete"}],
+                cover=False,
+            )
+        ],
+        verifier=[],
+        safety=_verdicts(True),
+    )
+    assert run.roles["verifier"].turns == []
+    assert any(
+        "NOT VERIFIED - checks: failed: text_present 'Transfer Complete'"
+        in harness.message_text(m)
+        for m in run.llm.sent[1]
+    )
+
+
+def test_an_unknown_verdict_is_not_a_pass(tmp_path: pathlib.Path) -> None:
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [("goal_complete", {"summary": "done?"}), *_READ],
+        planner=[_plan("read the savings balance")],
+        verifier=[
+            ("verdict", {"passed": True, "unknown": True, "reason": "cut off"}),
+            ("verdict", {"passed": True, "reason": "ok"}),
+        ],
+    )
+    assert run.succeeded
+    assert any(
+        "NOT VERIFIED - verifier: unknown: cut off" in harness.message_text(m)
+        for m in run.llm.sent[1]
+    )

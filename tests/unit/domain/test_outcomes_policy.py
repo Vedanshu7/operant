@@ -9,6 +9,7 @@ import operant.domain.approval as approval
 import operant.domain.models.actions as actions
 import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as graph
+import operant.domain.models.plan as mdplan
 import operant.domain.outcomes as outcomes
 import operant.domain.policy as policy
 import operant.domain.redaction as redact
@@ -471,3 +472,20 @@ def test_strict_mode_gates_unlisted_buttons_only() -> None:
     assert policy.classify_risk(strict, search, None, button) == "safe"
     d = policy.evaluate_action(strict, click, control=button)
     assert d.verdict == "needs_approval"
+
+
+def test_typed_checks_read_text_controls_and_outputs() -> None:
+    screen = screens.digest(
+        [screens.control(role="link", name="Log Out")],
+        text="Transfer Complete! Confirmation 7731",
+    )
+    checks = [
+        mdplan.ScreenCheck(kind="text_present", value="transfer complete"),
+        mdplan.ScreenCheck(kind="control_present", value="log out"),
+        mdplan.ScreenCheck(kind="output_matches", output="ref", value=r"^\d+$"),
+    ]
+    assert outcomes.failed_checks(checks, screen, {"ref": "7731"}) == []
+    assert outcomes.failed_checks(checks, screen, {"ref": "n/a"}) == [
+        r"output_matches ref '^\d+$'"
+    ]
+    assert len(outcomes.failed_checks(checks, None, {})) == 3

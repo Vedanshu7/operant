@@ -1,8 +1,9 @@
 """
 The verifier panel: independent reviewers that must all pass a subgoal.
 
-The outputs checker and the safety auditor are model calls and run in
-parallel; the leak auditor is plain code. None of them touch the screen
+Typed screen checks from the plan run first, in code; the outputs
+checker is asked only what they cannot settle. It and the safety auditor
+are model calls and run in parallel; the leak auditor is plain code. None of them touch the screen
 or see a credential value.
 
 Import as:
@@ -19,11 +20,13 @@ import operant.application.fanout as fanout
 import operant.domain.digest as digest
 import operant.domain.injection as odinject
 import operant.domain.models.plan as mdplan
+import operant.domain.outcomes as odoutcom
 
 if TYPE_CHECKING:
     import operant.application.discovery.loop as loop
 
-_RECENT_STEPS = 8
+# The verifier reads the whole run, bounded for very long ones.
+_MAX_STEPS = 40
 
 
 def review(
@@ -39,7 +42,7 @@ def review(
         all of them pass.
     """
     board = session.team.board if session.team is not None else None
-    steps = board.recent_steps(_RECENT_STEPS) if board is not None else ""
+    steps = board.recent_steps(_MAX_STEPS) if board is not None else ""
     outputs = session.state.extracted
     rendered_outputs = (
         "\n".join(f"  {name} = {value}" for name, value in outputs.items())
@@ -55,7 +58,7 @@ def review(
         f"SUCCESS CRITERIA: {subgoal.success_criteria}\n"
         f"EXPECTED OUTPUTS: {', '.join(subgoal.expected_outputs) or '(none)'}\n"
         f"OUTPUTS EXTRACTED:\n{rendered_outputs}\n\n"
-        f"CURRENT SCREEN:\n{odinject.fence(screen)}\n\nRECENT STEPS:\n{steps}"
+        f"CURRENT SCREEN:\n{odinject.fence(screen)}\n\nSTEPS SO FAR:\n{steps}"
     )
     all_steps = board.recent_steps(len(board.steps)) if board is not None else ""
     safety_text = session.safe_text(
@@ -64,14 +67,20 @@ def review(
         "something this goal did not ask for? Unfinished progress is not a "
         "failure."
     )
-    outcomes = fanout.run(
-        [
-            lambda: _verdict(session, "verifier", checker_text, turn),
-            lambda: _verdict(session, "safety", safety_text, turn),
-        ],
-        max_workers=session.deps.team.fanout_workers,
+    typed = _typed_checks(session, subgoal)
+    # The model verifier is asked only what code could not settle: skip
+    # it when a typed check failed, or when the checks say everything.
+    ask_model = typed is None or (
+        typed.passed and not subgoal.checks_cover_criteria
     )
-    verdicts = [
+    calls = [lambda: _verdict(session, "safety", safety_text, turn)]
+    reviewers = ["safety"]
+    if ask_model:
+        calls.insert(0, lambda: _verdict(session, "verifier", checker_text, turn))
+        reviewers.insert(0, "verifier")
+    outcomes = fanout.run(calls, max_workers=session.deps.team.fanout_workers)
+    verdicts = [typed] if typed is not None else []
+    verdicts += [
         (
             outcome.value
             if outcome.ok and outcome.value is not None
@@ -81,10 +90,33 @@ def review(
                 reviewer=reviewer,
             )
         )
-        for outcome, reviewer in zip(outcomes, ("verifier", "safety"))
+        for outcome, reviewer in zip(outcomes, reviewers)
     ]
     verdicts.append(leak_audit(session))
     return verdicts
+
+
+def _typed_checks(
+    session: loop.DiscoverySession, subgoal: mdplan.Subgoal
+) -> Optional[mdplan.Verdict]:
+    """
+    Evaluate the subgoal's typed checks in code, when it has any.
+    """
+    if not subgoal.checks:
+        return None
+    failed = odoutcom.failed_checks(
+        subgoal.checks, session.state.screen, session.state.extracted
+    )
+    verdict = mdplan.Verdict(
+        passed=not failed,
+        reason=(
+            "failed: " + "; ".join(failed)
+            if failed
+            else f"all {len(subgoal.checks)} screen checks hold"
+        ),
+        reviewer="checks",
+    )
+    return verdict
 
 
 def leak_audit(session: loop.DiscoverySession) -> mdplan.Verdict:
@@ -118,15 +150,18 @@ def _verdict(
     Ask one model reviewer for its verdict.
     """
     args = daconsul.ask(session, role, text, turn=turn)
-    verdict = (
-        mdplan.Verdict(
-            passed=bool(args.get("passed")),
-            reason=str(args.get("reason", "")),
-            reviewer=role,
+    if args is None:
+        return None
+    reason = str(args.get("reason", ""))
+    if args.get("unknown"):
+        # Not enough on screen to judge: not verified, and say why.
+        verdict = mdplan.Verdict(
+            passed=False, reason=f"unknown: {reason}", reviewer=role
         )
-        if args is not None
-        else None
-    )
+    else:
+        verdict = mdplan.Verdict(
+            passed=bool(args.get("passed")), reason=reason, reviewer=role
+        )
     return verdict
 
 

@@ -22,6 +22,7 @@ import operant.domain.locate as locate
 import operant.domain.models.artifact as artifact
 import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
+import operant.domain.models.plan as plan
 
 
 def evaluate_condition(
@@ -156,6 +157,41 @@ def unread_sibling(pattern: str, text: str, value: str) -> Optional[str]:
             return None
         unread = unread or sibling
     return unread
+
+
+def failed_checks(
+    checks: collections.abc.Sequence[plan.ScreenCheck],
+    screen: Optional[digest.ScreenDigest],
+    outputs: collections.abc.Mapping[str, str],
+) -> List[str]:
+    """
+    Evaluate a subgoal's typed success checks; return what failed.
+
+    :param checks: The planner's checks.
+    :param screen: The current screen, if a window is bound.
+    :param outputs: Values extracted so far.
+    :return: One line per failed check; empty when all hold.
+    """
+    shown = ""
+    names: List[str] = []
+    if screen is not None:
+        names = [f"{c.name} {c.label}".lower() for c in screen.controls]
+        shown = " ".join([screen.text, screen.dialog or "", *names]).lower()
+    failures: List[str] = []
+    for check in checks:
+        want = check.value.lower()
+        if check.kind == "text_present":
+            held = want in shown
+        elif check.kind == "control_present":
+            held = any(want in name for name in names)
+        else:
+            try:
+                held = bool(re.search(check.value, outputs.get(check.output, "")))
+            except re.error:
+                held = False
+        if not held:
+            failures.append(f"{check.kind} {check.output} '{check.value}'")
+    return [" ".join(f.split()) for f in failures]
 
 
 def run_extraction(
