@@ -39,6 +39,13 @@ More reading:
   - [0006](docs/adr/0006-context-layer.md): context layer for model calls.
   - [0007](docs/adr/0007-local-pii-scrubbing-presidio.md): local PII
     scrubbing with Presidio.
+  - [0008](docs/adr/0008-vision-locators-for-poor-accessibility.md):
+    vision locators for apps with poor accessibility (proposed).
+  - [0009](docs/adr/0009-locator-scoring-and-opt-in-heal.md): locator
+    scoring and an opt-in heal step (proposed).
+  - [0010](docs/adr/0010-live-eval-tier.md): a live eval tier (proposed).
+  - [0011](docs/adr/0011-discovery-in-a-macos-vm.md): discovery in a macOS
+    VM (proposed).
 
 ## How it works, in three steps
 
