@@ -181,6 +181,24 @@ the model calls. With 18 trials per family the safety intervals still
 overlap, so that gap is not yet significant. Time per trial and cost per
 agent role are recorded from the next eval run on.
 
+Live runs against the local ParaBank (`scripts/eval_report.py --live
+state/live/20261022.jsonl`). These are a handful of runs on one machine,
+not a benchmark. Only succeeded runs are timed, and one run drives the
+screen at a time:
+
+| Kind | Agents | Runs | Succeeded | Seconds p50 / p95 | Tasks per hour |
+|---|---|---|---|---|---|
+| discovery | multi | 4 | 100% | 32.2 / 37.0 | 112 |
+| discovery | single | 10 | 80% | 14.6 / 45.7 | 188 |
+| replay | - | 11 | 55% | 7.2 / 7.5 | 494 |
+
+- A replay takes about 7 seconds, 2.5x to 4.3x faster than its discovery,
+  with no model calls.
+- In the last replay, 6.8 of 7.5 seconds went to the driver: launching
+  the browser and re-reading the screen until each page settled.
+- The failed replays were the bugs fixed along the way (an extraction
+  regex that only read the first row, and the navigation-risk check).
+
 What the evals caught:
 
 - Batched tool calls: the model sent several actions per turn against a

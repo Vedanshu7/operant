@@ -16,7 +16,9 @@ compared on several criteria at once:
   spent waiting on models, when the rows carry ``duration_s``.
 
 ``role_table`` splits calls, tokens, cost and model time by agent role,
-each role priced at the model it ran on.
+each role priced at the model it ran on. ``live_table`` reads live run
+records (``state/live/*.jsonl``): time per finished run by kind and mode,
+tasks per hour, and how much faster a replay is than its discovery.
 
 Import as:
 
@@ -26,7 +28,9 @@ import tests.evals.compare as evcompar
 from __future__ import annotations
 
 import collections
+import datetime
 import math
+import statistics
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 Row = Dict[str, Any]
@@ -262,3 +266,80 @@ def role_table(rows: Sequence[Row], price: TokenPricer) -> str:
             "| - | per-role usage not recorded in these rows | | | | | |"
         )
     return "\n".join(lines)
+
+
+def live_table(records: Sequence[Row]) -> str:
+    """
+    Render latency and throughput of live runs, discovery vs replay.
+
+    Only succeeded runs are timed: a failed run stops early and an
+    escalated one includes a person's time. Runs drive one screen at a
+    time, so tasks per hour is 3600 over the mean run time.
+
+    :param records: Live run records with ``kind``, ``agents``,
+        ``status``, ``capability_id``, ``started_at`` and ``finished_at``.
+    :return: A markdown table per kind and mode, and a replay speed-up
+        line per capability with both kinds.
+    """
+    timed: Dict[Tuple[str, str], List[float]] = collections.defaultdict(list)
+    counts: Dict[Tuple[str, str], List[bool]] = collections.defaultdict(list)
+    by_capability: Dict[Tuple[str, str], List[float]] = collections.defaultdict(
+        list
+    )
+    for record in records:
+        if record.get("status") not in ("succeeded", "failed", "escalated"):
+            continue
+        # A replay runs no agents, whatever mode found its capability.
+        agents = "-" if record["kind"] == "replay" else record.get("agents")
+        group = (str(record["kind"]), str(agents or "single"))
+        succeeded = record["status"] == "succeeded"
+        counts[group].append(succeeded)
+        seconds = _seconds(record)
+        if succeeded and seconds is not None:
+            timed[group].append(seconds)
+            by_capability[(str(record["capability_id"]), group[0])].append(
+                seconds
+            )
+    lines = [
+        "| Kind | Agents | Runs | Succeeded | Seconds p50 / p95 | Tasks per hour |",
+        "|---|---|---|---|---|---|",
+    ]
+    for group in sorted(counts):
+        outcomes, durations = counts[group], timed[group]
+        latency, per_hour = "-", "-"
+        if durations:
+            latency = (
+                f"{percentile(durations, 0.5):.1f} / "
+                f"{percentile(durations, 0.95):.1f}"
+            )
+            per_hour = f"{3600 / statistics.mean(durations):.0f}"
+        lines.append(
+            f"| {group[0]} | {group[1]} | {len(outcomes)} | "
+            f"{100 * sum(outcomes) / len(outcomes):.0f}% | {latency} | "
+            f"{per_hour} |"
+        )
+    for capability in sorted({c for c, _ in by_capability}):
+        found, replayed = (
+            by_capability.get((capability, "discovery")),
+            by_capability.get((capability, "replay")),
+        )
+        if found and replayed:
+            lines.append(
+                f"\nReplay speed-up for {capability}: "
+                f"{statistics.median(found) / statistics.median(replayed):.1f}x "
+                f"({statistics.median(found):.1f}s discovery, "
+                f"{statistics.median(replayed):.1f}s replay)"
+            )
+    return "\n".join(lines)
+
+
+def _seconds(record: Row) -> Optional[float]:
+    """
+    Return a record's run time in seconds, when both ends are known.
+    """
+    try:
+        started = datetime.datetime.fromisoformat(str(record["started_at"]))
+        finished = datetime.datetime.fromisoformat(str(record["finished_at"]))
+    except (KeyError, TypeError, ValueError):
+        return None
+    return (finished - started).total_seconds()

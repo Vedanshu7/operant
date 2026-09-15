@@ -178,9 +178,29 @@ def main() -> int:
     Print the report for the sets on the command line.
     """
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    parser.add_argument("--set", action="append", required=True, dest="sets")
+    parser.add_argument("--set", action="append", default=[], dest="sets")
+    parser.add_argument(
+        "--live",
+        action="append",
+        default=[],
+        help="Live run records (state/live/*.jsonl) for latency/throughput.",
+    )
     args = parser.parse_args()
-    print(report([_load(spec) for spec in args.sets]))
+    if not args.sets and not args.live:
+        parser.error("give at least one --set or --live")
+    if args.sets:
+        print(report([_load(spec) for spec in args.sets]))
+    if args.live:
+        records = [
+            json.loads(line)
+            for path in args.live
+            for line in pathlib.Path(path)
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        print("\nLive runs: latency and throughput\n")
+        print(evcompar.live_table(records))
     return 0
 
 
