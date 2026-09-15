@@ -19,6 +19,7 @@ import pydantic
 import operant.application.discovery.agents.consult as daconsul
 import operant.application.fanout as fanout
 import operant.domain.digest as digest
+import operant.domain.injection as odinject
 import operant.domain.models.plan as mdplan
 
 if TYPE_CHECKING:
@@ -119,7 +120,10 @@ def _planner_input(
         if state.screen is not None
         else "(no window yet - the executor's first action will be a launch)"
     )
-    parts: List[str] = [f"GOAL: {session.cfg.goal}", f"CURRENT SCREEN:\n{screen}"]
+    parts: List[str] = [
+        f"GOAL: {session.cfg.goal}",
+        f"CURRENT SCREEN:\n{odinject.fence(screen)}",
+    ]
     known = session.cfg.known_graph
     if known is not None:
         moves = [edge.description for edge in known.edges if edge.description]

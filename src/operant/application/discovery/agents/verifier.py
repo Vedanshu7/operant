@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, List, Optional
 import operant.application.discovery.agents.consult as daconsul
 import operant.application.fanout as fanout
 import operant.domain.digest as digest
+import operant.domain.injection as odinject
 import operant.domain.models.plan as mdplan
 
 if TYPE_CHECKING:
@@ -54,7 +55,7 @@ def review(
         f"SUCCESS CRITERIA: {subgoal.success_criteria}\n"
         f"EXPECTED OUTPUTS: {', '.join(subgoal.expected_outputs) or '(none)'}\n"
         f"OUTPUTS EXTRACTED:\n{rendered_outputs}\n\n"
-        f"CURRENT SCREEN:\n{screen}\n\nRECENT STEPS:\n{steps}"
+        f"CURRENT SCREEN:\n{odinject.fence(screen)}\n\nRECENT STEPS:\n{steps}"
     )
     all_steps = board.recent_steps(len(board.steps)) if board is not None else ""
     safety_text = session.safe_text(

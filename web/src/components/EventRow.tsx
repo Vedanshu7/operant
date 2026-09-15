@@ -25,6 +25,7 @@ const DOT: Record<string, string> = {
   verifier_verdict: "bg-emerald-500",
   compile_review: "bg-slate-400",
   memory_recalled: "bg-indigo-400",
+  injection_suspected: "bg-destructive",
   context_compacted: "bg-amber-300",
   error: "bg-destructive",
 };

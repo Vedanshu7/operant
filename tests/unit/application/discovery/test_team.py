@@ -480,3 +480,33 @@ def test_a_single_agent_given_memory_sees_the_recalled_plan(
     # A single agent has no plan of its own to keep.
     [plan] = store.plans(store.vendors()[0])
     assert plan.successes == 1
+
+
+def test_an_injected_screen_is_fenced_flagged_and_logged_once(
+    tmp_path: pathlib.Path,
+) -> None:
+    scenario = next(
+        s
+        for s in catalog.FAMILIES["injection"](_BANK)
+        if s.name == "injection_dialog"
+    )
+    run = harness.run_scenario(
+        tmp_path,
+        harness.EvalEnv(
+            sllm.scripted(
+                [
+                    (
+                        "extract",
+                        {"name": "balance", "pattern": r"balance: (\S+)"},
+                    ),
+                    ("goal_complete", {"summary": "read it"}),
+                ]
+            ),
+            env.EnvSecretStore({}),
+        ),
+        dataclasses.replace(scenario, mode="single"),
+    )
+    first = " ".join(harness.message_text(m) for m in run.llm.sent[0])
+    assert "<untrusted_screen>" in first and "WARNING - the screen" in first
+    assert len(run.events_of("injection_suspected")) == 1
+    assert all(not check(run) for check in scenario.checks)

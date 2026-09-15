@@ -813,6 +813,25 @@ class CompileReview(BaseEvent):
 
 
 # #############################################################################
+# InjectionSuspected
+# #############################################################################
+
+
+class InjectionSuspected(BaseEvent):
+    """
+    Screen content addressed the agent or gave it instructions.
+
+    :ivar type: Always ``injection_suspected``.
+    :ivar snippets: The suspicious text, shortened.
+    :ivar window: The window it appeared in.
+    """
+
+    type: Literal["injection_suspected"] = "injection_suspected"
+    snippets: List[str] = []
+    window: str = ""
+
+
+# #############################################################################
 # MemoryRecalled
 # #############################################################################
 
@@ -1224,6 +1243,7 @@ _EVENT_MODELS: Final[List[type[BaseEvent]]] = [
     Replanned,
     CompileReview,
     MemoryRecalled,
+    InjectionSuspected,
     PathPlanned,
     PathCompiledCache,
     TargetResolved,
@@ -1286,6 +1306,7 @@ EventUnion = Annotated[
         Replanned,
         CompileReview,
         MemoryRecalled,
+        InjectionSuspected,
         PathPlanned,
         PathCompiledCache,
         TargetResolved,

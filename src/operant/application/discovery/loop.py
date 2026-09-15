@@ -28,7 +28,7 @@ import json
 import re
 import time
 import uuid
-from typing import Dict, FrozenSet, List, Optional, Tuple, Union
+from typing import Dict, FrozenSet, List, Optional, Set, Tuple, Union
 
 import operant.application.acting as acting
 import operant.application.approval as approval
@@ -51,6 +51,7 @@ import operant.domain.digest as digest
 import operant.domain.errors as errors
 import operant.domain.events as events
 import operant.domain.graph.localize as localize
+import operant.domain.injection as odinject
 import operant.domain.models.actions as actions
 import operant.domain.models.artifact as artifact
 import operant.domain.models.digest as mddigest
@@ -210,6 +211,7 @@ class DiscoverySession:
         )
         self._recognized_node: Optional[str] = None
         self._single_recall: Optional[apmemory.Recalled] = None
+        self._injection_seen: Set[str] = set()
         self.team: Optional[dsteam.Team] = (
             dsteam.Team(self) if self.cfg.agents == "multi" else None
         )
@@ -501,6 +503,24 @@ class DiscoverySession:
         if self.state.screen is not None:
             self.state.screen = self.snapshot_or_none() or self.state.screen
 
+    def _injection_warning(self) -> str:
+        """
+        Warn the model when the screen addresses it; log each new hit once.
+        """
+        screen = self.state.screen
+        snippets = odinject.suspicious(screen) if screen is not None else []
+        fresh = [s for s in snippets if s not in self._injection_seen]
+        if fresh:
+            self._injection_seen.update(fresh)
+            self.log.emit(
+                events.InjectionSuspected(
+                    snippets=fresh,
+                    window=screen.window_title if screen is not None else "",
+                    summary=f"screen text addresses the agent: {fresh[0]}",
+                )
+            )
+        return odinject.warning(snippets)
+
     def _plan_block(self) -> str:
         """
         Return the plan context for this turn: the multi-agent plan, or a
@@ -753,7 +773,8 @@ class DiscoverySession:
                     f"GOAL: {self.cfg.goal}\n{state.inputs_block()}\n\n"
                     f"{self._plan_block()}"
                     f"{self._recognized_state()}"
-                    f"Current screen:\n{screen_text}"
+                    f"{self._injection_warning()}"
+                    f"Current screen:\n{odinject.fence(screen_text)}"
                 ),
             )
         ]
