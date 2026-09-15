@@ -199,6 +199,32 @@ screen at a time:
 - The failed replays were the bugs fixed along the way (an extraction
   regex that only read the first row, and the navigation-risk check).
 
+Replay under UI changes (`tests/evals/perturb.py`, no model, so free).
+Every named control on three recorded screens (a list page, a form, a
+sign-in) is resolved again after a UI change, over 5 seeds:
+
+| UI change | Steps | Same control | Wrong control | Stopped for a person |
+|---|---|---|---|---|
+| Case and spacing | 115 | 100% | 0 | 0% |
+| One control renamed | 115 | 100% | 0 | 0% |
+| Table rows reordered | 115 | 100% | 0 | 0% |
+| Banner inserted on top | 115 | 100% | 0 | 0% |
+| One button moved | 115 | 100% | 0 | 0% |
+| Narrower window | 115 | 100% | 0 | 0% |
+| Translated UI | 115 | 100% | 0 | 0% |
+| Translated + banner | 115 | 48% | 0 | 52% |
+
+- No change, single or combined, made replay act on a different control.
+  When the name, label, path and position all disagree, it stops.
+- A translated UI still resolves through the recorded tree path. Once the
+  layout also shifts, it escalates instead of guessing.
+- Every changed screen was still recognized as the screen it was.
+- The 0.6 coverage threshold for recognizing a screen: 0.4 to 0.7 give
+  the same result here, and 0.8 loses 9 points of recognition. Coverage
+  never picked another screen, even though the list page and the form
+  share their navigation.
+- `tests/unit/evals/test_perturb.py` keeps these as regression tests.
+
 What the evals caught:
 
 - Batched tool calls: the model sent several actions per turn against a
