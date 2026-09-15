@@ -107,6 +107,10 @@ def page_title_pattern(window_title: str) -> str:
     return pattern
 
 
+# The synthetic role of a coordinate click's region: no control has it.
+REGION_ROLE = "region"
+
+
 def region_target(x: float, y: float, description: str) -> targets.Target:
     """
     Build the target for a vision-grounded coordinate click.
@@ -118,7 +122,7 @@ def region_target(x: float, y: float, description: str) -> targets.Target:
     target = targets.Target(
         strategies=[
             targets.RegionStrategy(
-                role="region",
+                role=REGION_ROLE,
                 x=x - 0.02,
                 y=y - 0.02,
                 w=0.04,

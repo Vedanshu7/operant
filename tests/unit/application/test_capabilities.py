@@ -14,6 +14,7 @@ import operant.domain.models.targets as targets
 import operant.infra.repositories.artifacts as artifact
 import operant.infra.repositories.graphs as rggraphs
 import tests.support.recording
+import tests.support.screens as screens
 
 
 def _stores(tmp_path: pathlib.Path):
@@ -138,3 +139,40 @@ def test_extraction_leak_is_structurally_impossible(
         tmp_path / "graphs" / "acme" / f"v{merged.graph_version}.json"
     ).read_text()
     assert '"extract"' not in raw
+
+
+def _step(eid: str, kind: str, target: object) -> graph.Edge:
+    return graph.Edge.model_validate(
+        {
+            "id": eid,
+            "from": "a",
+            "to": "b",
+            "description": eid,
+            "action": {"kind": kind},
+            "target": target,
+        }
+    )
+
+
+def test_accessibility_counts_steps_by_how_they_are_located() -> None:
+    named = operant.application.recorder.recording.strategies_for(
+        screens.control(role="button", name="Log In")
+    ).model_dump()
+    unnamed = operant.application.recorder.recording.strategies_for(
+        screens.control(role="text_field", name="", label="")
+    ).model_dump()
+    point = operant.application.recorder.recording.region_target(
+        0.5, 0.5, "a canvas button"
+    ).model_dump()
+    found = operant.application.capabilities.accessibility_of(
+        [
+            _step("e1", "click", named),
+            _step("e2", "fill", unnamed),
+            _step("e3", "click", point),
+            _step("e4", "click", None),
+            _step("e5", "press", None),
+        ]
+    )
+    assert (found.steps, found.coordinate_steps, found.unnamed_steps) == (4, 2, 1)
+    assert found.score == 0.25
+    assert operant.application.capabilities.accessibility_of([]).score is None

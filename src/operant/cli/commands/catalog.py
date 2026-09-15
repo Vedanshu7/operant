@@ -12,7 +12,11 @@ import operant.application.canary as apcanary
 import operant.application.stability as apstabil
 import operant.application.usecases.replay as replay
 import operant.cli.deps as cddeps
+import operant.domain.models.artifact as artifact
 import operant.helpers.ids as ids
+
+# Below this share of named targets, approval warns that it is brittle.
+_BRITTLE_BELOW = 0.7
 
 
 def register(app: typer.Typer) -> None:
@@ -49,6 +53,8 @@ def register(app: typer.Typer) -> None:
                     f"    inputs: ({inputs or 'none'}) -> "
                     f"outputs: ({outputs or 'none'})"
                 )
+                if cap.accessibility is not None and cap.accessibility.steps:
+                    typer.echo(f"    {_accessibility(cap.accessibility)}")
         finally:
             database.close()
 
@@ -77,6 +83,14 @@ def register(app: typer.Typer) -> None:
             approved = deps.artifacts.approve(capability_id)
         finally:
             database.close()
+        found = approved.accessibility
+        score = found.score if found is not None else None
+        if found is not None and score is not None and score < _BRITTLE_BELOW:
+            typer.echo(
+                f"  warning: {_accessibility(found)} - it depends on screen "
+                "positions and will break when the layout changes",
+                err=True,
+            )
         typer.echo(f"{approved.id} v{approved.version} is now: {approved.status}")
 
     @catalog.command("invoke")
@@ -167,3 +181,14 @@ def register(app: typer.Typer) -> None:
         finally:
             database.close()
         raise typer.Exit(1 if failed else 0)
+
+
+def _accessibility(found: artifact.Accessibility) -> str:
+    """
+    Describe how a capability's steps locate their targets.
+    """
+    return (
+        f"accessibility {100 * (found.score or 0):.0f}%: "
+        f"{found.coordinate_steps} of {found.steps} steps by screen position, "
+        f"{found.unnamed_steps} on unnamed controls"
+    )

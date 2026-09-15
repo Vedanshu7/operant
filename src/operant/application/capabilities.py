@@ -14,6 +14,7 @@ import operant.application.capabilities as capab
 
 from __future__ import annotations
 
+import collections.abc
 import dataclasses
 from typing import Dict, Tuple
 
@@ -24,6 +25,9 @@ import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as graph
 import operant.infra.repositories.artifacts as raartifa
 import operant.infra.repositories.graphs as graphs
+
+# Actions that act on a control, as opposed to launch, press or scroll.
+_TARGETED = frozenset({"click", "fill", "select"})
 
 
 def commit_recording(
@@ -73,6 +77,7 @@ def commit_recording(
         compiled_path=[edge_remap.get(e.id, e.id) for e in caller.edges],
         policy_scope=caller.policy_scope,
         provenance=artifact.Provenance(**caller.provenance.model_dump()),
+        accessibility=accessibility_of(caller.edges),
     )
     saved = artifact_store.save_new_version(capability)
     return saved, merged
@@ -135,3 +140,26 @@ def _remap_invoke(
                 }
             )
     return remapped
+
+
+def accessibility_of(
+    edges: collections.abc.Sequence[graph.Edge],
+) -> artifact.Accessibility:
+    """
+    Count how the recorded steps locate their targets.
+
+    :param edges: The recorded steps.
+    :return: Targeted steps, and how many rely on position or path only.
+    """
+    targeted = [e for e in edges if e.action.kind in _TARGETED]
+    coordinate = unnamed = 0
+    for edge in targeted:
+        strategies = edge.target.strategies if edge.target is not None else []
+        if all(getattr(s, "role", "") == recdng.REGION_ROLE for s in strategies):
+            # No target, or only a recorded screen point.
+            coordinate += 1
+        elif not {s.kind for s in strategies} & {"role", "labelProximity"}:
+            unnamed += 1
+    return artifact.Accessibility(
+        steps=len(targeted), coordinate_steps=coordinate, unnamed_steps=unnamed
+    )

@@ -126,6 +126,40 @@ class PolicyScope(pydantic.BaseModel):
 
 
 # #############################################################################
+# Accessibility
+# #############################################################################
+
+
+class Accessibility(pydantic.BaseModel):
+    """
+    How much a capability's steps rely on the accessibility tree.
+
+    A step located by a control's name or label survives restyling; one
+    recorded as a screen position, or on a control with no name or
+    label, breaks when the layout changes (ADR 8).
+
+    :ivar steps: Steps that act on a target (click, fill, select).
+    :ivar coordinate_steps: Of those, steps recorded as a screen point.
+    :ivar unnamed_steps: Of those, steps on a control with no name or
+        label, located only by tree path or position.
+    """
+
+    steps: int = 0
+    coordinate_steps: int = 0
+    unnamed_steps: int = 0
+
+    @property
+    def score(self) -> Optional[float]:
+        """
+        Return the share of targeted steps located by name or label.
+        """
+        if not self.steps:
+            return None
+        weak = self.coordinate_steps + self.unnamed_steps
+        return 1 - weak / self.steps
+
+
+# #############################################################################
 # Provenance
 # #############################################################################
 
@@ -200,6 +234,7 @@ class CapabilityArtifact(pydantic.BaseModel):
     :ivar policy_scope: What the policy must allow.
     :ivar provenance: How the capability was discovered.
     :ivar stability: Replay track record, once any replay ran.
+    :ivar accessibility: How much the steps rely on the accessibility tree.
     """
 
     schema_version: graph.ACCEPTED_SCHEMA_VERSIONS = SCHEMA_VERSION
@@ -221,4 +256,5 @@ class CapabilityArtifact(pydantic.BaseModel):
     compiled_path: List[str] = []
     policy_scope: PolicyScope
     provenance: Provenance
+    accessibility: Optional[Accessibility] = None
     stability: Optional[Stability] = None
