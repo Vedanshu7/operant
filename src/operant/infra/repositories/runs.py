@@ -21,7 +21,6 @@ import sqlalchemy.orm as orm
 
 import operant.domain.approval as approval
 import operant.domain.errors as errors
-import operant.domain.events as events
 import operant.domain.governance as govern
 import operant.domain.models.artifact as artifact
 import operant.domain.models.results as results
@@ -33,18 +32,6 @@ import operant.infra.db.models as models
 
 # The default gate's window, for callers that do not pass their own.
 _STABILITY_WINDOW = govern.StabilityGate().window
-_HITL_TYPES = frozenset(
-    {
-        "approval_requested",
-        "approval_resolved",
-        "escalation_raised",
-        "escalation_resolved",
-        "control_transition",
-        "clarify",
-        "clarification_answered",
-        "run_status",
-    }
-)
 
 
 # #############################################################################
@@ -119,32 +106,18 @@ class SqlRunRepository:
             records = [_run_from_row(row) for row in rows]
             return records
 
-    def index_event(self, run_id: str, event: events.BaseEvent) -> None:
+    def next_seq(self, run_id: str) -> int:
         """
-        Add an evidence event to the queryable index.
+        Return the sequence number after the run's last stored event.
         """
-        payload = event.model_dump(by_alias=True, exclude={"seq", "at"})
         with self._db.session() as session:
-            # Find the last sequence used for this run.
-            existing = session.execute(
+            last = session.execute(
                 sqlalchemy.select(
                     sqlalchemy.func.max(models.RunEventRow.seq)
                 ).where(models.RunEventRow.run_id == run_id)
             ).scalar()
-            # Append the event at the next sequence.
-            session.add(
-                models.RunEventRow(
-                    run_id=run_id,
-                    seq=(existing + 1) if existing is not None else 0,
-                    type=event.type,
-                    at=time.iso_now(),
-                    summary=str(event.summary or ""),
-                    screenshot_file=payload.get("file"),
-                    payload_json=(
-                        json.dumps(payload) if event.type in _HITL_TYPES else None
-                    ),
-                )
-            )
+        following = 0 if last is None else last + 1
+        return following
 
     def open_approval(
         self, run_id: str, request: approval.ApprovalRequest
@@ -349,34 +322,6 @@ class SqlRunRepository:
                     detail_json=json.dumps(entry.detail),
                 )
             )
-
-    def run_events(
-        self, run_id: str, after_seq: int = -1
-    ) -> collections.abc.Sequence[runs.RunEventIndex]:
-        """
-        Return a run's indexed events after ``after_seq``, in order.
-        """
-        statement = (
-            sqlalchemy.select(models.RunEventRow)
-            .where(
-                models.RunEventRow.run_id == run_id,
-                models.RunEventRow.seq > after_seq,
-            )
-            .order_by(models.RunEventRow.seq)
-        )
-        with self._db.session() as session:
-            rows = session.execute(statement).scalars().all()
-            records = [
-                runs.RunEventIndex(
-                    run_id=row.run_id,
-                    seq=row.seq,
-                    type=row.type,
-                    at=row.at,
-                    summary=row.summary,
-                )
-                for row in rows
-            ]
-            return records
 
     def index_sse(
         self,

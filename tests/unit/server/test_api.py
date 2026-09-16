@@ -14,17 +14,22 @@ from typing import Any, Dict, Set, Tuple
 
 import starlette.testclient
 
+import operant.server.deps as sdeps
 import tests.support.server as server
 import tests.support.settings as tssettin
 
 _AUTH = {"Authorization": f"Bearer {server.TOKEN}"}
 
 
-def _build(root: pathlib.Path) -> Tuple[Any, str]:
+def _build(
+    root: pathlib.Path, *, approval_timeout_s: float = 300.0
+) -> Tuple[Any, str]:
     import pydantic
+
     import operant.server.app as saapp
 
     settings = tssettin.test_settings(root)
+    settings.approval.timeout_s = approval_timeout_s
     settings.server.auth_token = pydantic.SecretStr(server.TOKEN)
     settings.server.cors_origins = []
     capability_id = server.seed(settings)
@@ -170,3 +175,55 @@ def test_the_base_profiles_cannot_be_overwritten(tmp_path: pathlib.Path) -> None
                 f"/api/v1/profiles/{reserved}", headers=_AUTH, json=profile
             )
             assert refused.status_code == 422
+
+
+def test_an_approval_answered_after_its_timeout_is_not_found(
+    tmp_path: pathlib.Path,
+) -> None:
+    app, capability_id = _build(tmp_path, approval_timeout_s=0.2)
+    with starlette.testclient.TestClient(app) as client:
+        run_id = client.post(
+            "/api/v1/runs/replay",
+            headers=_AUTH,
+            json={"capability_id": capability_id},
+        ).json()["id"]
+        approval_id = _poll(client, run_id, {"waiting_approval"})[
+            "pending_approval"
+        ]["id"]
+        _poll(client, run_id, {"failed", "escalated", "succeeded"})
+        late = client.post(
+            f"/api/v1/approvals/{approval_id}",
+            headers=_AUTH,
+            json={"approved": True, "remember": "once"},
+        )
+        assert late.status_code == 404
+
+
+def test_a_finished_run_leaves_no_live_state(tmp_path: pathlib.Path) -> None:
+    app, capability_id = _build(tmp_path)
+    with starlette.testclient.TestClient(app) as client:
+        run_id = client.post(
+            "/api/v1/runs/replay",
+            headers=_AUTH,
+            json={"capability_id": capability_id},
+        ).json()["id"]
+        detail = _poll(client, run_id, {"waiting_approval"})
+        client.post(
+            f"/api/v1/approvals/{detail['pending_approval']['id']}",
+            headers=_AUTH,
+            json={"approved": True, "remember": "once"},
+        )
+        _poll(client, run_id, {"succeeded", "failed", "escalated"})
+        manager = getattr(app.state, sdeps._STATE_ATTR).manager
+        deadline = time.monotonic() + 2.0
+        while run_id in manager._handles and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert run_id not in manager._handles
+        assert run_id not in manager._seq
+        events = client.get(f"/api/v1/runs/{run_id}/events", headers=_AUTH)
+        seqs = [
+            int(line.split(":", 1)[1])
+            for line in events.text.splitlines()
+            if line.startswith("id:")
+        ]
+        assert seqs == sorted(seqs) == list(range(len(seqs)))

@@ -35,3 +35,13 @@ def test_wait_unblocks_when_set_from_another_thread() -> None:
 
     threading.Timer(0.05, deliver).start()
     assert answer.wait(1.0) == "later"
+
+
+def test_an_answer_after_the_timeout_is_refused() -> None:
+    dropped = []
+    answer: pending.PendingAnswer[str] = pending.PendingAnswer(
+        "id", on_timeout=lambda: dropped.append("id")
+    )
+    assert answer.wait(0.01) is None
+    assert dropped == ["id"]
+    assert answer.set("late") is False

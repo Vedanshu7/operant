@@ -116,30 +116,6 @@ class RunFilter:
 
 
 # #############################################################################
-# RunEventIndex
-# #############################################################################
-
-
-@dataclasses.dataclass(frozen=True)
-class RunEventIndex:
-    """
-    A queryable index row for one evidence event.
-
-    :ivar run_id: Run the event belongs to.
-    :ivar seq: Position in the run log.
-    :ivar type: Event type name.
-    :ivar at: ISO timestamp the event was logged.
-    :ivar summary: One-line human summary.
-    """
-
-    run_id: str
-    seq: int
-    type: str
-    at: str
-    summary: str = ""
-
-
-# #############################################################################
 # StreamedEvent
 # #############################################################################
 

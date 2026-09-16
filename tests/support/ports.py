@@ -220,7 +220,6 @@ class FakeRunRepository:
 
     def __init__(self) -> None:
         self.runs: Dict[str, runs.RunRecord] = {}
-        self.events: List[runs.RunEventIndex] = []
         self.audit_trail: List[runs.AuditEntry] = []
         self.samples: Dict[str, List[bool]] = {}
 
@@ -250,17 +249,6 @@ class FakeRunRepository:
         self, criteria: runs.RunFilter
     ) -> collections.abc.Sequence[runs.RunRecord]:
         return list(self.runs.values())
-
-    def index_event(self, run_id: str, event: events.BaseEvent) -> None:
-        self.events.append(
-            runs.RunEventIndex(
-                run_id=run_id,
-                seq=event.seq or 0,
-                type=event.type,
-                at=event.at or "",
-                summary=event.summary,
-            )
-        )
 
     def open_approval(self, run_id: str, request: Any) -> str:
         return "approval-1"

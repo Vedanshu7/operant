@@ -16,7 +16,6 @@ import collections.abc
 import pathlib
 from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
 
-import operant.domain.events as events
 import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as graph
 import operant.domain.models.results as results
@@ -203,12 +202,6 @@ class RunRepository(Protocol):
     ) -> collections.abc.Sequence[runs.RunRecord]:
         """
         Return runs matching ``criteria``, newest first.
-        """
-        ...
-
-    def index_event(self, run_id: str, event: events.BaseEvent) -> None:
-        """
-        Add an evidence event to the run's queryable index.
         """
         ...
 

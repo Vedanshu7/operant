@@ -132,6 +132,8 @@ class RunManager:
         self._hub = hub
         self._lease = lease
         self._lock = threading.Lock()
+        # Held across sequence, index and publish so events stay in order.
+        self._emit_lock = threading.Lock()
         self._handles: Dict[str, _Handle] = {}
         self._pending: Dict[str, jppendin.PendingAnswer[object]] = {}
         self._seq: Dict[str, int] = {}
@@ -296,15 +298,20 @@ class RunManager:
             handle.cancelled.set()
             if handle.broker is not None and handle.iv_broker_id is not None:
                 handle.broker.abandon(handle.iv_broker_id, "run cancelled")
-            for answer_id, pending in list(self._pending.items()):
-                if answer_id.split("~", 1)[0] == run_id:
-                    pending.set(
-                        daapprov.ApprovalDecision(
-                            approved=False,
-                            by="console",
-                            note="run cancelled",
-                        )
+            with self._lock:
+                waiting = [
+                    pending
+                    for answer_id, pending in self._pending.items()
+                    if _run_of(answer_id) == run_id
+                ]
+            for pending in waiting:
+                pending.set(
+                    daapprov.ApprovalDecision(
+                        approved=False,
+                        by="console",
+                        note="run cancelled",
                     )
+                )
 
     def reconcile_interrupted(self) -> int:
         """
@@ -412,6 +419,7 @@ class RunManager:
             )
         finally:
             self._lease.release(handle.run_id)
+            self._forget(handle.run_id)
 
     def _run_replay(self, handle: _Handle, request: replay.ReplayRequest) -> None:
         """
@@ -698,22 +706,27 @@ class RunManager:
         """
         Assign a sequence, index the event, and publish it to the hub.
         """
-        with self._lock:
-            seq = self._seq.get(envelope.run_id, 0)
-            self._seq[envelope.run_id] = seq + 1
-        envelope.seq = seq
-        if not envelope.at:
-            envelope.at = time.iso_now()
-        self._runs.index_sse(
-            envelope.run_id,
-            seq,
-            envelope.type,
-            envelope.at,
-            envelope.summary,
-            data=envelope.data,
-            screenshot=envelope.screenshot,
-        )
-        self._hub.publish(envelope)
+        with self._emit_lock:
+            seq = self._seq.get(envelope.run_id)
+            if seq is None:
+                # No live worker (a settled orphan): continue after the
+                # events already stored.
+                seq = self._runs.next_seq(envelope.run_id)
+            envelope.seq = seq
+            if not envelope.at:
+                envelope.at = time.iso_now()
+            self._runs.index_sse(
+                envelope.run_id,
+                seq,
+                envelope.type,
+                envelope.at,
+                envelope.summary,
+                data=envelope.data,
+                screenshot=envelope.screenshot,
+            )
+            if envelope.run_id in self._seq:
+                self._seq[envelope.run_id] = seq + 1
+            self._hub.publish(envelope)
 
     def _set_status(self, handle: _Handle, status: mrruns.RunStatus) -> None:
         """
@@ -726,7 +739,9 @@ class RunManager:
         """
         Register a pending answer a route later fulfils by id.
         """
-        answer: jppendin.PendingAnswer[object] = jppendin.PendingAnswer(answer_id)
+        answer: jppendin.PendingAnswer[object] = jppendin.PendingAnswer(
+            answer_id, on_timeout=lambda: self._drop_pending(answer_id)
+        )
         with self._lock:
             self._pending[answer_id] = answer
         return answer
@@ -737,9 +752,25 @@ class RunManager:
         """
         with self._lock:
             answer = self._pending.pop(answer_id, None)
-        if answer is None:
-            raise errors.NotFoundError(f"no pending answer {answer_id!r}")
-        answer.set(value)
+        if answer is None or not answer.set(value):
+            raise errors.NotFoundError(f"No pending answer '{answer_id}'")
+
+    def _drop_pending(self, answer_id: str) -> None:
+        """
+        Stop routing answers to a wait that timed out.
+        """
+        with self._lock:
+            self._pending.pop(answer_id, None)
+
+    def _forget(self, run_id: str) -> None:
+        """
+        Drop a finished run's handle, sequence, and pending waits.
+        """
+        with self._lock:
+            self._handles.pop(run_id, None)
+            self._seq.pop(run_id, None)
+            for answer_id in [a for a in self._pending if _run_of(a) == run_id]:
+                del self._pending[answer_id]
 
     def _broker_for(
         self, intervention_id: str
@@ -747,13 +778,20 @@ class RunManager:
         """
         Resolve the handle and broker owning an intervention id.
         """
-        run_id = intervention_id.split("~", 1)[0]
-        handle = self._handles.get(run_id)
+        handle = self._handles.get(_run_of(intervention_id))
         if handle is None or handle.broker is None:
             raise errors.UnknownInterventionError(intervention_id)
         if handle.iv_db_id != intervention_id:
             raise errors.UnknownInterventionError(intervention_id)
         return handle, handle.broker
+
+
+def _run_of(answer_id: str) -> str:
+    """
+    Return the run id an approval, question, or intervention id belongs to.
+    """
+    run_id = answer_id.split("~", 1)[0]
+    return run_id
 
 
 def make_hub(loop: asyncio.AbstractEventLoop) -> jhhub.EventHub:

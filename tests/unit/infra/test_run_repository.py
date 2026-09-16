@@ -2,7 +2,6 @@ import pytest
 
 import operant.domain.approval as approval
 import operant.domain.errors as errors
-import operant.domain.events as events
 import operant.domain.models.results as results
 import operant.domain.models.runs as runs
 import operant.infra.db.engine as engine
@@ -131,26 +130,16 @@ def test_stability_counts_only_the_recent_window(
     assert repo.stability("cap").consecutive_failures == 0
 
 
-def test_index_event_keeps_hitl_payload_only(
+def test_next_seq_follows_the_stored_events(
     repo: rrruns.SqlRunRepository,
 ) -> None:
     repo.create(_run())
-    repo.index_event(
-        "replay-1",
-        events.ReplayStarted(
-            summary="started",
-            capability="c",
-            version=1,
-            graph_version=1,
-            tenant="tenant-b",
-        ),
-    )
-    repo.index_event(
-        "replay-1",
-        events.ApprovalRequested(
-            kind="mutating", question="click Transfer", summary="approval"
-        ),
-    )
+    assert repo.next_seq("replay-1") == 0
+    for seq in range(2):
+        repo.index_sse(
+            "replay-1", seq, "run_status", "t", "s", data={}, screenshot=None
+        )
+    assert repo.next_seq("replay-1") == 2
 
 
 def test_secret_ref_repository(
