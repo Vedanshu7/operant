@@ -652,7 +652,7 @@ class DiscoverySession:
         outcome = self._dispatch(calls[0], turn)
         if self.team is not None:
             self.team.note_step(
-                calls[0].name, _arguments(calls[0]), outcome.reply, turn
+                calls[0].name, _arguments(calls[0]), outcome, turn
             )
         replies: List[Tuple[str, str]] = []
         if outcome.reply is not None:

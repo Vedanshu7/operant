@@ -63,6 +63,7 @@ def _run(
     extra: Optional[Dict[str, List[Call]]] = None,
     team: Optional[dsteam.TeamBudget] = None,
     memory: Optional[apmemory.AgentMemory] = None,
+    operator_note: Optional[str] = None,
 ) -> harness.EvalRun:
     roles = {
         "planner": sllm.scripted(planner),
@@ -80,6 +81,7 @@ def _run(
             env.EnvSecretStore({}),
             role_llms=roles,
             memory=memory,
+            operator_note=operator_note,
         ),
         scenario,
         team=team,
@@ -450,6 +452,27 @@ def test_a_failed_run_keeps_the_unresolved_rejection_and_counts_the_plan(
     assert (plan.successes, plan.failures) == (1, 1)
     [lesson] = store.lessons(vendor)
     assert lesson.lesson.endswith("What worked: unresolved.")
+
+
+def test_only_the_operators_own_words_become_a_lesson(
+    tmp_path: pathlib.Path,
+) -> None:
+    memory, store = _memory()
+    run = _run(
+        tmp_path,
+        _scenario("auth", "already_logged_in"),
+        [("give_up", {"reason": "lost"}), *_READ],
+        planner=[_plan("read the savings balance")],
+        verifier=_verdicts(True),
+        team=dsteam.TeamBudget(max_replans=0),
+        memory=memory,
+        operator_note="open the Accounts tab first",
+    )
+    assert run.succeeded
+    [lesson] = store.lessons(store.vendors()[0])
+    assert lesson.source == "human"
+    assert lesson.lesson.endswith("open the Accounts tab first")
+    assert "Continue from" not in lesson.lesson
 
 
 def test_a_single_agent_given_memory_sees_the_recalled_plan(

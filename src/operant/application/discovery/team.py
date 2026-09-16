@@ -31,7 +31,6 @@ import operant.domain.models.plan as mdplan
 if TYPE_CHECKING:
     import operant.application.discovery.loop as loop
 
-_NO_MATCH = "Pattern did not match"
 # Subgoal descriptions this close name the same step across a replan.
 _SAME_SUBGOAL = 0.5
 # Which rejection names the failure when several reviewers reject at once.
@@ -136,7 +135,11 @@ class Team:
         return block
 
     def note_step(
-        self, tool: str, args: Dict[str, Any], reply: Optional[str], turn: int
+        self,
+        tool: str,
+        args: Dict[str, Any],
+        outcome: tools.ToolOutcome,
+        turn: int,
     ) -> None:
         """
         Record one executor step for the reviewers.
@@ -144,8 +147,9 @@ class Team:
         intent = str(
             args.get("intent") or args.get("name") or args.get("ref") or ""
         )
-        first = (reply or "").splitlines()[0] if reply else ""
-        if tool == "act" and first.startswith("OK"):
+        reply = outcome.reply or ""
+        first = reply.splitlines()[0] if reply else ""
+        if tool == "act" and outcome.status == "ok":
             # A UI action that worked is progress, even before a check.
             self._board().progress_turn = turn
         self._board().steps.append(
@@ -236,7 +240,7 @@ class Team:
         """
         name = str(args.get("name", ""))
         repaired = outcome
-        if outcome.reply is not None and outcome.reply.startswith(_NO_MATCH):
+        if outcome.status == "no_match":
             pattern = darevie.extract_candidates(
                 self._session, name, str(args.get("pattern", "")), turn=turn
             )
@@ -538,13 +542,12 @@ class Team:
         """
         Keep an operator's note from an intervention as a lesson.
 
-        Only the person's own words after "Note:" are kept; the model's
-        give-up reason and the screen are not.
+        Only the person's own words are kept; the model's give-up reason
+        and the screen are not.
         """
         memory = self._session.deps.memory
-        reply = outcome.reply or ""
-        _, marker, note = reply.partition("Note:")
-        if memory is not None and outcome.finished is None and marker:
+        note = outcome.operator_note.strip()
+        if memory is not None and outcome.status == "intervened" and note:
             current = self._board().current
             memory.record_note(
                 self._session.cfg.profile.vendor_id,

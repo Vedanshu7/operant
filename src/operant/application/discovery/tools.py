@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import dataclasses
 import re
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Tuple, Union
 
 import operant.application.acting as acting
 import operant.application.discovery.bootstrap as bstrap
@@ -50,6 +50,9 @@ ACTION_ERRORS = (
 _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://?")
 
 
+OutcomeStatus = Literal["", "ok", "no_match", "intervened"]
+
+
 # #############################################################################
 # ToolOutcome
 # #############################################################################
@@ -62,12 +65,17 @@ class ToolOutcome:
 
     :ivar reply: Text fed back to the model as the tool result.
     :ivar finished: A terminal result that ends the run, when any.
+    :ivar status: What happened, for code that reacts to it; the reply
+        wording is for the model and may change.
+    :ivar operator_note: The person's own words after an intervention.
     """
 
     reply: Optional[str] = None
     finished: Optional[Union[config.DiscoveryResult, config.DiscoveryFailure]] = (
         None
     )
+    status: OutcomeStatus = ""
+    operator_note: str = ""
 
 
 def handle_declare_input(
@@ -235,7 +243,10 @@ def handle_extract(
     except re.error as err:
         return ToolOutcome(f"Invalid regex: {err}")
     if value is None:
-        return ToolOutcome("Pattern did not match the visible text. Refine it.")
+        return ToolOutcome(
+            "Pattern did not match the visible text. Refine it.",
+            status="no_match",
+        )
     warning = _record_bound_warning(session, pattern)
     if warning is not None:
         return ToolOutcome(warning)
@@ -427,7 +438,9 @@ def handle_give_up(
     return ToolOutcome(
         "A human operator intervened on the live session and performed: "
         f'{performed}. Note: "{resolution.note}". Continue from the CURRENT '
-        "screen (next message)."
+        "screen (next message).",
+        status="intervened",
+        operator_note=resolution.note,
     )
 
 
@@ -755,7 +768,7 @@ def _perform_act(
             summary=f"{kind}: {intent}",
         )
     )
-    return ToolOutcome(f"OK ({kind}). New screen state follows.")
+    return ToolOutcome(f"OK ({kind}). New screen state follows.", status="ok")
 
 
 def _situation_sig(

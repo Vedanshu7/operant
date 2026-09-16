@@ -144,24 +144,35 @@ class EvalSurface(surfaces.GatedFakeSurface):
 
 class EvalBroker(escal.ControlBroker):
     """
-    Resolve every intervention as abandoned at once - no operator waits.
+    Resolve every intervention at once - no operator waits.
+
+    With an ``operator_note`` the operator hands back with that note;
+    otherwise every intervention is abandoned.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, operator_note: Optional[str] = None) -> None:
         super().__init__(
             start_human_capture=lambda callback: None,
             stop_human_capture=lambda: None,
             on_transition=lambda before, after, detail: None,
         )
         self.raised: List[str] = []
+        self._operator_note = operator_note
 
     def raise_intervention(
         self, request: escal.InterventionRequest
     ) -> escal.InterventionResolution:
         self.raised.append(request.reason)
-        resolution = escal.InterventionResolution(
-            resolution="abandoned", note="eval: no operator"
-        )
+        if self._operator_note is None:
+            resolution = escal.InterventionResolution(
+                resolution="abandoned", note="eval: no operator"
+            )
+        else:
+            resolution = escal.InterventionResolution(
+                resolution="resumed",
+                note=self._operator_note,
+                human_actions=["clicked Continue"],
+            )
         return resolution
 
 
@@ -241,6 +252,8 @@ class EvalEnv:
     :ivar role_llms: Per-role clients (scripted tests); ``llm`` serves
         every role not listed.
     :ivar memory: Cross-run agent memory, for the memory evals.
+    :ivar operator_note: When set, an operator resolves interventions by
+        handing back with this note.
     """
 
     llm: plllm.LlmClient
@@ -251,6 +264,7 @@ class EvalEnv:
         default_factory=dict
     )
     memory: Optional[apmemory.AgentMemory] = None
+    operator_note: Optional[str] = None
 
 
 # #############################################################################
@@ -576,7 +590,7 @@ def run_scenario(
     )
     clarifier = ports.FakeClarifier(scenario.clarify_answer)
     credentials = ports.FakeCredentialRequester(scenes.SECRET_VALUE)
-    broker = EvalBroker()
+    broker = EvalBroker(env.operator_note)
     log = run_log.RunLog(tmp_path, "eval", redact.Redactor(), echo=False)
     deps = loop.DiscoveryDeps(
         surface=surface,
