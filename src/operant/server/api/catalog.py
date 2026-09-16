@@ -158,3 +158,22 @@ def save_profile(
     state.profiles.save(document)
     dumped = document.model_dump()
     return dumped
+
+
+@router.put("/profiles/{profile_id}/tenants/{tenant}")
+def save_tenant(
+    profile_id: str,
+    tenant: str,
+    binding: artifact.TenantBinding,
+    state: State,
+) -> Any:
+    """
+    Add or replace one tenant binding and return the updated profile.
+    """
+    current = state.profiles.get(profile_id)
+    updated = current.model_copy(
+        update={"tenants": {**current.tenants, tenant: binding}}
+    )
+    state.profiles.save(updated)
+    dumped = updated.model_dump()
+    return dumped

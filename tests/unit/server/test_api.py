@@ -269,3 +269,25 @@ def test_request_fields_are_constrained(tmp_path: pathlib.Path) -> None:
             ),
         ]
         assert [answered.status_code for answered in bad] == [422] * len(bad)
+
+
+def test_a_tenant_binding_is_saved_into_its_profile(
+    tmp_path: pathlib.Path,
+) -> None:
+    app, _ = _build(tmp_path)
+    with starlette.testclient.TestClient(app) as client:
+        saved = client.put(
+            "/api/v1/profiles/p/tenants/staging",
+            headers=_AUTH,
+            json={"base_url": "http://staging"},
+        )
+        assert saved.status_code == 200
+        assert saved.json()["tenants"]["staging"]["base_url"] == "http://staging"
+        reloaded = client.get("/api/v1/profiles/p", headers=_AUTH).json()
+        assert set(reloaded["tenants"]) == {"t", "staging"}
+        missing = client.put(
+            "/api/v1/profiles/nope/tenants/x",
+            headers=_AUTH,
+            json={"base_url": "http://x"},
+        )
+        assert missing.status_code == 404
