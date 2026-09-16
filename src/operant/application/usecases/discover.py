@@ -95,6 +95,37 @@ class DiscoverOutcome:
     profile_path: str
 
 
+# #############################################################################
+# ModelWiring
+# #############################################################################
+
+
+@dataclasses.dataclass(frozen=True)
+class ModelWiring:
+    """
+    The models a discovery run talks to, and where their calls are traced.
+
+    :ivar llm: The executor's client.
+    :ivar model_name: The executor's model id, for provenance.
+    :ivar token_counter: Counts prompt tokens for the executor's model;
+        an estimate is used when ``None``.
+    :ivar tracer: Where model calls are traced; none when ``None``.
+    :ivar scrubber: Masks personal data in traced text.
+    :ivar role_llms: Clients for the multi-agent roles, by role name.
+    :ivar role_models: Model ids for those roles, for tracing.
+    """
+
+    llm: plllm.LlmClient
+    model_name: str
+    token_counter: Optional[plllm.TokenCounter] = None
+    tracer: Optional[pttracin.Tracer] = None
+    scrubber: Optional[ppprivac.TextScrubber] = None
+    role_llms: collections.abc.Mapping[str, plllm.LlmClient] = dataclasses.field(
+        default_factory=dict
+    )
+    role_models: Dict[str, str] = dataclasses.field(default_factory=dict)
+
+
 def execute_discovery(
     request: DiscoverRequest,
     *,
@@ -102,18 +133,12 @@ def execute_discovery(
     artifacts: raartifa.FileArtifactRepository,
     graphs: rggraphs.FileGraphRepository,
     profiles: rpprofil.FileProfileRepository,
-    llm: plllm.LlmClient,
+    models: ModelWiring,
     secret_store: secrets.SecretStore,
-    model_name: str,
     clarifier: Optional[hitl.Clarifier] = None,
     approver: Optional[hitl.Approver] = None,
     credential_requester: Optional[hitl.CredentialRequester] = None,
     run_identifier: Optional[str] = None,
-    token_counter: Optional[plllm.TokenCounter] = None,
-    tracer: Optional[pttracin.Tracer] = None,
-    scrubber: Optional[ppprivac.TextScrubber] = None,
-    role_llms: Optional[collections.abc.Mapping[str, plllm.LlmClient]] = None,
-    role_models: Optional[Dict[str, str]] = None,
     should_stop: Optional[collections.abc.Callable[[], bool]] = None,
     on_context: Optional[
         collections.abc.Callable[[accontex.RunContext], None]
@@ -127,19 +152,13 @@ def execute_discovery(
     :param artifacts: Capability storage.
     :param graphs: Graph storage.
     :param profiles: Profile storage (also the discovery base).
-    :param llm: The model client.
+    :param models: The models the run talks to.
     :param secret_store: Where secret references resolve.
-    :param model_name: Model id for provenance.
     :param clarifier: Answers the agent's clarifying question, if any.
     :param approver: Answers approvals.
+    :param credential_requester: Asks a person for a credential.
     :param run_identifier: Fixes the run id and evidence directory; the
         server passes the id it tracks the run under.
-    :param token_counter: Counts prompt tokens for the model; an
-        estimate is used when omitted.
-    :param tracer: Where model calls are traced; none when omitted.
-    :param scrubber: Masks personal data in traced text.
-    :param role_llms: Clients for the multi-agent roles, by role name.
-    :param role_models: Model ids for those roles, for tracing.
     :param should_stop: Polled between turns; true cancels the run.
     :param on_context: Called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
@@ -181,9 +200,9 @@ def execute_discovery(
             surface=context.surface,
             broker=context.broker,
             log=context.log,
-            llm=llm,
+            llm=models.llm,
             secret_store=secret_store,
-            model_name=model_name,
+            model_name=models.model_name,
             browsers=context.settings.browser.browser_app_names,
             default_browser=context.settings.browser.default_app,
             remediation=remem.RemediationMemory(
@@ -194,11 +213,11 @@ def execute_discovery(
                 budget_ratio=context.settings.discovery.context_budget_ratio,
                 max_tokens=context.settings.discovery.context_max_tokens,
             ),
-            token_counter=token_counter or dswindow.EstimatedCounter(),
-            tracer=tracer or dsobserv.NoopTracer(),
-            scrubber=scrubber,
-            role_llms=dict(role_llms or {}),
-            role_models=dict(role_models or {}),
+            token_counter=models.token_counter or dswindow.EstimatedCounter(),
+            tracer=models.tracer or dsobserv.NoopTracer(),
+            scrubber=models.scrubber,
+            role_llms=dict(models.role_llms),
+            role_models=dict(models.role_models),
             team=_team_budget(context.settings.discovery),
             memory=_memory(context.settings, cfg.agents),
             # A real app loads pages after clicks; record the settled screen.
@@ -208,8 +227,8 @@ def execute_discovery(
         result = loop.run_discovery(cfg, deps)
     finally:
         context.close()
-        if tracer is not None:
-            tracer.flush()
+        if models.tracer is not None:
+            models.tracer.flush()
     outcome: Union[DiscoverOutcome, config.DiscoveryFailure]
     if isinstance(result, config.DiscoveryFailure):
         outcome = result

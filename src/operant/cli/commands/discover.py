@@ -9,9 +9,7 @@ from typing import Annotated, List, Optional, Union
 import typer
 
 import operant.adapters.hitl.tty as tty
-import operant.adapters.llm.litellm_client as litecli
-import operant.adapters.observability.factory as aofactor
-import operant.adapters.privacy.factory as apfactor
+import operant.adapters.llm.wiring as alwiring
 import operant.application.approval as approval
 import operant.application.context as context
 import operant.application.discovery.config as config
@@ -56,9 +54,7 @@ def register(app: typer.Typer) -> None:
         """
         deps: cddeps.CliDeps = ctx.obj
         try:
-            clients = litecli.build_clients(deps.settings.discovery)
-            tracer = aofactor.tracer(deps.settings.observability)
-            scrubber = apfactor.scrubber(deps.settings.privacy)
+            models = alwiring.model_wiring(deps.settings)
         except errors.ConfigError as err:
             typer.echo(f"  {err}", err=True)
             raise typer.Exit(1) from err
@@ -79,17 +75,11 @@ def register(app: typer.Typer) -> None:
             artifacts=deps.artifacts,
             graphs=deps.graphs,
             profiles=deps.profiles,
-            llm=clients.executor,
             secret_store=deps.secret_store,
-            model_name=clients.models["executor"],
+            models=models,
             clarifier=tty.TtyClarifier(),
             approver=_approver(deps),
             credential_requester=tty.TtyCredentialRequester(),
-            token_counter=litecli.LiteLlmTokenCounter(clients.models["executor"]),
-            tracer=tracer,
-            scrubber=scrubber,
-            role_llms=clients.roles,
-            role_models=clients.models,
         )
         _report(outcome)
 

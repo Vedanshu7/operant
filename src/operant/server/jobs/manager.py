@@ -20,9 +20,7 @@ import dataclasses
 import threading
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-import operant.adapters.llm.litellm_client as litecli
-import operant.adapters.observability.factory as aofactor
-import operant.adapters.privacy.factory as apfactor
+import operant.adapters.llm.wiring as alwiring
 import operant.application.approval as approval
 import operant.application.context as accontex
 import operant.application.discovery.config as config
@@ -481,25 +479,18 @@ class RunManager:
                 handle, "pending_credential", pending
             ),
         )
-        clients = litecli.build_clients(self._settings.discovery)
         outcome = discover.execute_discovery(
             request,
             factory=self._factory,
             artifacts=self._artifacts,
             graphs=self._graphs,
             profiles=self._profiles,
-            llm=clients.executor,
+            models=alwiring.model_wiring(self._settings),
             secret_store=self._secret_store,
-            model_name=clients.models["executor"],
             clarifier=clarifier,
             approver=approver,
             credential_requester=credentials,
             run_identifier=handle.run_id,
-            token_counter=litecli.LiteLlmTokenCounter(clients.models["executor"]),
-            tracer=aofactor.tracer(self._settings.observability),
-            scrubber=apfactor.scrubber(self._settings.privacy),
-            role_llms=clients.roles,
-            role_models=clients.models,
             should_stop=handle.cancelled.is_set,
             on_context=lambda ctx: self._wire(handle, ctx),
         )
