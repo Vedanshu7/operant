@@ -22,6 +22,10 @@ import operant.domain.errors as errors
 _SECURITY = "security"
 # Keychain "item not found" status (errSecItemNotFound).
 _MISSING_STATUS = 44
+_TIMEOUT_S = 15.0
+# ``security -i`` exits 0 even when a command fails; it reports the
+# failing command's status on stderr instead.
+_INTERACTIVE_FAILURE = "returned "
 
 
 # #############################################################################
@@ -55,14 +59,19 @@ def _subprocess_runner(
     """
     Run ``security`` as a subprocess and capture its output.
     """
-    completed = subprocess.run(
-        list(argv),
-        input=stdin,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=15,
-    )
+    try:
+        completed = subprocess.run(
+            list(argv),
+            input=stdin,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired as err:
+        raise errors.SecretBackendUnavailableError(
+            f"Keychain did not answer within {_TIMEOUT_S:.0f}s"
+        ) from err
     result = CommandResult(
         completed.returncode, completed.stdout, completed.stderr
     )
@@ -122,31 +131,39 @@ class KeychainSecretStore:
 
     def exists(self, locator: str) -> bool:
         """
-        Report whether an item exists without returning its value.
+        Report whether an item exists without reading its value.
         """
-        present = self.get(locator) is not None
+        service, account = self._split(locator)
+        result = self._run(
+            [_SECURITY, "find-generic-password", "-s", service, "-a", account],
+            None,
+        )
+        if result.returncode not in (0, _MISSING_STATUS):
+            raise errors.SecretBackendUnavailableError(
+                f"keychain lookup failed ({result.returncode}): "
+                f"{result.stderr.strip()}"
+            )
+        present = result.returncode == 0
         return present
 
     def set(self, locator: str, value: str) -> None:
         """
-        Create or updates the item (``-U`` upserts).
+        Create or update the item (``-U`` upserts).
+
+        The command goes to ``security -i`` on stdin, so the value never
+        appears in the process list.
         """
+        if "\n" in value or "\r" in value:
+            raise errors.SecretBackendUnavailableError(
+                "Keychain values cannot contain line breaks"
+            )
         service, account = self._split(locator)
-        result = self._run(
-            [
-                _SECURITY,
-                "add-generic-password",
-                "-U",
-                "-s",
-                service,
-                "-a",
-                account,
-                "-w",
-                value,
-            ],
-            None,
+        command = (
+            f"add-generic-password -U -s {_quoted(service)} "
+            f"-a {_quoted(account)} -w {_quoted(value)}\n"
         )
-        if result.returncode != 0:
+        result = self._run([_SECURITY, "-i"], command)
+        if result.returncode != 0 or _INTERACTIVE_FAILURE in result.stderr:
             raise errors.SecretBackendUnavailableError(
                 f"keychain write failed ({result.returncode}): "
                 f"{result.stderr.strip()}"
@@ -164,3 +181,12 @@ class KeychainSecretStore:
             # Explicit "<service>/<account>" locator.
             resolved = (service, account)
         return resolved
+
+
+def _quoted(text: str) -> str:
+    """
+    Quote one argument for the ``security -i`` command parser.
+    """
+    escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+    quoted = f'"{escaped}"'
+    return quoted

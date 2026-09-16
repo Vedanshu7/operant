@@ -1,4 +1,5 @@
 import collections.abc
+import shlex
 from typing import Dict, List, Optional, Tuple
 
 import pytest
@@ -37,6 +38,9 @@ class FakeSecurity:
     ) -> keychain.CommandResult:
         args = list(argv)
         self.calls.append(args)
+        if args[1:] == ["-i"]:
+            # An interactive write: the command arrives on stdin.
+            args = [args[0], *shlex.split(stdin or "")]
         service, account = (
             args[args.index("-s") + 1],
             args[args.index("-a") + 1],
@@ -45,7 +49,8 @@ class FakeSecurity:
             value = self.items.get((service, account))
             if value is None:
                 return keychain.CommandResult(44, "", "item not found")
-            return keychain.CommandResult(0, value + "\n", "")
+            shown = value + "\n" if "-w" in args else 'attributes: "acct"\n'
+            return keychain.CommandResult(0, shown, "")
         self.items[(service, account)] = args[args.index("-w") + 1]
         return keychain.CommandResult(0, "", "")
 
@@ -60,6 +65,30 @@ def test_keychain_store_round_trips_through_security_cli() -> None:
     store.set("password", "under-default-service")
     assert fake.items[("operant", "password")] == "under-default-service"
     assert all(call[0] == "security" for call in fake.calls)
+
+
+def test_keychain_values_stay_off_the_command_line() -> None:
+    fake = FakeSecurity()
+    store = keychain.KeychainSecretStore("operant", runner=fake)
+    secret = 'pa ss"wo\\rd'
+    store.set("app/password", secret)
+    assert fake.items[("app", "password")] == secret
+    assert store.exists("app/password") is True
+    assert all(secret not in " ".join(call) for call in fake.calls)
+    assert all("-w" not in call for call in fake.calls)
+
+
+def test_a_failed_interactive_write_is_reported() -> None:
+    def refused(
+        argv: collections.abc.Sequence[str], stdin: Optional[str]
+    ) -> keychain.CommandResult:
+        return keychain.CommandResult(
+            0, "", "add-generic-password: returned -25299"
+        )
+
+    store = keychain.KeychainSecretStore(runner=refused)
+    with pytest.raises(errors.SecretBackendUnavailableError):
+        store.set("x", "y")
 
 
 def test_keychain_store_surfaces_other_failures() -> None:
