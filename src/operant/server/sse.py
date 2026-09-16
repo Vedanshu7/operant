@@ -13,6 +13,7 @@ import operant.server.sse as sse
 
 from __future__ import annotations
 
+import asyncio
 import collections.abc
 import dataclasses
 import json
@@ -56,10 +57,15 @@ def run_event_stream(
         queue, subscription = await state.hub.subscribe(run_id)
         try:
             seen = after_seq
-            for envelope in state.manager.replay_stream(run_id, after_seq):
+            # The stored events and status come from SQLite: read them on a
+            # worker thread so other streams keep flowing meanwhile.
+            stored = await asyncio.to_thread(
+                state.manager.replay_stream, run_id, after_seq
+            )
+            for envelope in stored:
                 seen = max(seen, envelope.seq)
                 yield _encode(envelope)
-            if state.manager.is_terminal(run_id):
+            if await asyncio.to_thread(state.manager.is_terminal, run_id):
                 return
             while True:
                 envelope = await queue.get()
