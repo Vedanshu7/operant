@@ -8,6 +8,7 @@ from typing import Optional
 
 import operant.domain.fingerprint as odfinger
 import operant.domain.models.digest as digest
+import tests.support.screens as screens
 
 
 def _box() -> digest.Box:
@@ -15,14 +16,8 @@ def _box() -> digest.Box:
 
 
 def _control(role: str, name: str, path: str, value: Optional[str] = None):
-    return digest.Control(
-        ref="r",
-        role=role,
-        name=name,
-        label="",
-        path=path,
-        box=_box(),
-        value=value,
+    return screens.control(
+        ref="r", role=role, name=name, path=path, box=_box(), value=value
     )
 
 

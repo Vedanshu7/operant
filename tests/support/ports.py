@@ -9,6 +9,7 @@ import copy
 import pathlib
 from typing import Any, Dict, List, Optional, Tuple
 
+import operant.application.escalation as escal
 import operant.domain.errors as errors
 import operant.domain.events as events
 import operant.domain.models.actions as actions
@@ -448,3 +449,15 @@ class FakePreferenceStore:
     def save(self, counts: Dict[str, Dict[str, List[int]]]) -> None:
         self._counts = copy.deepcopy(counts)
         self.saved.append(copy.deepcopy(counts))
+
+
+def quiet_broker() -> escal.ControlBroker:
+    """
+    Build a control broker with no capture and no transition sink.
+    """
+    broker = escal.ControlBroker(
+        start_human_capture=lambda on_action: None,
+        stop_human_capture=lambda: None,
+        on_transition=lambda before, after, detail: None,
+    )
+    return broker

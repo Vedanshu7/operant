@@ -8,6 +8,7 @@ import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
 import operant.domain.models.targets as targets
 import tests.support.recording
+import tests.support.screens as screens
 
 
 def _screen(title: str, *controls: digest.Control) -> digest.ScreenDigest:
@@ -16,15 +17,11 @@ def _screen(title: str, *controls: digest.Control) -> digest.ScreenDigest:
     )
 
 
+_BOX = digest.Box(0.1, 0.1, 0.2, 0.05)
+
+
 def _ctl(role: str, name: str, path: str) -> digest.Control:
-    return digest.Control(
-        ref=name,
-        role=role,
-        name=name,
-        label="",
-        path=path,
-        box=digest.Box(0.1, 0.1, 0.2, 0.05),
-    )
+    return screens.control(ref=name, role=role, name=name, path=path, box=_BOX)
 
 
 def test_node_stores_content_fingerprint() -> None:

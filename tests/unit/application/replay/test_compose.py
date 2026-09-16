@@ -15,6 +15,7 @@ import operant.domain.models.results as results
 import operant.domain.redaction
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
+import tests.support.ports as ports
 import tests.support.timing as timing
 
 # #############################################################################
@@ -88,11 +89,7 @@ def _run(tmp_path: pathlib.Path, invoke):
     log = run_log.RunLog(
         tmp_path, "compose", operant.domain.redaction.Redactor(), echo=False
     )
-    broker = operant.application.escalation.ControlBroker(
-        start_human_capture=lambda cb: None,
-        stop_human_capture=lambda: None,
-        on_transition=lambda a, b, d: None,
-    )
+    broker = ports.quiet_broker()
     surface = ComposeSurface()
     cap = capab.capability(vendor_id="chrome", compiled_path=["e1"])
     result = operant.application.replay.engine.replay_path(

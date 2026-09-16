@@ -8,6 +8,7 @@ import operant.domain.fingerprint as odfinger
 import operant.domain.graph.localize as localize
 import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
+import tests.support.screens as screens
 
 
 def _box() -> digest.Box:
@@ -15,9 +16,7 @@ def _box() -> digest.Box:
 
 
 def _control(role: str, name: str, path: str):
-    return digest.Control(
-        ref="r", role=role, name=name, label="", path=path, box=_box()
-    )
+    return screens.control(ref="r", role=role, name=name, path=path, box=_box())
 
 
 _LOGIN = (

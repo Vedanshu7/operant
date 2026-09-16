@@ -13,7 +13,6 @@ import re
 from typing import List, Tuple
 
 import operant.application.approval as approval
-import operant.application.escalation as escal
 import operant.application.replay.engine as engine
 import operant.domain.fingerprint as odfinger
 import operant.domain.models.digest as digest
@@ -22,6 +21,8 @@ import operant.domain.policy as policy
 import operant.domain.redaction as redact
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
+import tests.support.ports as ports
+import tests.support.screens as screens
 import tests.support.surfaces as surfaces
 import tests.support.timing as timing
 
@@ -34,15 +35,11 @@ POLICY = policy.Policy(
 )
 
 
+_BOX = digest.Box(0.1, 0.1, 0.2, 0.05)
+
+
 def _control(role: str, name: str, path: str) -> digest.Control:
-    return digest.Control(
-        ref=name,
-        role=role,
-        name=name,
-        label="",
-        path=path,
-        box=digest.Box(0.1, 0.1, 0.2, 0.05),
-    )
+    return screens.control(ref=name, role=role, name=name, path=path, box=_BOX)
 
 
 LOGIN = (
@@ -145,11 +142,7 @@ class ParabankSurface(surfaces.GatedFakeSurface):
 def _run(tmp_path: pathlib.Path, surface: ParabankSurface):
     app_graph = graph.AppGraph(vendor_id="parabank", nodes=NODES, edges=EDGES)
     log = run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False)
-    broker = escal.ControlBroker(
-        start_human_capture=lambda cb: None,
-        stop_human_capture=lambda: None,
-        on_transition=lambda a, b, d: None,
-    )
+    broker = ports.quiet_broker()
     cap = capab.capability(
         vendor_id="parabank",
         start_node="login",
@@ -285,11 +278,7 @@ def test_adjacent_landing_navigates_to_goal_via_menu_link(
         vendor_id="parabank", nodes=ADJ_NODES, edges=ADJ_EDGES
     )
     log = run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False)
-    broker = escal.ControlBroker(
-        start_human_capture=lambda cb: None,
-        stop_human_capture=lambda: None,
-        on_transition=lambda a, b, d: None,
-    )
+    broker = ports.quiet_broker()
     cap = capab.capability(
         vendor_id="parabank",
         start_node="login",
@@ -413,11 +402,7 @@ def test_a_look_alike_of_an_intermediate_page_hops_onto_it_first(
         app_graph,
         DEEP_EDGES,
         surface,
-        escal.ControlBroker(
-            start_human_capture=lambda cb: None,
-            stop_human_capture=lambda: None,
-            on_transition=lambda a, b, d: None,
-        ),
+        ports.quiet_broker(),
         run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False),
         redact.Redactor(),
         timing.fast_replay_options(tenant="t", params={"accountId": "13344"}),
@@ -463,11 +448,7 @@ def test_a_launch_landing_on_another_known_page_resumes_there(
         app_graph,
         ADJ_EDGES,
         surface,
-        escal.ControlBroker(
-            start_human_capture=lambda cb: None,
-            stop_human_capture=lambda: None,
-            on_transition=lambda a, b, d: None,
-        ),
+        ports.quiet_broker(),
         run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False),
         redact.Redactor(),
         timing.fast_replay_options(tenant="t", params={}),

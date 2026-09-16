@@ -13,6 +13,7 @@ import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
 import operant.domain.policy as policy
 import operant.domain.profile as profile
+import tests.support.screens as screens
 
 PROFILE = profile.AppProfile(
     vendor_id="acme",
@@ -36,14 +37,14 @@ def control(name: str, role: str = "link") -> digest.Control:
     """
     Build a simple control with the given accessible name.
     """
-    return digest.Control(
+    built = screens.control(
         ref="c1",
         role=role,
         name=name,
-        label="",
         path=f"window>{role}",
         box=digest.Box(0.1, 0.1, 0.2, 0.05),
     )
+    return built
 
 
 def record(

@@ -28,6 +28,8 @@ import tests.evals.catalog as catalog
 import tests.evals.harness as harness
 import tests.evals.scenes as scenes
 import tests.support.llm as llm
+import tests.support.ports as ports
+import tests.support.screens as screens
 import tests.support.surfaces as surfaces
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
@@ -41,7 +43,7 @@ def _profile() -> dpprofil.AppProfile:
 
 
 def _control(ref: str, role: str, name: str, label: str = "") -> digest.Control:
-    return digest.Control(
+    return screens.control(
         ref=ref,
         role=role,
         name=name,
@@ -109,11 +111,7 @@ class ScriptedClarifier:
 def _deps(tmp_path: pathlib.Path, surface, calls) -> loop.DiscoveryDeps:
     return loop.DiscoveryDeps(
         surface=surface,
-        broker=operant.application.escalation.ControlBroker(
-            start_human_capture=lambda cb: None,
-            stop_human_capture=lambda: None,
-            on_transition=lambda a, b, d: None,
-        ),
+        broker=ports.quiet_broker(),
         log=run_log.RunLog(tmp_path, "disc", redact.Redactor(), echo=False),
         llm=llm.scripted(calls),
         secret_store=env.EnvSecretStore(SECRETS),

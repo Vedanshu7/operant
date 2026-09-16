@@ -17,6 +17,7 @@ import operant.domain.policy as policy
 import operant.domain.redaction
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
+import tests.support.ports as ports
 import tests.support.surfaces as surfaces
 import tests.support.timing as timing
 
@@ -136,11 +137,7 @@ def _run(tmp_path, edge, surface, broker, approver):
 
 
 def _broker() -> operant.application.escalation.ControlBroker:
-    return operant.application.escalation.ControlBroker(
-        start_human_capture=lambda cb: None,
-        stop_human_capture=lambda: None,
-        on_transition=lambda a, b, d: None,
-    )
+    return ports.quiet_broker()
 
 
 def _person(

@@ -23,6 +23,8 @@ import operant.domain.policy as policy
 import operant.domain.redaction
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
+import tests.support.ports as ports
+import tests.support.screens as screens
 import tests.support.surfaces as surfaces
 import tests.support.timing as timing
 
@@ -35,14 +37,12 @@ POLICY = policy.Policy(
 )
 
 
+_BOX = digest.Box(0.1, 0.1, 0.2, 0.05)
+
+
 def _control(ref: str, role: str, name: str) -> digest.Control:
-    return digest.Control(
-        ref=ref,
-        role=role,
-        name=name,
-        label="",
-        path=f"w>{ref}",
-        box=digest.Box(0.1, 0.1, 0.2, 0.05),
+    return screens.control(
+        ref=ref, role=role, name=name, path=f"w>{ref}", box=_BOX
     )
 
 
@@ -146,11 +146,7 @@ def _run(
     log = run_log.RunLog(
         tmp_path, run, operant.domain.redaction.Redactor(), echo=False
     )
-    broker = operant.application.escalation.ControlBroker(
-        start_human_capture=lambda cb: None,
-        stop_human_capture=lambda: None,
-        on_transition=lambda a, b, d: None,
-    )
+    broker = ports.quiet_broker()
     opts = timing.fast_replay_options(
         tenant="t", params=params or {}, output_origins=origins or {}
     )
@@ -232,11 +228,7 @@ def test_denied_sensitive_fill_fails_cleanly(tmp_path):
 
 
 def test_unanswered_console_approval_times_out(tmp_path):
-    broker = operant.application.escalation.ControlBroker(
-        start_human_capture=lambda cb: None,
-        stop_human_capture=lambda: None,
-        on_transition=lambda a, b, d: None,
-    )
+    broker = ports.quiet_broker()
     surface = AppSurface(["App | Login", "App | Home", "App | Done"])
     result, _ = _run(
         tmp_path,
