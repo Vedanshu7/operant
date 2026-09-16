@@ -347,10 +347,14 @@ def serve_driver(
         browser=settings.browser,
         fault_injection=profile.fault_injection,
     )
-    token = (
-        settings.driver.auth_token.get_secret_value()
-        if settings.driver.auth_token
-        else None
+    # Never serve without a token: mint one the local clients also read.
+    token = common.ensure_token(
+        settings.paths.state_dir / common.DRIVER_TOKEN_FILE,
+        (
+            settings.driver.auth_token.get_secret_value()
+            if settings.driver.auth_token
+            else None
+        ),
     )
     app = create_driver_app(
         DriverDeps(

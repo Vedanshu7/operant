@@ -63,3 +63,12 @@ def test_ensure_token_persists_a_generated_token(tmp_path: pathlib.Path) -> None
     assert len(first) > 30 and path.read_text().strip() == first
     assert common.ensure_token(path, None) == first
     assert common.ensure_token(path, "configured") == "configured"
+
+
+def test_a_generated_token_is_private_from_the_start(
+    tmp_path: pathlib.Path,
+) -> None:
+    path = tmp_path / "state" / common.DRIVER_TOKEN_FILE
+    common.ensure_token(path, None)
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert not list(path.parent.glob(".*.tmp"))

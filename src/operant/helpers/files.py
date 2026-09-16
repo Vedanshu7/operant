@@ -56,16 +56,20 @@ def write_json(path: pathlib.Path, document: Any, *, indent: int = 2) -> None:
     write_text(path, text)
 
 
-def write_text(path: pathlib.Path, text: str) -> None:
+def write_text(path: pathlib.Path, text: str, *, mode: int = 0o644) -> None:
     """
     Write text atomically via a temporary sibling and ``os.replace``.
 
     :param path: Destination; parent directories are created.
     :param text: Content to write.
+    :param mode: Permissions the file is created with, so a private file
+        is never readable by others, not even briefly.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(f".{path.name}.tmp")
-    with temp.open("w", encoding="utf-8") as handle:
+    temp.unlink(missing_ok=True)
+    descriptor = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
         handle.write(text)
         handle.flush()
         os.fsync(handle.fileno())

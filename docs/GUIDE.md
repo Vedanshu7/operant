@@ -13,6 +13,9 @@ The ones you are most likely to touch:
   `ANTHROPIC_API_KEY`.
 - `OPERANT_SERVER__AUTH_TOKEN`: the API token. If you leave it blank, one is
   generated into `state/server-token` on first start.
+- `OPERANT_DRIVER__AUTH_TOKEN`: the driver daemon's token. If you leave it
+  blank, the daemon and local clients share one generated into
+  `state/driver-token`. Set it when the driver runs on another machine.
 - `OPERANT_SECRETS__BACKEND`: `env` (default) or `keychain`. App credentials
   are referenced by name and resolved at run time. They are never written to
   artifacts or logs.
@@ -44,7 +47,7 @@ cd desktop && pnpm install && pnpm start   # builds the web UI, then opens the a
   asks for Accessibility and Screen Recording for the app instead of your
   terminal.
 - Quitting the app stops the server. Server output goes to
-  `state/desktop-server.log`.
+  `desktop-server.log` in the app's log folder (`~/Library/Logs/<app>`).
 - It runs Operant from this checkout with `uv`. A standalone `.dmg` (frozen
   Python sidecar, signed build) is the next step.
 

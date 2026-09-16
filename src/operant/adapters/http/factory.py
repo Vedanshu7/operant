@@ -15,6 +15,7 @@ from __future__ import annotations
 import collections.abc
 from typing import Any, Dict, List, Optional, Tuple, cast
 
+import operant.adapters.http.common as common
 import operant.domain.approval as approval
 import operant.domain.models.actions as actions
 import operant.domain.policy as dppolicy
@@ -55,8 +56,9 @@ def surface_for(
     driver = settings.driver
     if driver.url:
         # A remote daemon owns the OS permissions.
-        token = (
-            driver.auth_token.get_secret_value() if driver.auth_token else None
+        token = common.ensure_token(
+            settings.paths.state_dir / common.DRIVER_TOKEN_FILE,
+            driver.auth_token.get_secret_value() if driver.auth_token else None,
         )
         remote = _remote_surface(driver.url, token, on_event)
         result = (remote, remote.health_table)

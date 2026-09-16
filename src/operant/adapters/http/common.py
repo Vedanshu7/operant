@@ -30,6 +30,9 @@ import operant
 import operant.domain.errors as errors
 import operant.helpers.files as files
 
+# The driver daemon and its clients share a token minted in the state dir.
+DRIVER_TOKEN_FILE: Final[str] = "driver-token"
+
 _STATUS_BY_ERROR: Final[Tuple[Tuple[type[Exception], int], ...]] = (
     (errors.NotFoundError, 404),
     (errors.InvalidIdError, 422),
@@ -183,6 +186,5 @@ def ensure_token(path: pathlib.Path, configured: Optional[str]) -> str:
         else:
             # Mint a new token and persist it for next time.
             token = secrets.token_urlsafe(32)
-            files.write_text(path, token + "\n")
-            path.chmod(0o600)
+            files.write_text(path, token + "\n", mode=0o600)
     return token
