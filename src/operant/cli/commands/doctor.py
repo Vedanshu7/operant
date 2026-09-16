@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import collections.abc
+import functools
 from typing import Annotated
 
 import typer
@@ -100,8 +101,7 @@ def _presence_probe(
     """
     Build a zero-arg probe that reports whether a secret resolves.
     """
-    probe = lambda: _secret_present(deps, profile, name)
-    return probe
+    return functools.partial(_secret_present, deps, profile, name)
 
 
 def _secret_present(deps: cddeps.CliDeps, profile: object, name: str) -> str:

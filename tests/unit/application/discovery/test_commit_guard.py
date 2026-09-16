@@ -9,7 +9,7 @@ import operant.application.recorder.recording as recdng
 import operant.application.usecases.discover as discover
 import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as graph
-import operant.infra.repositories.artifacts as artifacts
+import operant.infra.repositories.artifacts as raartifa
 import operant.infra.repositories.graphs as graphs
 import operant.infra.repositories.profiles as profiles
 import tests.support.recording as trec
@@ -58,7 +58,7 @@ def test_bootstrap_collision_saves_generic_and_keeps_curated(
 ) -> None:
     profs = _profiles(tmp_path)
     grphs = graphs.FileGraphRepository(tmp_path / "graphs")
-    arts = artifacts.FileArtifactRepository(tmp_path / "artifacts")
+    arts = raartifa.FileArtifactRepository(tmp_path / "artifacts")
     result = discover.config.DiscoveryResult(
         recording=_parabank_recording(),
         profile=_thin_parabank_profile(),
@@ -78,7 +78,7 @@ def test_bootstrap_collision_saves_generic_and_keeps_curated(
 def test_profile_mode_saves_in_place(tmp_path: pathlib.Path) -> None:
     profs = _profiles(tmp_path)
     grphs = graphs.FileGraphRepository(tmp_path / "graphs")
-    arts = artifacts.FileArtifactRepository(tmp_path / "artifacts")
+    arts = raartifa.FileArtifactRepository(tmp_path / "artifacts")
     result = discover.config.DiscoveryResult(
         recording=_parabank_recording(),
         profile=_thin_parabank_profile(),
