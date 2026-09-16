@@ -8,9 +8,16 @@ import operant.helpers.ids as ids
 
 from __future__ import annotations
 
+import re
 import secrets
+from typing import Final
 
+import operant.domain.errors as errors
 import operant.helpers.time as time
+
+# A record id names a file or directory, so it is one plain path segment.
+KEY_PATTERN: Final[str] = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+_KEY_RE: Final[re.Pattern[str]] = re.compile(KEY_PATTERN)
 
 
 def run_id(kind: str) -> str:
@@ -41,3 +48,19 @@ def short_id(prefix: str, num_bytes: int = 4) -> str:
     """
     identifier = f"{prefix}-{secrets.token_hex(num_bytes)}"
     return identifier
+
+
+def checked_key(key: str) -> str:
+    """
+    Return ``key`` when it is safe to use as one file-name segment.
+
+    :param key: A capability, graph or profile id.
+    :return: The same key.
+    :raises errors.InvalidIdError: When it holds a path separator,
+        starts with a dot, or uses other characters.
+    """
+    if not _KEY_RE.fullmatch(key):
+        raise errors.InvalidIdError(
+            f"Id '{key}' must be letters, digits, '.', '_' or '-'"
+        )
+    return key

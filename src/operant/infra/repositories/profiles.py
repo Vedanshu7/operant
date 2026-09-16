@@ -9,11 +9,16 @@ import operant.infra.repositories.profiles as rpprofil
 from __future__ import annotations
 
 import pathlib
-from typing import List
+from typing import Final, FrozenSet, List
 
 import operant.domain.errors as errors
 import operant.domain.profile as profile
 import operant.helpers.files as files
+import operant.helpers.ids as ids
+
+# The gateway's own configuration lives beside the app profiles.
+_GATEWAY_STEM: Final[str] = "gateway"
+
 
 # #############################################################################
 # FileProfileRepository
@@ -35,7 +40,7 @@ class FileProfileRepository:
         """
         Return the file path for ``profile_id``.
         """
-        path = self.root / f"{profile_id}.json"
+        path = self.root / f"{ids.checked_key(profile_id)}.json"
         return path
 
     def exists(self, profile_id: str) -> bool:
@@ -63,7 +68,7 @@ class FileProfileRepository:
             found = sorted(
                 path.stem
                 for path in self.root.glob("*.json")
-                if path.stem not in {"gateway", self._discovery_base.stem}
+                if path.stem not in self._reserved()
             )
         else:
             found = []
@@ -80,6 +85,12 @@ class FileProfileRepository:
         """
         Write the profile atomically under a lock and returns its path.
         """
+        if document.vendor_id in self._reserved():
+            # The base profiles hold the deny-by-default policy; an app
+            # profile must never replace them.
+            raise errors.PreconditionFailedError(
+                f"Profile id '{document.vendor_id}' is reserved"
+            )
         path = self.path(document.vendor_id)
         with files.locked(path):
             files.write_model(path, document)
@@ -91,3 +102,10 @@ class FileProfileRepository:
         """
         document = files.read_model(self._discovery_base, profile.AppProfile)
         return document
+
+    def _reserved(self) -> FrozenSet[str]:
+        """
+        Return the ids of the base profiles that are not app profiles.
+        """
+        reserved = frozenset({_GATEWAY_STEM, self._discovery_base.stem})
+        return reserved

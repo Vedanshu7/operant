@@ -144,3 +144,29 @@ def test_memory_is_listed_read_only(tmp_path: pathlib.Path) -> None:
             "remedies": [],
         }
         assert client.get("/api/v1/memory").status_code == 401
+
+
+def test_ids_that_are_not_plain_names_are_refused(tmp_path: pathlib.Path) -> None:
+    app, _ = _build(tmp_path)
+    with starlette.testclient.TestClient(app) as client:
+        for path, body in (
+            ("/api/v1/runs/discovery", {"goal": "g", "capability_id": "../x"}),
+            ("/api/v1/runs/replay", {"capability_id": "../../x"}),
+        ):
+            refused = client.post(path, headers=_AUTH, json=body)
+            assert refused.status_code == 422
+        assert not (tmp_path / "x").exists()
+        hidden = client.get("/api/v1/capabilities/..%2Fpolicies", headers=_AUTH)
+        assert hidden.status_code in {404, 422}
+
+
+def test_the_base_profiles_cannot_be_overwritten(tmp_path: pathlib.Path) -> None:
+    app, _ = _build(tmp_path)
+    with starlette.testclient.TestClient(app) as client:
+        profile = client.get("/api/v1/profiles/p", headers=_AUTH).json()
+        for reserved in ("gateway", "discovery-base"):
+            profile["vendor_id"] = reserved
+            refused = client.put(
+                f"/api/v1/profiles/{reserved}", headers=_AUTH, json=profile
+            )
+            assert refused.status_code == 422

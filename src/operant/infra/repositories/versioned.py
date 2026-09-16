@@ -21,6 +21,7 @@ import pydantic
 
 import operant.domain.errors as errors
 import operant.helpers.files as files
+import operant.helpers.ids as ids
 
 # #############################################################################
 # VersionedDocuments
@@ -42,7 +43,7 @@ class VersionedDocuments[ModelT: pydantic.BaseModel]:
         """
         Return the directory for ``key`` (may not exist yet).
         """
-        directory = self.root / key
+        directory = self.root / ids.checked_key(key)
         return directory
 
     def versions(self, key: str) -> List[int]:

@@ -21,6 +21,7 @@ import pydantic
 import operant.application.usecases.discover as discover
 import operant.application.usecases.replay as replay
 import operant.domain.models.runs as runs
+import operant.helpers.ids as ids
 
 # #############################################################################
 # StartDiscoveryBody
@@ -46,9 +47,11 @@ class StartDiscoveryBody(pydantic.BaseModel):
     """
 
     goal: str
-    capability_id: str
+    capability_id: str = pydantic.Field(pattern=ids.KEY_PATTERN)
     name: str = ""
-    profile_id: Optional[str] = None
+    profile_id: Optional[str] = pydantic.Field(
+        default=None, pattern=ids.KEY_PATTERN
+    )
     tenant: str = ""
     inputs: Dict[str, str] = pydantic.Field(default_factory=dict)
     screenshots: bool = True
@@ -89,7 +92,7 @@ class StartReplayBody(pydantic.BaseModel):
         demos.
     """
 
-    capability_id: str
+    capability_id: str = pydantic.Field(pattern=ids.KEY_PATTERN)
     tenant: str = ""
     inputs: Dict[str, str] = pydantic.Field(default_factory=dict)
     inject_session_expiry_before: Optional[str] = None

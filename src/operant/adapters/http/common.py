@@ -32,6 +32,7 @@ import operant.helpers.files as files
 
 _STATUS_BY_ERROR: Final[Tuple[Tuple[type[Exception], int], ...]] = (
     (errors.NotFoundError, 404),
+    (errors.InvalidIdError, 422),
     (errors.UnknownApprovalError, 404),
     (errors.UnknownInterventionError, 404),
     (errors.PolicyViolationError, 403),

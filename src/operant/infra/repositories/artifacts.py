@@ -20,6 +20,7 @@ from typing import List, Optional
 import operant.domain.errors as errors
 import operant.domain.models.artifact as maartifa
 import operant.helpers.files as files
+import operant.helpers.ids as ids
 import operant.infra.repositories.versioned as versione
 
 # #############################################################################
@@ -153,5 +154,5 @@ class FileArtifactRepository:
         """
         Return the flat pre-versioning path for ``artifact_id``.
         """
-        path = self.root / f"{artifact_id}.json"
+        path = self.root / f"{ids.checked_key(artifact_id)}.json"
         return path
