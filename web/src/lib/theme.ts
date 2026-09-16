@@ -1,3 +1,5 @@
+import { storageGet, storageSet } from "@/lib/safeStorage";
+
 export type Theme = "light" | "dark";
 
 const KEY = "operant.theme";
@@ -7,12 +9,8 @@ function systemTheme(): Theme {
 }
 
 export function getTheme(): Theme {
-  try {
-    const stored = localStorage.getItem(KEY);
-    if (stored === "light" || stored === "dark") return stored;
-  } catch {
-    // ignore
-  }
+  const stored = storageGet(KEY);
+  if (stored === "light" || stored === "dark") return stored;
   return systemTheme();
 }
 
@@ -21,11 +19,7 @@ export function applyTheme(theme: Theme): void {
 }
 
 export function setTheme(theme: Theme): void {
-  try {
-    localStorage.setItem(KEY, theme);
-  } catch {
-    // ignore
-  }
+  storageSet(KEY, theme);
   applyTheme(theme);
 }
 

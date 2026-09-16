@@ -5,7 +5,7 @@ import type { IoField } from "@/api/types";
 export type InvokeValues = Record<string, string | boolean>;
 
 export function buildInvokeSchema(fields: Record<string, IoField>): z.ZodType<InvokeValues> {
-  const shape: Record<string, z.ZodType> = {};
+  const shape: Record<string, z.ZodType<string | boolean>> = {};
   for (const [name, field] of Object.entries(fields)) {
     switch (field.type) {
       case "boolean":
@@ -26,7 +26,7 @@ export function buildInvokeSchema(fields: Record<string, IoField>): z.ZodType<In
       }
     }
   }
-  return z.object(shape) as unknown as z.ZodType<InvokeValues>;
+  return z.object(shape);
 }
 
 export function defaultInvokeValues(fields: Record<string, IoField>): InvokeValues {

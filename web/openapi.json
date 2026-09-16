@@ -1,0 +1,2976 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Operant",
+    "version": "1"
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "summary": "Healthz",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/discovery": {
+      "post": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Start Discovery",
+        "description": "Start an LLM discovery run and returns its initial record.",
+        "operationId": "start_discovery_api_v1_runs_discovery_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartDiscoveryBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Start Discovery Api V1 Runs Discovery Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/replay": {
+      "post": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Start Replay",
+        "description": "Start a deterministic replay run and returns its initial record.",
+        "operationId": "start_replay_api_v1_runs_replay_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartReplayBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Start Replay Api V1 Runs Replay Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "List Runs",
+        "description": "List runs newest first, filtered by the given criteria.",
+        "operationId": "list_runs_api_v1_runs_get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "discovery",
+                    "replay"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "queued",
+                    "waiting_driver",
+                    "running",
+                    "waiting_approval",
+                    "waiting_intervention",
+                    "waiting_clarification",
+                    "succeeded",
+                    "business_outcome",
+                    "escalated",
+                    "failed",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "capability_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Capability Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Runs Api V1 Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Get Run",
+        "description": "Return a run with its pending human-in-the-loop state.",
+        "operationId": "get_run_api_v1_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Run Api V1 Runs  Run Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/events": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Stream Events",
+        "description": "Stream the run's events over SSE, replaying after ``after``.",
+        "operationId": "stream_events_api_v1_runs__run_id__events_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": -1,
+              "title": "After"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/cancel": {
+      "post": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Cancel Run",
+        "description": "Request cancellation of an in-flight run.",
+        "operationId": "cancel_run_api_v1_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Cancel Run Api V1 Runs  Run Id  Cancel Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/screenshot": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Latest Screenshot",
+        "description": "Return the most recent screenshot captured for the run.",
+        "operationId": "latest_screenshot_api_v1_runs__run_id__screenshot_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals": {
+      "get": {
+        "tags": [
+          "hitl"
+        ],
+        "summary": "List Pending Approvals",
+        "description": "List every approval awaiting an operator answer, oldest first.",
+        "operationId": "list_pending_approvals_api_v1_approvals_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Pending Approvals Api V1 Approvals Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{approval_id}": {
+      "get": {
+        "tags": [
+          "hitl"
+        ],
+        "summary": "Get Approval",
+        "description": "Return one approval by id.",
+        "operationId": "get_approval_api_v1_approvals__approval_id__get",
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Approval Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Approval Api V1 Approvals  Approval Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "hitl"
+        ],
+        "summary": "Answer Approval",
+        "description": "Deliver the operator's decision to the waiting run.",
+        "operationId": "answer_approval_api_v1_approvals__approval_id__post",
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Approval Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalDecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Answer Approval Api V1 Approvals  Approval Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/{intervention_id}/take": {
+      "post": {
+        "tags": [
+          "hitl"
+        ],
+        "summary": "Take Intervention",
+        "description": "Transfer the live session to the operator.",
+        "operationId": "take_intervention_api_v1_interventions__intervention_id__take_post",
+        "parameters": [
+          {
+            "name": "intervention_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Intervention Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Take Intervention Api V1 Interventions  Intervention Id  Take Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/{intervention_id}/handback": {
+      "post": {
+        "tags": [
+          "hitl"
+        ],
+        "summary": "Hand Back",
+        "description": "Return the live session to the automation.",
+        "operationId": "hand_back_api_v1_interventions__intervention_id__handback_post",
+        "parameters": [
+          {
+            "name": "intervention_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Intervention Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Hand Back Api V1 Interventions  Intervention Id  Handback Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interventions/{intervention_id}/abandon": {
+      "post": {
+        "tags": [
+          "hitl"
+        ],
+        "summary": "Abandon",
+        "description": "End the run: the operator could not recover it.",
+        "operationId": "abandon_api_v1_interventions__intervention_id__abandon_post",
+        "parameters": [
+          {
+            "name": "intervention_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Intervention Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Abandon Api V1 Interventions  Intervention Id  Abandon Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clarifications/{clarification_id}": {
+      "post": {
+        "tags": [
+          "hitl"
+        ],
+        "summary": "Answer Clarification",
+        "description": "Deliver the operator's clarifying answer to the waiting run.",
+        "operationId": "answer_clarification_api_v1_clarifications__clarification_id__post",
+        "parameters": [
+          {
+            "name": "clarification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Clarification Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClarificationAnswerBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Answer Clarification Api V1 Clarifications  Clarification Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/credentials/{request_id}": {
+      "post": {
+        "tags": [
+          "hitl"
+        ],
+        "summary": "Answer Credential",
+        "description": "Deliver an operator-provided credential to the waiting run.\n\nThe value or locator is passed to the worker in memory and never\npersisted.",
+        "operationId": "answer_credential_api_v1_credentials__request_id__post",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredentialAnswerBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Answer Credential Api V1 Credentials  Request Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/capabilities": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "List Capabilities",
+        "description": "List every stored capability with its stability and gate.",
+        "operationId": "list_capabilities_api_v1_capabilities_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Capabilities Api V1 Capabilities Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/capabilities/{capability_id}": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Get Capability",
+        "description": "Return one capability's full contract, stability, and gate.",
+        "operationId": "get_capability_api_v1_capabilities__capability_id__get",
+        "parameters": [
+          {
+            "name": "capability_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Capability Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Capability Api V1 Capabilities  Capability Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/capabilities/{capability_id}/graph": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Get Capability Graph",
+        "description": "Return the graph version the capability pins.",
+        "operationId": "get_capability_graph_api_v1_capabilities__capability_id__graph_get",
+        "parameters": [
+          {
+            "name": "capability_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Capability Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Capability Graph Api V1 Capabilities  Capability Id  Graph Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/capabilities/{capability_id}/approve": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Approve Capability",
+        "description": "Approve a capability once its stability clears the gate.",
+        "operationId": "approve_capability_api_v1_capabilities__capability_id__approve_post",
+        "parameters": [
+          {
+            "name": "capability_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Capability Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Approve Capability Api V1 Capabilities  Capability Id  Approve Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/capabilities/{capability_id}/invoke": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Invoke Capability",
+        "description": "Replay a capability with the supplied tenant and inputs.",
+        "operationId": "invoke_capability_api_v1_capabilities__capability_id__invoke_post",
+        "parameters": [
+          {
+            "name": "capability_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Capability Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartReplayBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Invoke Capability Api V1 Capabilities  Capability Id  Invoke Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profiles": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "List Profiles",
+        "description": "List stored app profiles.",
+        "operationId": "list_profiles_api_v1_profiles_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Profiles Api V1 Profiles Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profiles/{profile_id}": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Get Profile",
+        "description": "Return one app profile's full document.",
+        "operationId": "get_profile_api_v1_profiles__profile_id__get",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Profile Api V1 Profiles  Profile Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Save Profile",
+        "description": "Validate and stores an edited app profile.",
+        "operationId": "save_profile_api_v1_profiles__profile_id__put",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppProfile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Save Profile Api V1 Profiles  Profile Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/secrets/refs": {
+      "get": {
+        "tags": [
+          "secrets"
+        ],
+        "summary": "List Refs",
+        "description": "List declared secret references with their current presence.",
+        "operationId": "list_refs_api_v1_secrets_refs_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Refs Api V1 Secrets Refs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "secrets"
+        ],
+        "summary": "Upsert Ref",
+        "description": "Declare or replaces a secret reference (metadata only).",
+        "operationId": "upsert_ref_api_v1_secrets_refs_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecretRefBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Upsert Ref Api V1 Secrets Refs Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/secrets/refs/{name}": {
+      "delete": {
+        "tags": [
+          "secrets"
+        ],
+        "summary": "Delete Ref",
+        "description": "Remove a secret reference declaration.",
+        "operationId": "delete_ref_api_v1_secrets_refs__name__delete",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete Ref Api V1 Secrets Refs  Name  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/secrets/refs/{name}/check": {
+      "get": {
+        "tags": [
+          "secrets"
+        ],
+        "summary": "Check Ref",
+        "description": "Report whether the store currently resolves the reference.",
+        "operationId": "check_ref_api_v1_secrets_refs__name__check_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Check Ref Api V1 Secrets Refs  Name  Check Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Health",
+        "description": "Report liveness and the package version.",
+        "operationId": "health_api_v1_health_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Health Api V1 Health Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/{run_id}": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "List Evidence",
+        "description": "List the evidence files a run produced.",
+        "operationId": "list_evidence_api_v1_evidence__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Evidence Api V1 Evidence  Run Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/{run_id}/files/{name}": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Get Evidence File",
+        "description": "Serve one evidence file, guarding against path traversal.",
+        "operationId": "get_evidence_file_api_v1_evidence__run_id__files__name__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/memory": {
+      "get": {
+        "tags": [
+          "memory"
+        ],
+        "summary": "Get Memory",
+        "description": "Return plans, lessons, learned tools, and remedies, optionally for one app.",
+        "operationId": "get_memory_api_v1_memory_get",
+        "parameters": [
+          {
+            "name": "app",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "App"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Memory Api V1 Memory Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AppProfile": {
+        "properties": {
+          "vendor_id": {
+            "type": "string",
+            "title": "Vendor Id"
+          },
+          "app_name": {
+            "type": "string",
+            "title": "App Name"
+          },
+          "window_title_pattern": {
+            "type": "string",
+            "title": "Window Title Pattern"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/Policy"
+          },
+          "tenants": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TenantBinding"
+            },
+            "type": "object",
+            "title": "Tenants"
+          },
+          "default_tenant": {
+            "type": "string",
+            "title": "Default Tenant"
+          },
+          "global_outcome_edges": {
+            "items": {
+              "$ref": "#/components/schemas/OutcomeEdge"
+            },
+            "type": "array",
+            "title": "Global Outcome Edges",
+            "default": []
+          },
+          "fault_injection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FaultInjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "vendor_id",
+          "app_name",
+          "window_title_pattern",
+          "policy",
+          "tenants",
+          "default_tenant"
+        ],
+        "title": "AppProfile",
+        "description": "Per-vendor configuration every capability against the app shares.\n\n:ivar vendor_id: Application identifier the profile belongs to.\n:ivar app_name: OS application that hosts the target (e.g. ``Google\n    Chrome``).\n:ivar window_title_pattern: Regex the driven window's title matches.\n:ivar policy: The policy capabilities against this app run under.\n:ivar tenants: Tenant bindings keyed by tenant name.\n:ivar default_tenant: Tenant used when a run names none.\n:ivar global_outcome_edges: App-wide detectors applied at every\n    node.\n:ivar fault_injection: Backend fault injection, when supported."
+      },
+      "ApprovalDecisionBody": {
+        "properties": {
+          "approved": {
+            "type": "boolean",
+            "title": "Approved"
+          },
+          "remember": {
+            "type": "string",
+            "enum": [
+              "once",
+              "process"
+            ],
+            "title": "Remember",
+            "default": "once"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "approved"
+        ],
+        "title": "ApprovalDecisionBody",
+        "description": "An operator's answer to an approval question.\n\n:ivar approved: Whether the action is allowed.\n:ivar remember:``once`` or ``process`` (remember for the run).\n:ivar note: Optional operator remark."
+      },
+      "ApprovalPolicy": {
+        "properties": {
+          "mutating": {
+            "type": "boolean",
+            "title": "Mutating",
+            "default": true
+          },
+          "sensitive_fill": {
+            "type": "string",
+            "enum": [
+              "literals",
+              "always",
+              "off"
+            ],
+            "title": "Sensitive Fill",
+            "default": "literals"
+          },
+          "sensitive_export": {
+            "type": "boolean",
+            "title": "Sensitive Export",
+            "default": true
+          },
+          "sensitive_field_patterns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sensitive Field Patterns",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "ApprovalPolicy",
+        "description": "Which approval gates a policy turns on.\n\n:ivar mutating: Ask before a mutating control is activated.\n:ivar sensitive_fill:``literals`` asks for sensitive values the\n    model or caller supplied while a value resolved from a policy-\n    held secret reference runs unattended (the gate is keyed on\n    risk, and the system entering its own login into an allowlisted\n    app is the operator's everyday step); ``always`` gates secret\n    references too; ``off`` never asks.\n:ivar sensitive_export: Ask before a sensitive value extracted in\n    one app is typed into another.\n:ivar sensitive_field_patterns: Vendor-specific field names beyond\n    the built-in detectors; ``financial:amount`` pins the class, a\n    bare pattern counts as pii."
+      },
+      "BusinessOutcomeHandle": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "business_outcome",
+            "title": "Type",
+            "default": "business_outcome"
+          },
+          "outcome": {
+            "type": "string",
+            "title": "Outcome"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "outcome"
+        ],
+        "title": "BusinessOutcomeHandle",
+        "description": "End the run with an outcome the application reported.\n\n:ivar type: Discriminator, always ``business_outcome``.\n:ivar outcome: Outcome name surfaced in the replay result.\n:ivar detail: Human-readable detail."
+      },
+      "ClarificationAnswerBody": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer"
+        ],
+        "title": "ClarificationAnswerBody",
+        "description": "An operator's answer to a clarifying question.\n\n:ivar answer: The free-text answer."
+      },
+      "CredentialAnswerBody": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "locator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locator"
+          }
+        },
+        "type": "object",
+        "title": "CredentialAnswerBody",
+        "description": "An operator's answer to a credential request (never persisted).\n\nExactly one is set: ``value`` is a literal the operator typed,\n``locator`` names an ``env:`` / ``keychain:`` source to resolve.\n\n:ivar value: A typed credential value.\n:ivar locator: A source locator to resolve instead of a value."
+      },
+      "ElementVisible": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "elementVisible",
+            "title": "Kind",
+            "default": "elementVisible"
+          },
+          "target": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/RoleStrategy"
+                },
+                {
+                  "$ref": "#/components/schemas/LabelProximityStrategy"
+                },
+                {
+                  "$ref": "#/components/schemas/StructuralStrategy"
+                },
+                {
+                  "$ref": "#/components/schemas/RegionStrategy"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "labelProximity": "#/components/schemas/LabelProximityStrategy",
+                  "region": "#/components/schemas/RegionStrategy",
+                  "role": "#/components/schemas/RoleStrategy",
+                  "structural": "#/components/schemas/StructuralStrategy"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Target"
+          },
+          "negate": {
+            "type": "boolean",
+            "title": "Negate",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "target"
+        ],
+        "title": "ElementVisible",
+        "description": "Hold when a target stack resolves to a control.\n\n:ivar kind: Discriminator, always ``elementVisible``.\n:ivar target: Strategies tried in order against the digest."
+      },
+      "EscalateHandle": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "escalate",
+            "title": "Type",
+            "default": "escalate"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "EscalateHandle",
+        "description": "Hand control to a human.\n\n:ivar type: Discriminator, always ``escalate``.\n:ivar reason: Why a human is needed."
+      },
+      "FailHandle": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "fail",
+            "title": "Type",
+            "default": "fail"
+          },
+          "failure_class": {
+            "type": "string",
+            "enum": [
+              "locator_not_found",
+              "locator_ambiguous",
+              "node_assert_failed",
+              "precondition_failed",
+              "timeout",
+              "session_expired",
+              "unexpected_dialog",
+              "app_error",
+              "launch_failed",
+              "policy_violation",
+              "approval_denied",
+              "cancelled"
+            ],
+            "title": "Failure Class"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "failure_class"
+        ],
+        "title": "FailHandle",
+        "description": "Stop the run with a classified failure.\n\n:ivar type: Discriminator, always ``fail``.\n:ivar failure_class: Closed failure vocabulary entry.\n:ivar message: Human-readable detail."
+      },
+      "FaultInjection": {
+        "properties": {
+          "restart_cmd": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Restart Cmd"
+          },
+          "health_url": {
+            "type": "string",
+            "title": "Health Url"
+          },
+          "timeout_s": {
+            "type": "integer",
+            "title": "Timeout S",
+            "default": 180
+          }
+        },
+        "type": "object",
+        "required": [
+          "restart_cmd",
+          "health_url"
+        ],
+        "title": "FaultInjection",
+        "description": "How to knock over this app's backend for a session-expiry demo.\n\nAbsent for apps we do not control; fault injection then refuses to\nrun.\n\n:ivar restart_cmd: Command that restarts the backend.\n:ivar health_url: URL polled until the backend is back.\n:ivar timeout_s: How long to wait for the backend to return."
+      },
+      "GraphRef": {
+        "properties": {
+          "graph_id": {
+            "type": "string",
+            "title": "Graph Id"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "target_node": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Node"
+          }
+        },
+        "type": "object",
+        "required": [
+          "graph_id"
+        ],
+        "title": "GraphRef",
+        "description": "A cross-domain reference to another application graph.\n\n:ivar graph_id: Vendor id of the referenced graph.\n:ivar version: Graph version to use; ``None`` means latest at run\n    time.\n:ivar target_node: Node to reach inside the referenced graph\n    (default: its goal)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok",
+            "default": true
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "default": "0.1.0"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse",
+        "description": "Liveness payload.\n\n:ivar ok: Whether the process considers itself healthy.\n:ivar version: Package version.\n:ivar protocol: Wire protocol version, for the driver daemon."
+      },
+      "InvokeGraphHandle": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "invoke",
+            "title": "Type",
+            "default": "invoke"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/GraphRef"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "ref"
+        ],
+        "title": "InvokeGraphHandle",
+        "description": "Conditional (interrupt) composition.\n\nWhen the trigger holds, run another application graph, then resume\nthe caller. This is the binding-edge handler.\n\n:ivar type: Discriminator, always ``invoke``.\n:ivar ref: The graph to run.\n:ivar reason: Why the composition exists."
+      },
+      "LabelProximityStrategy": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "labelProximity",
+            "title": "Kind",
+            "default": "labelProximity"
+          },
+          "anchor_text": {
+            "type": "string",
+            "title": "Anchor Text"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "anchor_text",
+          "role"
+        ],
+        "title": "LabelProximityStrategy",
+        "description": "Match a control of a role that sits next to anchoring text.\n\n:ivar kind: Discriminator, always ``labelProximity``.\n:ivar anchor_text: Nearby text that labels the control.\n:ivar role: Accessibility role of the control."
+      },
+      "NoteBody": {
+        "properties": {
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "NoteBody",
+        "description": "A note attached to an intervention action.\n\n:ivar note: Optional operator remark."
+      },
+      "OutcomeEdge": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "at": {
+            "type": "string",
+            "title": "At"
+          },
+          "when": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TitleMatches"
+              },
+              {
+                "$ref": "#/components/schemas/TextMatches"
+              },
+              {
+                "$ref": "#/components/schemas/ElementVisible"
+              }
+            ],
+            "title": "When",
+            "discriminator": {
+              "propertyName": "kind",
+              "mapping": {
+                "elementVisible": "#/components/schemas/ElementVisible",
+                "textMatches": "#/components/schemas/TextMatches",
+                "titleMatches": "#/components/schemas/TitleMatches"
+              }
+            }
+          },
+          "handle": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BusinessOutcomeHandle"
+              },
+              {
+                "$ref": "#/components/schemas/RecoverHandle"
+              },
+              {
+                "$ref": "#/components/schemas/EscalateHandle"
+              },
+              {
+                "$ref": "#/components/schemas/FailHandle"
+              },
+              {
+                "$ref": "#/components/schemas/InvokeGraphHandle"
+              }
+            ],
+            "title": "Handle",
+            "discriminator": {
+              "propertyName": "type",
+              "mapping": {
+                "business_outcome": "#/components/schemas/BusinessOutcomeHandle",
+                "escalate": "#/components/schemas/EscalateHandle",
+                "fail": "#/components/schemas/FailHandle",
+                "invoke": "#/components/schemas/InvokeGraphHandle",
+                "recover": "#/components/schemas/RecoverHandle"
+              }
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "at",
+          "when",
+          "handle"
+        ],
+        "title": "OutcomeEdge",
+        "description": "Conditional edge: when ``when`` holds at node ``at``, handle it.\n\n:ivar id: Stable outcome edge id.\n:ivar at: Node id, or ``*`` for capability-global.\n:ivar when: Condition that triggers the handler.\n:ivar handle: What to do when it triggers."
+      },
+      "Policy": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "allowed_apps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Apps"
+          },
+          "allowed_url_patterns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Url Patterns"
+          },
+          "allowed_action_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Action Kinds"
+          },
+          "mutating_control_patterns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mutating Control Patterns"
+          },
+          "safe_control_patterns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Safe Control Patterns",
+            "default": []
+          },
+          "strict": {
+            "type": "boolean",
+            "title": "Strict",
+            "default": false
+          },
+          "approval": {
+            "$ref": "#/components/schemas/ApprovalPolicy",
+            "default": {
+              "mutating": true,
+              "sensitive_fill": "literals",
+              "sensitive_export": true,
+              "sensitive_field_patterns": []
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "allowed_apps",
+          "allowed_url_patterns",
+          "allowed_action_kinds",
+          "mutating_control_patterns"
+        ],
+        "title": "Policy",
+        "description": "The static allowlists an application runs under.\n\n:ivar id: Policy document id.\n:ivar allowed_apps: OS application names that may be launched.\n:ivar allowed_url_patterns: Regexes a launched URL must match.\n:ivar allowed_action_kinds: Surface action kinds that may run.\n:ivar mutating_control_patterns: Regexes naming controls that mutate\n    application state, matched as whole words.\n:ivar safe_control_patterns: Read-only phrases (\"sign in\", \"sort\n    order\") blanked out before the mutating match, so a mutating\n    word inside them does not count.\n:ivar strict: Treat a button no pattern names as mutating, for apps\n    where an unlisted button can change data.\n:ivar approval: Which approval gates are on."
+      },
+      "RecoverHandle": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "recover",
+            "title": "Type",
+            "default": "recover"
+          },
+          "recovery": {
+            "type": "string",
+            "enum": [
+              "dismissDialog",
+              "retryEdge",
+              "reLogin"
+            ],
+            "title": "Recovery"
+          },
+          "max_attempts": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Max Attempts",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "required": [
+          "recovery"
+        ],
+        "title": "RecoverHandle",
+        "description": "Run a built-in recovery and retry.\n\n:ivar type: Discriminator, always ``recover``.\n:ivar recovery: Which recovery to run.\n:ivar max_attempts: How many times to try, 1..3."
+      },
+      "RegionStrategy": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "region",
+            "title": "Kind",
+            "default": "region"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "x": {
+            "type": "number",
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "title": "Y"
+          },
+          "w": {
+            "type": "number",
+            "title": "W"
+          },
+          "h": {
+            "type": "number",
+            "title": "H"
+          },
+          "tolerance": {
+            "type": "number",
+            "title": "Tolerance",
+            "default": 0.08
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "title": "RegionStrategy",
+        "description": "Match a control of a role near a window-normalised position.\n\n:ivar kind: Discriminator, always ``region``.\n:ivar role: Accessibility role of the control.\n:ivar x: Expected left edge, 0..1.\n:ivar y: Expected top edge, 0..1.\n:ivar w: Expected width, 0..1.\n:ivar h: Expected height, 0..1.\n:ivar tolerance: Allowed positional drift, 0..1."
+      },
+      "RoleStrategy": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "role",
+            "title": "Kind",
+            "default": "role"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "name"
+        ],
+        "title": "RoleStrategy",
+        "description": "Match a control by accessibility role and name.\n\n:ivar kind: Discriminator, always ``role``.\n:ivar role: Accessibility role to match.\n:ivar name: Accessible name to match."
+      },
+      "SecretRefBody": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "backend": {
+            "type": "string",
+            "enum": [
+              "env",
+              "keychain"
+            ],
+            "title": "Backend"
+          },
+          "locator": {
+            "type": "string",
+            "title": "Locator"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "backend",
+          "locator"
+        ],
+        "title": "SecretRefBody",
+        "description": "A secret reference's metadata (never a value).\n\n:ivar name: Reference name used as ``$secret:<name>``.\n:ivar backend:``env`` or ``keychain``.\n:ivar locator: Backend locator (env var, or ``service/account``).\n:ivar description: What the secret is for."
+      },
+      "StartDiscoveryBody": {
+        "properties": {
+          "goal": {
+            "type": "string",
+            "title": "Goal"
+          },
+          "capability_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+            "title": "Capability Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "tenant": {
+            "type": "string",
+            "title": "Tenant",
+            "default": ""
+          },
+          "inputs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Inputs"
+          },
+          "screenshots": {
+            "type": "boolean",
+            "title": "Screenshots",
+            "default": true
+          },
+          "max_turns": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Turns"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "single",
+                  "multi"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "goal",
+          "capability_id"
+        ],
+        "title": "StartDiscoveryBody",
+        "description": "A request to start an LLM discovery run.\n\n:ivar goal: Natural-language goal to discover.\n:ivar capability_id: Id to save the resulting capability under.\n:ivar name: Human-readable capability name; defaults to the id.\n:ivar profile_id: Profile to run under; ``None`` bootstraps a\n    vendor.\n:ivar tenant: Tenant to run against.\n:ivar inputs: Pre-seeded task inputs.\n:ivar screenshots: Whether to send the model screenshots.\n:ivar max_turns: Override the turn budget; ``None`` uses the\n    default.\n:ivar agents:``single`` or ``multi`` (planner, executor, verifier);\n    ``None`` uses the configured default."
+      },
+      "StartReplayBody": {
+        "properties": {
+          "capability_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+            "title": "Capability Id"
+          },
+          "tenant": {
+            "type": "string",
+            "title": "Tenant",
+            "default": ""
+          },
+          "inputs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Inputs"
+          },
+          "inject_session_expiry_before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inject Session Expiry Before"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capability_id"
+        ],
+        "title": "StartReplayBody",
+        "description": "A request to replay a capability.\n\n:ivar capability_id: Capability to replay.\n:ivar tenant: Tenant override; the capability default when empty.\n:ivar inputs: Task inputs by name.\n:ivar inject_session_expiry_before: Edge id to fault before, for\n    demos."
+      },
+      "StructuralStrategy": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "structural",
+            "title": "Kind",
+            "default": "structural"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "title": "StructuralStrategy",
+        "description": "Match a control by its accessibility tree path.\n\n:ivar kind: Discriminator, always ``structural``.\n:ivar path: A11y tree path, e.g.\n    ``window>group:1>table>row:3>link``."
+      },
+      "TenantBinding": {
+        "properties": {
+          "base_url": {
+            "type": "string",
+            "title": "Base Url"
+          },
+          "entry_path": {
+            "type": "string",
+            "title": "Entry Path",
+            "default": ""
+          },
+          "secret_refs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Secret Refs",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_url"
+        ],
+        "title": "TenantBinding",
+        "description": "Where one tenant's instance of the application lives.\n\n:ivar base_url: Root URL of the tenant's instance.\n:ivar entry_path: Path appended to ``base_url`` on launch, e.g.\n    ``/index.htm``.\n:ivar secret_refs: Ref name -> env var name (never values)."
+      },
+      "TextMatches": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "textMatches",
+            "title": "Kind",
+            "default": "textMatches"
+          },
+          "pattern": {
+            "type": "string",
+            "title": "Pattern"
+          },
+          "negate": {
+            "type": "boolean",
+            "title": "Negate",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "pattern"
+        ],
+        "title": "TextMatches",
+        "description": "Hold when the visible text matches a regex.\n\n:ivar kind: Discriminator, always ``textMatches``.\n:ivar pattern: Regex searched in the digest text."
+      },
+      "TitleMatches": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "titleMatches",
+            "title": "Kind",
+            "default": "titleMatches"
+          },
+          "pattern": {
+            "type": "string",
+            "title": "Pattern"
+          },
+          "negate": {
+            "type": "boolean",
+            "title": "Negate",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "pattern"
+        ],
+        "title": "TitleMatches",
+        "description": "Hold when the window title matches a regex.\n\n:ivar kind: Discriminator, always ``titleMatches``.\n:ivar pattern: Regex searched in the window title."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

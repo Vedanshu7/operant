@@ -16,6 +16,7 @@ import { InvokeForm } from "@/components/InvokeForm";
 import { Loading } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { StabilityBar } from "@/components/StabilityBar";
+import { TenantSelect } from "@/components/TenantSelect";
 import { formatTime } from "@/lib/format";
 import { capabilityStatusClasses } from "@/lib/status";
 
@@ -179,9 +180,7 @@ export function CapabilityPage(): ReactElement {
         <ol className="flex flex-wrap items-center gap-1 font-mono text-xs">
           {c.compiled_path.map((n, i) => (
             <li key={`${n}-${i}`} className="flex items-center gap-1">
-              <span className="rounded border border-zinc-200 px-1.5 py-0.5 dark:border-zinc-800">
-                {n}
-              </span>
+              <span className="rounded border border-border px-1.5 py-0.5">{n}</span>
               {i < c.compiled_path.length - 1 && <span className="text-muted-foreground">→</span>}
             </li>
           ))}
@@ -193,19 +192,13 @@ export function CapabilityPage(): ReactElement {
           <label className="label" htmlFor="invoke_tenant">
             Tenant
           </label>
-          <select
+          <TenantSelect
             id="invoke_tenant"
-            className="input"
+            tenants={Object.keys(c.tenants)}
             value={tenant}
-            onChange={(e) => setTenant(e.target.value)}
-          >
-            <option value="">Default ({c.default_tenant})</option>
-            {Object.keys(c.tenants).map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+            onChange={setTenant}
+            defaultLabel={`Default (${c.default_tenant})`}
+          />
         </div>
         <InvokeForm
           fields={c.inputs}

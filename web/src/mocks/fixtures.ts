@@ -4,7 +4,6 @@ import type {
   Approval,
   CapabilityDetail,
   Clarification,
-  DoctorReport,
   EvidenceListing,
   Intervention,
   ProfileSummary,
@@ -459,19 +458,6 @@ export const evidenceFixture: EvidenceListing = {
     { path: "shots/0005.png", size: 172211, kind: "png" },
     { path: "shots/0007.png", size: 169877, kind: "png" },
     { path: "capability.json", size: 2210, kind: "other" },
-  ],
-};
-
-export const doctorFixture: DoctorReport = {
-  checks: [
-    { name: "driver", status: "ok", detail: "macOS driver reachable at 127.0.0.1:7081" },
-    { name: "accessibility", status: "ok", detail: "Accessibility permission granted" },
-    {
-      name: "screen_recording",
-      status: "warn",
-      detail: "Screen Recording not granted; screenshots disabled",
-    },
-    { name: "llm", status: "ok", detail: "model claude-sonnet-4-5 responds" },
   ],
 };
 

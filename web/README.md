@@ -17,7 +17,7 @@ TanStack Query 5 · `@microsoft/fetch-event-source` · zod 4 · MSW 2 · Vitest 
 | `pnpm typecheck` | `tsc --noEmit` for app and config                                                  |
 | `pnpm lint`      | ESLint (typescript-eslint strict, react-hooks) + Prettier check                    |
 | `pnpm test`      | Vitest (jsdom + Testing Library + MSW)                                             |
-| `pnpm gen:api`   | Regenerate `src/api/schema.d.ts` from the running backend                          |
+| `pnpm gen:api`   | Regenerate `src/api/schema.d.ts` from `openapi.json`                               |
 
 ## Dev with the backend
 
@@ -63,14 +63,17 @@ Serve `dist/` from any static host and reverse-proxy `/api` to the Operant API.
 
 ## API types
 
-`src/api/types.ts` is hand-written against the v1 contract. Once the backend exposes
-`http://127.0.0.1:7080/openapi.json`:
+Most routes return untyped dicts, so `src/api/types.ts` keeps the response shapes by hand and
+aliases the types the schema describes exactly (some request bodies, tenant binding, health) from the
+generated `src/api/schema.d.ts`. To refresh it after a backend change:
 
 ```sh
+cd .. && OPERANT_SERVER__AUTH_TOKEN=x uv run python -c "import json; \
+  from operant.infra.settings import OperantSettings; \
+  from operant.server.app import create_app; \
+  print(json.dumps(create_app(OperantSettings()).openapi(), indent=2))" > web/openapi.json
 pnpm gen:api   # writes src/api/schema.d.ts
 ```
-
-Then point `src/api/client.ts` at `openapi-fetch`'s `createClient<paths>()` and retire `types.ts`.
 
 ## Layout
 

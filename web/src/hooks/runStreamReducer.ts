@@ -37,7 +37,7 @@ export const initialRunStreamState: RunStreamState = {
   connected: false,
 };
 
-export const MAX_EVENTS = 2000;
+const MAX_EVENTS = 2000;
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;

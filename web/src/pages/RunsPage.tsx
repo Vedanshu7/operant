@@ -4,14 +4,14 @@ import { Plus } from "lucide-react";
 import { Link } from "react-router";
 
 import { useRuns } from "@/api/queries";
-import type { RunKind, RunStatus } from "@/api/types";
+import { RUN_STATUSES, type RunKind, type RunStatus } from "@/api/types";
 import { Button } from "@/components/Button";
 import { ErrorBox } from "@/components/ErrorBox";
 import { Loading } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PendingBanner } from "@/components/PendingBanner";
 import { RunsTable } from "@/components/RunsTable";
-import { RUN_STATUSES, statusLabel } from "@/lib/status";
+import { statusLabel } from "@/lib/status";
 
 export function RunsPage(): ReactElement {
   const [kind, setKind] = useState<RunKind | "">("");

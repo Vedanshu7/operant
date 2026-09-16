@@ -14,7 +14,6 @@ import type {
   ClarificationAnswer,
   CredentialAnswer,
   DiscoveryRequest,
-  DoctorReport,
   EvidenceListing,
   Health,
   Intervention,
@@ -31,6 +30,11 @@ import type {
 } from "@/api/types";
 import { isTerminal } from "@/lib/status";
 
+const RUNS_POLL_MS = 10_000;
+const RUN_POLL_MS = 5_000;
+const APPROVALS_POLL_MS = 5_000;
+const HEALTH_POLL_MS = 30_000;
+
 export const keys = {
   runs: (filters: RunListFilters) => ["runs", filters] as const,
   run: (id: string) => ["run", id] as const,
@@ -44,14 +48,13 @@ export const keys = {
   evidence: (runId: string) => ["evidence", runId] as const,
   evidenceFile: (runId: string, path: string) => ["evidence", runId, path] as const,
   health: ["health"] as const,
-  doctor: ["doctor"] as const,
 };
 
 export function useRuns(filters: RunListFilters) {
   return useQuery({
     queryKey: keys.runs(filters),
     queryFn: () => fetchJson<RunList>("/runs", { query: { ...filters } }),
-    refetchInterval: 10_000,
+    refetchInterval: RUNS_POLL_MS,
   });
 }
 
@@ -59,7 +62,7 @@ export function useRun(id: string) {
   return useQuery({
     queryKey: keys.run(id),
     queryFn: () => fetchJson<RunDetail>(`/runs/${id}`),
-    refetchInterval: (q) => (q.state.data && isTerminal(q.state.data.status) ? false : 5_000),
+    refetchInterval: (q) => (q.state.data && isTerminal(q.state.data.status) ? false : RUN_POLL_MS),
   });
 }
 
@@ -93,7 +96,7 @@ export function usePendingApprovals() {
   return useQuery({
     queryKey: keys.pendingApprovals,
     queryFn: () => fetchJson<Approval[]>("/approvals", { query: { status: "pending" } }),
-    refetchInterval: 5_000,
+    refetchInterval: APPROVALS_POLL_MS,
   });
 }
 
@@ -274,11 +277,7 @@ export function useHealth() {
   return useQuery({
     queryKey: keys.health,
     queryFn: () => fetchJson<Health>("/health"),
-    refetchInterval: 30_000,
+    refetchInterval: HEALTH_POLL_MS,
     retry: false,
   });
-}
-
-export function useDoctor() {
-  return useQuery({ queryKey: keys.doctor, queryFn: () => fetchJson<DoctorReport>("/doctor") });
 }

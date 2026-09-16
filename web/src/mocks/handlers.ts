@@ -24,7 +24,6 @@ import {
   approvalFixture,
   capabilityFixtures,
   clarificationFixture,
-  doctorFixture,
   evidenceFixture,
   graphFixture,
   interventionFixture,
@@ -132,7 +131,6 @@ function setRunStatus(id: string, status: RunStatus): void {
 
 export const handlers = [
   http.get(`${BASE}/health`, () => HttpResponse.json({ ok: true, version: "0.7.0-mock" })),
-  http.get(`${BASE}/doctor`, () => HttpResponse.json(doctorFixture)),
 
   http.get(`${BASE}/runs`, ({ request }) => {
     const url = new URL(request.url);

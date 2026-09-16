@@ -15,6 +15,7 @@ import { NavLink, Outlet } from "react-router";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useHealth } from "@/api/queries";
 import { clearToken } from "@/lib/auth";
+import { storageGet, storageSet } from "@/lib/safeStorage";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -35,11 +36,7 @@ const NAV: NavItem[] = [
 const SIDEBAR_KEY = "operant.sidebar.collapsed";
 
 function initialCollapsed(): boolean {
-  try {
-    return localStorage.getItem(SIDEBAR_KEY) === "1";
-  } catch {
-    return false;
-  }
+  return storageGet(SIDEBAR_KEY) === "1";
 }
 
 function HealthDot(): ReactElement {
@@ -72,11 +69,7 @@ export function Layout(): ReactElement {
   const toggle = (): void => {
     setCollapsed((prev) => {
       const next = !prev;
-      try {
-        localStorage.setItem(SIDEBAR_KEY, next ? "1" : "0");
-      } catch {
-        // ignore
-      }
+      storageSet(SIDEBAR_KEY, next ? "1" : "0");
       return next;
     });
   };

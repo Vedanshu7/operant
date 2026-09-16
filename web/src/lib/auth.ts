@@ -1,19 +1,17 @@
+import { storageGet, storageRemove, storageSet } from "@/lib/safeStorage";
+
 export const TOKEN_KEY = "operant.token";
 
 export function getToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
+  return storageGet(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+  storageSet(TOKEN_KEY, token);
 }
 
 export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
+  storageRemove(TOKEN_KEY);
 }
 
 export function redirectToLogin(): void {

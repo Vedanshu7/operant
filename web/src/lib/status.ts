@@ -1,39 +1,15 @@
 import type { ApprovalKind, CapabilityStatus, RunStatus } from "@/api/types";
 
-export const TERMINAL_STATUSES: ReadonlySet<RunStatus> = new Set<RunStatus>([
+const TERMINAL_STATUSES: ReadonlySet<RunStatus> = new Set<RunStatus>([
   "succeeded",
   "business_outcome",
   "escalated",
   "failed",
   "cancelled",
 ]);
-
-export const WAITING_STATUSES: ReadonlySet<RunStatus> = new Set<RunStatus>([
-  "waiting_approval",
-  "waiting_intervention",
-  "waiting_clarification",
-]);
-
-export const RUN_STATUSES: readonly RunStatus[] = [
-  "queued",
-  "waiting_driver",
-  "running",
-  "waiting_approval",
-  "waiting_intervention",
-  "waiting_clarification",
-  "succeeded",
-  "business_outcome",
-  "escalated",
-  "failed",
-  "cancelled",
-];
 
 export function isTerminal(status: RunStatus): boolean {
   return TERMINAL_STATUSES.has(status);
-}
-
-export function isWaitingForHuman(status: RunStatus): boolean {
-  return WAITING_STATUSES.has(status);
 }
 
 const STATUS_CLASSES: Record<RunStatus, string> = {

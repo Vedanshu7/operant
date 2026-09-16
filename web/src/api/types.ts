@@ -1,20 +1,26 @@
-// Hand-written contract for the Operant API (base /api/v1).
-// Replaced by the generated src/api/schema.d.ts once the backend publishes openapi.json.
+import type { components } from "./schema";
+
+// Most routes return untyped dicts, so responses stay hand-written; types the
+// OpenAPI schema describes exactly come from the generated schema.d.ts.
+type Schemas = components["schemas"];
 
 export type RunKind = "discovery" | "replay";
 
-export type RunStatus =
-  | "queued"
-  | "waiting_driver"
-  | "running"
-  | "waiting_approval"
-  | "waiting_intervention"
-  | "waiting_clarification"
-  | "succeeded"
-  | "business_outcome"
-  | "escalated"
-  | "failed"
-  | "cancelled";
+export const RUN_STATUSES = [
+  "queued",
+  "waiting_driver",
+  "running",
+  "waiting_approval",
+  "waiting_intervention",
+  "waiting_clarification",
+  "succeeded",
+  "business_outcome",
+  "escalated",
+  "failed",
+  "cancelled",
+] as const;
+
+export type RunStatus = (typeof RUN_STATUSES)[number];
 
 export interface RunSummary {
   id: string;
@@ -172,11 +178,7 @@ export interface CapabilitySummary {
   gate: StabilityGate;
 }
 
-export interface TenantBinding {
-  base_url: string;
-  entry_path: string;
-  secret_refs: Record<string, string>;
-}
+export type TenantBinding = Schemas["TenantBinding"];
 
 export interface Provenance {
   discovery_run_id: string;
@@ -252,20 +254,7 @@ export interface EvidenceListing {
   files: EvidenceFile[];
 }
 
-export interface Health {
-  ok: boolean;
-  version: string;
-}
-
-export interface DoctorCheck {
-  name: string;
-  status: "ok" | "warn" | "fail";
-  detail: string;
-}
-
-export interface DoctorReport {
-  checks: DoctorCheck[];
-}
+export type Health = Schemas["HealthResponse"];
 
 export interface RunList {
   items: RunSummary[];
@@ -280,8 +269,7 @@ export interface DiscoveryRequest {
   tenant?: string;
   inputs: Record<string, string>;
   screenshots?: boolean;
-  capture?: boolean;
-  agents?: "single" | "multi";
+  agents?: NonNullable<Schemas["StartDiscoveryBody"]["agents"]>;
 }
 
 export interface ReplayRequest {
@@ -289,7 +277,6 @@ export interface ReplayRequest {
   tenant?: string;
   inputs: Record<string, string>;
   inject_session_expiry_before?: string;
-  fresh_session?: boolean;
 }
 
 export interface ApprovalDecision {
@@ -302,14 +289,9 @@ export interface NoteBody {
   note?: string;
 }
 
-export interface ClarificationAnswer {
-  answer: string;
-}
+export type ClarificationAnswer = Schemas["ClarificationAnswerBody"];
 
-export interface CredentialAnswer {
-  value?: string;
-  locator?: string;
-}
+export type CredentialAnswer = Schemas["CredentialAnswerBody"];
 
 export interface CapabilityApproveBody {
   force?: boolean;

@@ -36,7 +36,6 @@ describe("GoalForm", () => {
       tenant: "demo",
       inputs: { amount: "25" },
       screenshots: true,
-      capture: false,
       agents: "single",
     });
   });
@@ -97,13 +96,11 @@ describe("GoalForm", () => {
     await userEvent.type(await screen.findByLabelText(/amount/), "25");
     await userEvent.type(screen.getByLabelText(/from_account/), "13344");
     await userEvent.type(screen.getByLabelText(/to_account/), "13455");
-    await userEvent.click(screen.getByLabelText(/Fresh session/));
     await userEvent.click(screen.getByRole("button", { name: "Start replay" }));
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toEqual({
       capability_id: "parabank.transfer",
       inputs: { amount: "25", from_account: "13344", to_account: "13455", confirm_email: "false" },
-      fresh_session: true,
     });
   });
 });
