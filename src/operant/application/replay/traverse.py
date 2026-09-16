@@ -318,7 +318,7 @@ def _leading_launch(
     if capability.compiled_path:
         try:
             first = app_graph.edge(capability.compiled_path[0])
-        except KeyError:
+        except errors.NotFoundError:
             first = None
         if first is not None:
             launches = first.action.kind == "launch"

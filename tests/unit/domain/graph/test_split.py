@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pytest
 
+import operant.domain.errors as errors
 import operant.domain.graph.split as split
 import operant.domain.models.graph as mggraph
 
@@ -69,5 +70,5 @@ def test_split_extracts_and_rewrites_to_invoke() -> None:
 
 def test_split_rejects_unknown_nodes() -> None:
     graph = mggraph.AppGraph(vendor_id="app", nodes=[node("a")], edges=[])
-    with pytest.raises(ValueError, match="not in graph"):
+    with pytest.raises(errors.PreconditionFailedError, match="not in graph"):
         split.split_graph(graph, {"ghost"}, "x")

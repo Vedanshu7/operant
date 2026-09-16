@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Protocol
 
 import operant.application.escalation as escal
 import operant.domain.approval as approval
+import operant.domain.errors as errors
 import operant.domain.events as events
 import operant.domain.models.actions as actions
 import operant.domain.profile as dpprofil
@@ -201,7 +202,7 @@ def parse_inputs(pairs: List[str]) -> Dict[str, str]:
     for pair in pairs:
         key, sep, value = pair.partition("=")
         if not sep:
-            raise ValueError(f'--input must be key=value, got "{pair}"')
+            raise errors.ConfigError(f"--input must be key=value, got '{pair}'")
         parsed[key] = value
     return parsed
 

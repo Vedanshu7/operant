@@ -7,9 +7,9 @@ check, screenshot, human-action capture, fault injection). Every tool
 acts through this session, so nothing the gateway does can leave the
 target window - a privacy guarantee, not an optimization.
 
-The plain built-in exceptions here (``KeyError``, ``RuntimeError``,
-``TimeoutError``) are load-bearing: the discovery loop's action-error
-handling catches exactly those and feeds them back to the model.
+A failed host operation raises ``errors.DriverError`` (or
+``TimeoutError`` when the backend never recovers): the discovery loop
+catches those and feeds them back to the model.
 
 Import as:
 
@@ -32,6 +32,7 @@ import mss
 import mss.tools
 import xa11y
 
+import operant.domain.errors as errors
 import operant.domain.profile as profile
 
 _HEALTHY_STATUSES = frozenset({200, 302})
@@ -106,10 +107,10 @@ class WindowSession:
         :param window_title_pattern: Its window title pattern.
         :return: The previous ``(app_name, pattern)`` so the caller can
             restore it after a nested graph completes.
-        :raises ValueError: If ``app_name`` is empty.
+        :raises errors.DriverError: If ``app_name`` is empty.
         """
         if not app_name:
-            raise ValueError("retarget requires a non-empty app name")
+            raise errors.DriverError("Retarget needs a non-empty app name")
         previous = (self.app_name, self.window_title_pattern)
         self.app_name = app_name
         self.window_title_pattern = window_title_pattern
@@ -139,8 +140,8 @@ class WindowSession:
                 self._app = xa11y.App.by_name(self.app_name, timeout=timeout)
             else:
                 # Nothing bound yet: refuse to match the frontmost app.
-                raise RuntimeError(
-                    "no target bound yet; launch an app or URL first"
+                raise errors.DriverError(
+                    "No target bound yet; launch an app or URL first"
                 )
         return self._app
 
@@ -207,11 +208,13 @@ class WindowSession:
         """
         Return the element behind a control ref from the last observe.
 
-        :raises KeyError: If the ref is stale or unknown.
+        :raises errors.DriverError: If the ref is stale or unknown.
         """
         element = self.refs.get(ref)
         if element is None:
-            raise KeyError(f"stale or unknown control ref {ref} (observe again)")
+            raise errors.DriverError(
+                f"Stale or unknown control ref '{ref}' (observe again)"
+            )
         return element
 
     def wait_for_person_idle(self) -> None:
@@ -222,13 +225,13 @@ class WindowSession:
         pointing or types into what they are typing in, so the run waits
         until the input rests.
 
-        :raises RuntimeError: With ``PERSON_ACTIVE`` if the person is
-            still active after the wait.
+        :raises errors.DriverError: With ``PERSON_ACTIVE`` if the person
+            is still active after the wait.
         """
         deadline = time.monotonic() + _PERSON_WAIT_S
         while seconds_since_person_input() < _PERSON_IDLE_S:
             if time.monotonic() > deadline:
-                raise RuntimeError(PERSON_ACTIVE)
+                raise errors.DriverError(PERSON_ACTIVE)
             time.sleep(0.5)
 
     def raise_window(self) -> None:
@@ -254,10 +257,11 @@ class WindowSession:
         picks (usually the user's), and a name-only check would still
         pass while input landed in the wrong window.
 
-        :raises RuntimeError: If the app never reaches the foreground.
+        :raises errors.DriverError: If the app never reaches the
+            foreground.
         """
         if not self._foreground_target():
-            raise RuntimeError("target app is not the foreground app")
+            raise errors.DriverError("The target app is not the foreground app")
 
     def screenshot(self, path: str) -> bool:
         """
@@ -325,8 +329,8 @@ class WindowSession:
         """
         fault = self.fault_injection
         if fault is None:
-            raise RuntimeError(
-                "fault injection is not configured for this profile"
+            raise errors.DriverError(
+                "Fault injection is not configured for this profile"
             )
         subprocess.run(fault.restart_cmd, check=True, timeout=120)
         deadline = time.monotonic() + fault.timeout_s
@@ -363,7 +367,7 @@ class WindowSession:
         foreground = False
         try:
             target_pid = self._pid if self._pid is not None else self.app().pid
-        except RuntimeError:
+        except (errors.DriverError, RuntimeError):
             target_pid = None
         if target_pid is not None:
             for _ in range(10):
@@ -440,7 +444,7 @@ class WindowSession:
         try:
             bounds = self.window(timeout=3.0).bounds
             if bounds is None:
-                raise RuntimeError("window reports no bounds")
+                raise errors.DriverError("The window reports no bounds")
             with mss.mss() as grabber:
                 image = grabber.grab(
                     {
@@ -453,7 +457,7 @@ class WindowSession:
                 mss.tools.to_png(image.rgb, image.size, output=path)
             return True
         except Exception as fallback:
-            raise RuntimeError(
+            raise errors.DriverError(
                 f"xa11y: {primary}; mss fallback: {fallback}"
             ) from fallback
 

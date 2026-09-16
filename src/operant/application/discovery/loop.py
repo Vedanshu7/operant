@@ -288,8 +288,12 @@ class DiscoverySession:
         """
         try:
             snap = self.surface.snapshot()
-        except Exception:
-            # No window is bound yet.
+        except errors.SurfaceError:
+            # No window is bound yet, or it is gone.
+            snap = None
+        except Exception as err:
+            # Never end the run on a failed look, but say why.
+            _LOG.warning("Observing the screen failed: %s", err)
             snap = None
         return snap
 

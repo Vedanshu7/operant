@@ -30,7 +30,9 @@ class ChainedSecretStore:
         self, stores: collections.abc.Sequence[secrets.SecretStore]
     ) -> None:
         if not stores:
-            raise ValueError("ChainedSecretStore needs at least one store")
+            raise errors.ConfigError(
+                "ChainedSecretStore needs at least one store"
+            )
         self._stores = list(stores)
         self.backend = "+".join(store.backend for store in self._stores)
 

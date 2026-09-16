@@ -18,6 +18,7 @@ from typing import Final
 import xa11y
 
 import operant.adapters.macos.session as mssessio
+import operant.domain.errors as errors
 import operant.domain.models.actions as actions
 import operant.domain.models.tools as tools
 
@@ -63,7 +64,7 @@ class OsInputTool:
         """
         try:
             self.session.ensure_foreground()
-        except RuntimeError as err:
+        except errors.DriverError as err:
             return tools.ToolResult(status="failed", reason=str(err))
         sim = xa11y.input_sim()
         try:
@@ -136,7 +137,7 @@ class OsInputScrollTool:
                 xa11y.input_sim().scroll(centre, dy=(action.amount or 5) * sign)
                 time.sleep(0.4)
                 result = tools.ToolResult(status="ok", verified=False)
-        except (xa11y.XA11yError, RuntimeError) as err:
+        except (xa11y.XA11yError, errors.DriverError, RuntimeError) as err:
             result = tools.ToolResult(status="failed", reason=str(err))
         return result
 
@@ -200,6 +201,6 @@ class CoordinateClickTool:
                     xa11y.input_sim().click(point)
                     time.sleep(0.4)
                     result = tools.ToolResult(status="ok", verified=False)
-            except (xa11y.XA11yError, RuntimeError) as err:
+            except (xa11y.XA11yError, errors.DriverError, RuntimeError) as err:
                 result = tools.ToolResult(status="failed", reason=str(err))
         return result

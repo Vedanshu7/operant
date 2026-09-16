@@ -19,6 +19,7 @@ import dataclasses
 from typing import Optional
 
 import operant.application.secrets as assecret
+import operant.domain.errors as errors
 import operant.domain.models.actions as actions
 import operant.domain.models.graph as graph
 import operant.domain.models.targets as targets
@@ -139,7 +140,7 @@ class ActionFactory:
             unknown to the tenant or the store.
         """
         if self._secrets is None:
-            raise RuntimeError("no secret resolver configured")
+            raise errors.ConfigError("No secret resolver is configured")
         value = self._secrets.resolve(name)
         pair = ActionPair(
             actions.SurfaceAction(

@@ -1,5 +1,6 @@
 import pytest
 
+import operant.domain.errors as errors
 import operant.domain.governance as govern
 import operant.domain.redaction as redact
 import operant.domain.secrets as secrets
@@ -25,7 +26,7 @@ def test_secret_ref_parse(text: str, backend: str, locator: str) -> None:
 
 
 def test_secret_ref_rejects_empty_locator() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(errors.ConfigError):
         secrets.SecretRef.parse("keychain:")
 
 

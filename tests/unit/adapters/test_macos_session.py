@@ -9,6 +9,7 @@ from typing import List, Optional
 
 import pytest
 
+import operant.domain.errors as errors
 import operant.domain.models.actions as actions
 import operant.domain.models.tools as tools
 import operant.infra.settings as settings
@@ -147,7 +148,7 @@ def test_a_person_who_keeps_working_stops_the_run(
     monkeypatch.setattr(amsessio, "seconds_since_person_input", lambda: 0.1)
     monkeypatch.setattr(amsessio.time, "monotonic", lambda: next(clock))
     monkeypatch.setattr(amsessio.time, "sleep", lambda s: None)
-    with pytest.raises(RuntimeError, match="person kept using"):
+    with pytest.raises(errors.DriverError, match="person kept using"):
         amsessio.WindowSession("Google Chrome", "Bank").wait_for_person_idle()
 
 

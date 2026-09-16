@@ -13,6 +13,7 @@ import operant.application.approval as approval
 import operant.application.stability as apstabil
 import operant.application.usecases.replay as urreplay
 import operant.cli.deps as cddeps
+import operant.domain.errors as errors
 import operant.ports.hitl as hitl
 
 _TERMINAL_FAILURE = 1
@@ -153,7 +154,7 @@ def _parse(pairs: List[str]) -> Dict[str, str]:
     # Parse the pairs, surfacing bad input as a CLI error.
     try:
         parsed = context.parse_inputs(pairs)
-    except ValueError as err:
+    except errors.ConfigError as err:
         raise typer.BadParameter(str(err)) from err
     return parsed
 

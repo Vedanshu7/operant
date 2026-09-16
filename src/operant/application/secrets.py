@@ -71,7 +71,7 @@ class SecretResolver:
         """
         Bind ``name`` to a locator (``env:X`` / ``keychain:svc/acct``).
 
-        :raises ValueError: If the locator is malformed.
+        :raises errors.ConfigError: If the locator is malformed.
         """
         secrets.SecretRef.parse(locator)
         self._refs[name] = locator

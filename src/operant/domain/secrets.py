@@ -14,6 +14,8 @@ import dataclasses
 import re
 from typing import Final, FrozenSet, List, Literal, Optional
 
+import operant.domain.errors as errors
+
 SecretBackend = Literal["env", "keychain"]
 
 PLACEHOLDER_PREFIX: Final = "$secret:"
@@ -50,14 +52,13 @@ class SecretRef:
 
         :param text: the locator string from a tenant binding
         :return: the parsed reference
-        :raises ValueError: if the backend is unknown or the locator is
-            empty
+        :raises errors.ConfigError: if the locator is empty
         """
         backend, sep, rest = text.partition(":")
         if not sep or backend not in _KNOWN_BACKENDS:
             backend, rest = "env", text
         if not rest.strip():
-            raise ValueError(f"empty secret locator in {text!r}")
+            raise errors.ConfigError(f"Empty secret locator in '{text}'")
         if backend == "keychain":
             ref = cls("keychain", rest)
         else:

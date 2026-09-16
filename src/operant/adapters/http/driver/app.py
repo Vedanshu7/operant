@@ -163,12 +163,7 @@ def _register_actions(router: fastapi.APIRouter, deps: DriverDeps) -> None:
                 )
             except errors.AllToolsFailedError as failed:
                 return _all_tools_failed(failed)
-            except (
-                errors.NoToolAvailableError,
-                KeyError,
-                RuntimeError,
-                TimeoutError,
-            ) as err:
+            except (errors.SurfaceError, TimeoutError) as err:
                 return common.problem(500, str(err), error=str(err))
         return {"ok": True, **(outcome if isinstance(outcome, dict) else {})}
 

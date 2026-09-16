@@ -38,14 +38,7 @@ if TYPE_CHECKING:
     import operant.application.discovery.loop as loop
 
 # An action that fails is a fact the model must hear about, never a dead run.
-ACTION_ERRORS = (
-    errors.DriverError,
-    errors.AllToolsFailedError,
-    errors.NoToolAvailableError,
-    KeyError,
-    RuntimeError,
-    TimeoutError,
-)
+ACTION_ERRORS = (errors.SurfaceError, TimeoutError)
 
 _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://?")
 
@@ -157,7 +150,7 @@ def handle_request_secret(
         try:
             session.secrets.add_reference(name, grant.locator)
             session.secrets.resolve(name)
-        except (ValueError, errors.SecretNotFoundError) as err:
+        except (errors.ConfigError, errors.SecretNotFoundError) as err:
             return ToolOutcome(
                 f'Could not resolve the source for "{name}": {err}. '
                 "Ask again or give_up."

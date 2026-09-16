@@ -19,6 +19,7 @@ from typing import Dict, Final
 import xa11y
 
 import operant.adapters.macos.session as mssessio
+import operant.domain.errors as errors
 import operant.domain.models.actions as actions
 import operant.domain.models.tools as tools
 
@@ -135,7 +136,7 @@ class AppleScriptKeysTool:
         result = None
         try:
             self.session.ensure_foreground()
-        except RuntimeError as err:
+        except errors.DriverError as err:
             result = tools.ToolResult(status="failed", reason=str(err))
         if result is None:
             try:
@@ -258,7 +259,11 @@ class ClipboardPasteTool:
                 )
                 time.sleep(0.3)
                 result = tools.ToolResult(status="ok", verified=False)
-            except (subprocess.SubprocessError, RuntimeError) as err:
+            except (
+                subprocess.SubprocessError,
+                errors.DriverError,
+                RuntimeError,
+            ) as err:
                 result = tools.ToolResult(status="failed", reason=str(err))
             finally:
                 subprocess.run(
@@ -326,6 +331,7 @@ class SeSelectTool:
                 result = tools.ToolResult(status="ok", verified=False)
             except (
                 subprocess.SubprocessError,
+                errors.DriverError,
                 RuntimeError,
                 xa11y.XA11yError,
             ) as err:

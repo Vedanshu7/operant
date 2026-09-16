@@ -20,6 +20,7 @@ from typing import Annotated, Final, List, Literal, Optional, Union
 
 import pydantic
 
+import operant.domain.errors as errors
 import operant.domain.models.results as results
 import operant.domain.models.targets as targets
 
@@ -397,12 +398,12 @@ class AppGraph(pydantic.BaseModel):
 
         :param node_id: Id of the node to find.
         :return: The matching node.
-        :raises KeyError: If no node has that id.
+        :raises errors.NotFoundError: If no node has that id.
         """
         for n in self.nodes:
             if n.id == node_id:
                 return n
-        raise KeyError(f"unknown node {node_id!r}")
+        raise errors.NotFoundError(f"Unknown node '{node_id}'")
 
     def edge(self, edge_id: str) -> Edge:
         """
@@ -410,12 +411,12 @@ class AppGraph(pydantic.BaseModel):
 
         :param edge_id: Id of the edge to find.
         :return: The matching edge.
-        :raises KeyError: If no edge has that id.
+        :raises errors.NotFoundError: If no edge has that id.
         """
         for e in self.edges:
             if e.id == edge_id:
                 return e
-        raise KeyError(f"unknown edge {edge_id!r}")
+        raise errors.NotFoundError(f"Unknown edge '{edge_id}'")
 
     def edges_from(self, node_id: str) -> List[Edge]:
         """

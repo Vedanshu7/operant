@@ -231,7 +231,7 @@ def perform_gated(
             if need.request.kind == "scope":
                 _apply_grants(surface, need.request, outcome, log, run_id)
             nonce = need.nonce
-    raise RuntimeError(f"approval for {action.kind} did not converge")
+    raise errors.PolicyError(f"Approval for '{action.kind}' did not converge")
 
 
 def _ask(

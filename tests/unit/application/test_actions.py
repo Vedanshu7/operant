@@ -3,6 +3,7 @@ import pytest
 import operant.adapters.secrets.env as env
 import operant.application.actions as actions
 import operant.application.secrets as secrets
+import operant.domain.errors as errors
 import operant.domain.models.artifact as artifact
 import operant.domain.redaction as redact
 
@@ -49,7 +50,7 @@ def test_fill_secret_resolves_and_records_only_the_reference() -> None:
 
 
 def test_fill_secret_without_resolver_raises() -> None:
-    with pytest.raises(RuntimeError):
+    with pytest.raises(errors.ConfigError):
         actions.ActionFactory().fill_secret("pw", "password")
 
 

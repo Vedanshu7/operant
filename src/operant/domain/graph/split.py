@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Set, Tuple
 
+import operant.domain.errors as errors
 import operant.domain.models.graph as graph
 
 
@@ -143,7 +144,9 @@ def split_graph(
     """
     missing = extract_nodes - {n.id for n in app_graph.nodes}
     if missing:
-        raise ValueError(f"cannot split: nodes not in graph: {sorted(missing)}")
+        raise errors.PreconditionFailedError(
+            f"Cannot split: nodes not in graph: {sorted(missing)}"
+        )
     if not entry_node:
         entry_node = _entry_node(app_graph, extract_nodes)
 

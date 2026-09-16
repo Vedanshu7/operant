@@ -28,6 +28,7 @@ from typing import Any, Dict, Final, List, Literal, Optional, Set
 
 import pydantic
 
+import operant.domain.errors as errors
 import operant.domain.events as events
 import operant.domain.governance as govern
 import operant.domain.graph.pathfind as pathfind
@@ -196,8 +197,8 @@ def audit_artifact(
     subject = f"artifacts/{cap.id}"
     try:
         graph = graph_store.get(cap.vendor_id, cap.graph_version)
-    except Exception as err:
-        # A missing pinned graph is itself the finding.
+    except (errors.RepositoryError, OSError, pydantic.ValidationError) as err:
+        # A missing or unreadable pinned graph is itself the finding.
         findings = [
             Finding(
                 "error",

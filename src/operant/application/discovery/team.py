@@ -24,6 +24,7 @@ import operant.application.discovery.agents.verifier as daverifi
 import operant.application.discovery.blackboard as dsblackb
 import operant.application.discovery.config as config
 import operant.application.discovery.tools as tools
+import operant.domain.errors as errors
 import operant.domain.events as events
 import operant.domain.models.memory as mdmemory
 import operant.domain.models.plan as mdplan
@@ -386,7 +387,7 @@ class Team:
         Return the blackboard; the plan exists once ``start`` ran.
         """
         if self.board is None:
-            raise RuntimeError("the team has not planned yet")
+            raise errors.DiscoveryError("The team has not planned yet")
         return self.board
 
     # ── verification ───────────────────────────────────────────────────
@@ -408,7 +409,9 @@ class Team:
         board = self._board()
         subgoal = board.current
         if subgoal is None:
-            raise RuntimeError("nothing to verify: every subgoal is done")
+            raise errors.DiscoveryError(
+                "Nothing to verify: every subgoal is done"
+            )
         verdicts = daverifi.review(self._session, subgoal, turn=turn)
         for verdict in verdicts:
             self._session.log.emit(
