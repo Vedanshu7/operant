@@ -245,7 +245,8 @@ class RemoteGatewaySurface:
         Return the daemon's error string as a suffix, or ``""``.
         """
         try:
-            detail = response.json().get("error", "")
+            body = response.json()
+            detail = body.get("detail") or body.get("error", "")
         except ValueError:
             detail = ""
         formatted = f": {detail}" if detail else ""

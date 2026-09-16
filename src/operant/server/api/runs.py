@@ -14,6 +14,7 @@ from typing import Annotated, Any, Optional
 import fastapi
 import fastapi.responses as response
 
+import operant.domain.errors as errors
 import operant.domain.models.runs as runs
 import operant.server.api.pending as pending
 import operant.server.deps as deps
@@ -119,7 +120,7 @@ def latest_screenshot(run_id: str, state: State) -> response.Response:
     directory = state.settings.paths.evidence_dir / (run.evidence_dir or run_id)
     shots = sorted(directory.glob("*.png"))
     if not shots:
-        raise fastapi.HTTPException(status_code=404, detail="no screenshot yet")
+        raise errors.NotFoundError("No screenshot yet")
     file = response.FileResponse(_safe(directory, shots[-1]))
     return file
 
@@ -130,5 +131,5 @@ def _safe(directory: pathlib.Path, candidate: pathlib.Path) -> pathlib.Path:
     """
     resolved = candidate.resolve()
     if directory.resolve() not in resolved.parents:
-        raise fastapi.HTTPException(status_code=404, detail="not found")
+        raise errors.NotFoundError("Not found")
     return resolved

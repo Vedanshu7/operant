@@ -13,6 +13,7 @@ from typing import Annotated, Any
 
 import fastapi
 
+import operant.domain.errors as errors
 import operant.server.deps as deps
 import operant.server.schemas as schemas
 
@@ -39,7 +40,7 @@ def get_approval(approval_id: str, state: State) -> Any:
     """
     record = state.runs.get_approval(approval_id)
     if record is None:
-        raise fastapi.HTTPException(status_code=404, detail="no such approval")
+        raise errors.NotFoundError("No such approval")
     data = dataclasses.asdict(record)
     return data
 

@@ -14,6 +14,7 @@ import fastapi
 import fastapi.responses as response
 
 import operant
+import operant.domain.errors as errors
 import operant.server.deps as deps
 
 router = fastapi.APIRouter(tags=["system"])
@@ -63,6 +64,6 @@ def get_evidence_file(run_id: str, name: str, state: State) -> response.Response
     ).resolve()
     target = (directory / name).resolve()
     if directory != target.parent or not target.is_file():
-        raise fastapi.HTTPException(status_code=404, detail="no such file")
+        raise errors.NotFoundError("No such file")
     file = response.FileResponse(target)
     return file

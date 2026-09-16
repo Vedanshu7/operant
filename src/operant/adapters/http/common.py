@@ -1,7 +1,7 @@
 """Plumbing shared by the operator server and the driver daemon.
 
 Bearer-token authentication, a problem+json error envelope for every
-``OperantError``, and the health payload. Both FastAPI apps install these so
+error a route raises, and the health payload. Both FastAPI apps install these so
 clients see one contract.
 
 Typical usage example:
@@ -18,13 +18,17 @@ import operant.adapters.http.common as common
 from __future__ import annotations
 
 import collections.abc
+import http
 import pathlib
 import secrets
-from typing import Final, Optional, Tuple
+from typing import Any, Final, Optional, Tuple
 
 import fastapi
+import fastapi.encoders as encoders
+import fastapi.exceptions as fexcept
 import fastapi.responses as response
 import pydantic
+import starlette.exceptions as sexcept
 
 import operant
 import operant.domain.errors as errors
@@ -104,28 +108,57 @@ def status_for(error: Exception) -> int:
     return result
 
 
+def problem(
+    status: int,
+    detail: str,
+    *,
+    title: str = "",
+    type_: str = "about:blank",
+    headers: Optional[collections.abc.Mapping[str, str]] = None,
+    **extensions: Any,
+) -> response.JSONResponse:
+    """
+    Render a problem+json response.
+
+    :param status: HTTP status code.
+    :param detail: What went wrong, for a person.
+    :param title: Short summary; defaults to the status phrase.
+    :param type_: Problem type identifier.
+    :param headers: Extra response headers.
+    :param extensions: Further members a client reads (RFC 9457).
+    :return: The response.
+    """
+    body = Problem(
+        type=type_,
+        title=title or http.HTTPStatus(status).phrase,
+        status=status,
+        detail=detail,
+    )
+    rendered = response.JSONResponse(
+        status_code=status,
+        content={**body.model_dump(), **encoders.jsonable_encoder(extensions)},
+        media_type="application/problem+json",
+        headers=dict(headers) if headers else None,
+    )
+    return rendered
+
+
 def problem_response(error: Exception) -> response.JSONResponse:
     """
     Render an exception as a problem+json response.
     """
-    status = status_for(error)
-    body = Problem(
-        type=f"{type(error).__module__}.{type(error).__name__}",
+    rendered = problem(
+        status_for(error),
+        str(error),
         title=type(error).__name__,
-        status=status,
-        detail=str(error),
-    )
-    rendered = response.JSONResponse(
-        status_code=status,
-        content=body.model_dump(),
-        media_type="application/problem+json",
+        type_=f"{type(error).__module__}.{type(error).__name__}",
     )
     return rendered
 
 
 def install_error_handlers(app: fastapi.FastAPI) -> None:
     """
-    Register the ``OperantError`` → problem+json handler on ``app``.
+    Render every error a route raises as problem+json on ``app``.
     """
 
     @app.exception_handler(errors.OperantError)
@@ -133,6 +166,27 @@ def install_error_handlers(app: fastapi.FastAPI) -> None:
         _request: fastapi.Request, error: errors.OperantError
     ) -> response.JSONResponse:
         return problem_response(error)
+
+    @app.exception_handler(sexcept.HTTPException)
+    async def _handle_http(
+        _request: fastapi.Request, error: sexcept.HTTPException
+    ) -> response.JSONResponse:
+        return problem(
+            error.status_code, str(error.detail), headers=error.headers
+        )
+
+    @app.exception_handler(fexcept.RequestValidationError)
+    async def _handle_invalid(
+        _request: fastapi.Request, error: fexcept.RequestValidationError
+    ) -> response.JSONResponse:
+        found = error.errors()
+        first = found[0] if found else {}
+        where = ".".join(str(part) for part in first.get("loc", ()))
+        return problem(
+            422,
+            f"{where}: {first.get('msg', 'invalid request')}",
+            errors=found,
+        )
 
 
 def bearer_dependency(

@@ -17,6 +17,7 @@ from typing import Annotated, Any, Dict
 
 import fastapi
 
+import operant.domain.errors as errors
 import operant.server.deps as deps
 import operant.server.schemas as schemas
 
@@ -82,5 +83,5 @@ def check_ref(name: str, state: State) -> Any:
             result = {"name": name, "present": present}
             break
     if result is None:
-        raise fastapi.HTTPException(status_code=404, detail="no such reference")
+        raise errors.NotFoundError("No such reference")
     return result

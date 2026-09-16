@@ -227,3 +227,19 @@ def test_a_finished_run_leaves_no_live_state(tmp_path: pathlib.Path) -> None:
             if line.startswith("id:")
         ]
         assert seqs == sorted(seqs) == list(range(len(seqs)))
+
+
+def test_every_error_is_problem_json(tmp_path: pathlib.Path) -> None:
+    app, _ = _build(tmp_path)
+    with starlette.testclient.TestClient(app) as client:
+        responses = {
+            401: client.get("/api/v1/health"),
+            404: client.get("/api/v1/runs/nope", headers=_AUTH),
+            422: client.post("/api/v1/runs/replay", headers=_AUTH, json={}),
+        }
+        for status, answered in responses.items():
+            assert answered.status_code == status
+            assert answered.headers["content-type"] == "application/problem+json"
+            body = answered.json()
+            assert body["status"] == status
+            assert body["detail"]

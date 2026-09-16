@@ -123,12 +123,11 @@ def _register_actions(router: fastapi.APIRouter, deps: DriverDeps) -> None:
             except errors.ApprovalRequiredError as need:
                 return _approval_required(need)
             except errors.PolicyViolationError as violation:
-                return response.JSONResponse(
-                    status_code=403,
-                    content={
-                        "error": "policy_violation",
-                        "decision": wire.decision_to_dict(violation.decision),
-                    },
+                return common.problem(
+                    403,
+                    str(violation),
+                    error="policy_violation",
+                    decision=wire.decision_to_dict(violation.decision),
                 )
             except errors.AllToolsFailedError as failed:
                 return _all_tools_failed(failed)
@@ -138,9 +137,7 @@ def _register_actions(router: fastapi.APIRouter, deps: DriverDeps) -> None:
                 RuntimeError,
                 TimeoutError,
             ) as err:
-                return response.JSONResponse(
-                    status_code=500, content={"error": str(err)}
-                )
+                return common.problem(500, str(err), error=str(err))
         return {"ok": True, **(outcome if isinstance(outcome, dict) else {})}
 
     @router.get("/screenshot", response_model=None)
@@ -151,13 +148,11 @@ def _register_actions(router: fastapi.APIRouter, deps: DriverDeps) -> None:
                 deps.surface.screenshot(path)
             # Report the reason to the client.
             except Exception as err:
-                return response.JSONResponse(
-                    status_code=404, content={"error": str(err)}
-                )
+                return common.problem(404, str(err), error=str(err))
         if path.exists() and path.stat().st_size > 0:
             return response.FileResponse(path, media_type="image/png")
-        return response.JSONResponse(
-            status_code=404, content={"error": "screenshot unavailable"}
+        return common.problem(
+            404, "screenshot unavailable", error="screenshot unavailable"
         )
 
 
@@ -177,13 +172,12 @@ def _approval_required(
     """
     # 428 Precondition Required: the caller obtains a human's approval and
     # retries with the nonce. The value never leaves the daemon.
-    rendered = response.JSONResponse(
-        status_code=428,
-        content={
-            "error": "approval_required",
-            "nonce": need.nonce,
-            "request": wire.approval_request_to_dict(need.request),
-        },
+    rendered = common.problem(
+        428,
+        need.request.summary,
+        error="approval_required",
+        nonce=need.nonce,
+        request=wire.approval_request_to_dict(need.request),
     )
     return rendered
 
@@ -194,15 +188,14 @@ def _all_tools_failed(
     """
     Render an all-tools-failed 502 response.
     """
-    rendered = response.JSONResponse(
-        status_code=502,
-        content={
-            "error": "all_tools_failed",
-            "attempts": [
-                {"tool": a.tool, "status": a.status, "reason": a.reason}
-                for a in failed.attempts
-            ],
-        },
+    rendered = common.problem(
+        502,
+        str(failed),
+        error="all_tools_failed",
+        attempts=[
+            {"tool": a.tool, "status": a.status, "reason": a.reason}
+            for a in failed.attempts
+        ],
     )
     return rendered
 
