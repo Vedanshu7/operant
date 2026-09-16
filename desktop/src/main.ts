@@ -25,12 +25,35 @@ import { app, BrowserWindow, dialog, shell } from "electron";
 
 const TOKEN_KEY = "operant.token";
 const HEALTH_TIMEOUT_MS = 90_000;
+const HEALTH_POLL_MS = 500;
+const WINDOW_WIDTH = 1320;
+const WINDOW_HEIGHT = 880;
+const BACKGROUND_COLOR = "#111827";
+const TOKEN_BYTES = 24;
+const RECORD_FRAME_MS = 700;
+const DEMO_SCRIPT_DELAY_MS = 3000;
+const SNAPSHOT_DELAY_MS = 6000;
 
 // desktop/dist/main.js -> repository root.
 const repoRoot = path.resolve(__dirname, "..", "..");
 
 let server: ChildProcess | null = null;
 let quitting = false;
+
+function serverLogPath(): string {
+  return path.join(app.getPath("logs"), "desktop-server.log");
+}
+
+function fail(message: string, title = "Operant"): void {
+  if (quitting) return;
+  quitting = true;
+  dialog.showErrorBox(title, message);
+  app.quit();
+}
+
+function describeExit(code: number | null, signal: NodeJS.Signals | null): string {
+  return code === null ? `signal ${signal ?? "unknown"}` : `code ${code}`;
+}
 
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -45,9 +68,9 @@ function freePort(): Promise<number> {
 }
 
 function startServer(port: number, token: string): ChildProcess {
-  const logDir = path.join(repoRoot, "state");
-  mkdirSync(logDir, { recursive: true });
-  const log = createWriteStream(path.join(logDir, "desktop-server.log"), { flags: "a" });
+  const logPath = serverLogPath();
+  mkdirSync(path.dirname(logPath), { recursive: true });
+  const log = createWriteStream(logPath, { flags: "a" });
   // GUI apps on macOS do not inherit the shell PATH; add the usual uv homes.
   const extraPath = [
     path.join(process.env.HOME ?? "", ".local", "bin"),
@@ -66,29 +89,31 @@ function startServer(port: number, token: string): ChildProcess {
   });
   child.stdout?.pipe(log);
   child.stderr?.pipe(log);
-  child.on("exit", (code) => {
+  child.on("error", (err) => {
     server = null;
-    if (!quitting) {
-      dialog.showErrorBox(
-        "Operant server stopped",
-        `The local server exited (code ${code}). See state/desktop-server.log.`,
-      );
-      app.quit();
-    }
+    fail(`Could not start the local server with uv: ${err.message}. Is uv installed?`);
+  });
+  child.on("exit", (code, signal) => {
+    server = null;
+    fail(
+      `The local server exited (${describeExit(code, signal)}). See ${logPath}.`,
+      "Operant server stopped",
+    );
   });
   return child;
 }
 
 async function waitHealthy(base: string): Promise<boolean> {
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
-  while (Date.now() < deadline) {
+  // `server` is cleared when the child exits, so a crash stops the wait early.
+  while (server !== null && Date.now() < deadline) {
     try {
       const response = await fetch(`${base}/healthz`);
       if (response.ok) return true;
     } catch {
       // Not listening yet.
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, HEALTH_POLL_MS));
   }
   return false;
 }
@@ -96,7 +121,7 @@ async function waitHealthy(base: string): Promise<boolean> {
 function splash(): string {
   const html = `<!doctype html><meta charset="utf-8"><title>Operant</title>
     <body style="margin:0;height:100vh;display:grid;place-items:center;
-      font:15px -apple-system,system-ui,sans-serif;background:#111827;color:#e5e7eb">
+      font:15px -apple-system,system-ui,sans-serif;background:${BACKGROUND_COLOR};color:#e5e7eb">
       <div>Starting Operant&hellip;</div></body>`;
   return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 }
@@ -113,15 +138,14 @@ async function signIn(window: BrowserWindow, base: string, token: string): Promi
 async function launch(): Promise<void> {
   const webIndex = path.join(repoRoot, "web", "dist", "index.html");
   if (!existsSync(webIndex)) {
-    dialog.showErrorBox("Operant", "The web UI is not built. Run: pnpm --dir web build");
-    app.quit();
+    fail("The web UI is not built. Run: pnpm --dir web build");
     return;
   }
   const window = new BrowserWindow({
-    width: 1320,
-    height: 880,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
     title: "Operant",
-    backgroundColor: "#111827",
+    backgroundColor: BACKGROUND_COLOR,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   // Links to other sites open in the default browser, not in the app.
@@ -134,22 +158,25 @@ async function launch(): Promise<void> {
   // Scripted demos pin the port and token so a driver can use the same
   // server the window shows; normal launches pick fresh ones.
   const port = Number(process.env.OPERANT_DESKTOP_PORT) || (await freePort());
-  const token = process.env.OPERANT_DESKTOP_TOKEN || randomBytes(24).toString("hex");
+  const token = process.env.OPERANT_DESKTOP_TOKEN || randomBytes(TOKEN_BYTES).toString("hex");
   const base = `http://127.0.0.1:${port}`;
+  const origin = new URL(base).origin;
+  // In-page navigation must stay on the local server; anything else opens in the browser.
+  window.webContents.on("will-navigate", (event, url) => {
+    if (new URL(url).origin === origin) return;
+    event.preventDefault();
+    if (/^https?:/.test(url)) void shell.openExternal(url);
+  });
   server = startServer(port, token);
   if (!(await waitHealthy(base))) {
-    dialog.showErrorBox(
-      "Operant",
-      "The local server did not start in time. See state/desktop-server.log.",
-    );
-    app.quit();
+    fail(`The local server did not start in time. See ${serverLogPath()}.`);
     return;
   }
   await signIn(window, base, token);
   await window.loadURL(base);
   const record = process.env.OPERANT_DESKTOP_RECORD;
   if (record) {
-    // For the README demo: save the window every 700 ms as numbered frames.
+    // For the README demo: save the window every RECORD_FRAME_MS as numbered frames.
     mkdirSync(record, { recursive: true });
     let frame = 0;
     const timer = setInterval(() => {
@@ -160,7 +187,7 @@ async function launch(): Promise<void> {
           writeFileSync(path.join(record, name), image.toPNG());
         })
         .catch(() => undefined);
-    }, 700);
+    }, RECORD_FRAME_MS);
     window.on("closed", () => clearInterval(timer));
   }
   const script = process.env.OPERANT_DESKTOP_SCRIPT;
@@ -170,7 +197,7 @@ async function launch(): Promise<void> {
       window.webContents
         .executeJavaScript(readFileSync(script, "utf8"))
         .catch((err: unknown) => console.error("demo script failed:", err));
-    }, 3000);
+    }, DEMO_SCRIPT_DELAY_MS);
   }
   const snapshot = process.env.OPERANT_DESKTOP_SNAPSHOT;
   if (snapshot) {
@@ -180,7 +207,7 @@ async function launch(): Promise<void> {
         .capturePage()
         .then((image) => writeFileSync(snapshot, image.toPNG()))
         .catch((err: unknown) => console.error("snapshot failed:", err));
-    }, 6000);
+    }, SNAPSHOT_DELAY_MS);
   }
 }
 
@@ -199,7 +226,12 @@ if (!app.requestSingleInstanceLock()) {
       window.focus();
     }
   });
-  app.whenReady().then(launch);
+  app
+    .whenReady()
+    .then(launch)
+    .catch((err: unknown) => {
+      fail(`Operant failed to start: ${err instanceof Error ? err.message : String(err)}`);
+    });
   app.on("before-quit", stopServer);
   // Ctrl+C or a kill from a terminal must not leave the server running.
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
