@@ -346,7 +346,7 @@ def _end_business_outcome(
     End the run with the application-reported business outcome.
     """
     handle = matched.handle
-    assert isinstance(handle, graph.BusinessOutcomeHandle)  # noqa: S101
+    assert isinstance(handle, graph.BusinessOutcomeHandle)
     ctx.log.screenshot(ctx.surface, f"outcome-{handle.outcome}")
     ctx.log.emit(
         events.ReplayFinished(
@@ -373,7 +373,7 @@ def _handle_invoke(
     Run a bound graph for a fired binding, then retries the edge.
     """
     handle = matched.handle
-    assert isinstance(handle, graph.InvokeGraphHandle)  # noqa: S101
+    assert isinstance(handle, graph.InvokeGraphHandle)
     if ctx.invoke_graph is None:
         raise fail(
             ctx,

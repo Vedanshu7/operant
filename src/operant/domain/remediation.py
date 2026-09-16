@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import dataclasses
 import re
-from typing import Dict
+from typing import Any, Dict
 
 _REF = re.compile(r"\bc\d+\b")
 _HEX = re.compile(r"\b0x[0-9a-f]+\b", re.IGNORECASE)
@@ -56,15 +56,15 @@ class Remedy:
         return dataclasses.asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, object]) -> "Remedy":
+    def from_dict(cls, data: Dict[str, Any]) -> "Remedy":
         """
         Rebuild a remedy from its stored mapping.
         """
         return cls(
             kind=str(data.get("kind", "")),
             hint=str(data.get("hint", "")),
-            applied=int(data.get("applied", 1)),  # type: ignore[call-overload]
-            success=int(data.get("success", 1)),  # type: ignore[call-overload]
+            applied=int(data.get("applied", 1)),
+            success=int(data.get("success", 1)),
         )
 
 

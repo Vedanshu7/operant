@@ -13,6 +13,7 @@ import typer
 import operant.adapters.privacy.factory as apfactor
 import operant.cli.deps as cddeps
 import operant.domain.errors as errors
+import operant.domain.profile as dpprofil
 
 
 def register(app: typer.Typer) -> None:
@@ -96,7 +97,7 @@ def _report_profile(deps: cddeps.CliDeps, profile_id: str) -> None:
 
 
 def _presence_probe(
-    deps: cddeps.CliDeps, profile: object, name: str
+    deps: cddeps.CliDeps, profile: dpprofil.AppProfile, name: str
 ) -> collections.abc.Callable[[], str]:
     """
     Build a zero-arg probe that reports whether a secret resolves.
@@ -104,7 +105,9 @@ def _presence_probe(
     return functools.partial(_secret_present, deps, profile, name)
 
 
-def _secret_present(deps: cddeps.CliDeps, profile: object, name: str) -> str:
+def _secret_present(
+    deps: cddeps.CliDeps, profile: dpprofil.AppProfile, name: str
+) -> str:
     """
     Report ``present``, ``NOT SET``, or ``unknown`` for a secret ref.
     """
@@ -113,7 +116,7 @@ def _secret_present(deps: cddeps.CliDeps, profile: object, name: str) -> str:
 
     # Resolve the ref through its owning tenant and report presence.
     status = "unknown"
-    for tenant in profile.tenants.values():  # type: ignore[attr-defined]
+    for tenant in profile.tenants.values():
         if name in tenant.secret_refs:
             resolver = secrets.SecretResolver(
                 tenant, deps.secret_store, redact.Redactor()
