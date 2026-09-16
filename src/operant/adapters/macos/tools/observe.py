@@ -39,6 +39,8 @@ INTERACTIVE_ROLES: Final[FrozenSet[str]] = frozenset(
 )
 TEXT_ROLES: Final[FrozenSet[str]] = frozenset({"static_text", "text", "heading"})
 MAX_NODES: Final = 4000
+# Screen text kept per observation; the digest trims it further.
+_MAX_SCREEN_TEXT: Final = 12_000
 _NOISE: Final = re.compile(r"missing image descriptions", re.IGNORECASE)
 
 
@@ -95,7 +97,7 @@ class Xa11yDigestObserver:
         screen = digest.ScreenDigest(
             app=self.session.app_name,
             window_title=window.name or "",
-            text=" ".join(walker.texts)[:12000],
+            text=" ".join(walker.texts)[:_MAX_SCREEN_TEXT],
             controls=tuple(walker.controls),
         )
         result = tools.ToolResult(status="ok", verified=True, digest=screen)

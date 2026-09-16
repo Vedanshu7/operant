@@ -48,6 +48,9 @@ import operant.server.jobs.pending as jppendin
 
 _LOG = logging.get_logger(__name__)
 
+# Runs read per query when settling runs a restart interrupted.
+_RECONCILE_PAGE = 500
+
 _SKIP_STREAM = frozenset(
     {
         "approval_requested",
@@ -322,7 +325,7 @@ class RunManager:
         the UI can neither advance nor cancel.
         """
         count = 0
-        for run in self._runs.list(mrruns.RunFilter(limit=1000)):
+        for run in self._all_runs():
             if run.status not in mrruns.TERMINAL_STATUSES:
                 self._runs.update_status(
                     run.id,
@@ -332,6 +335,20 @@ class RunManager:
                 self._settle_pending_hitl(run.id, "run interrupted")
                 count += 1
         return count
+
+    def _all_runs(self) -> List[mrruns.RunRecord]:
+        """
+        Return every stored run, a page at a time.
+        """
+        found: List[mrruns.RunRecord] = []
+        while True:
+            page = self._runs.list(
+                mrruns.RunFilter(limit=_RECONCILE_PAGE, offset=len(found))
+            )
+            found.extend(page)
+            if len(page) < _RECONCILE_PAGE:
+                break
+        return found
 
     def _settle_orphan(
         self, run_id: str, status: mrruns.RunStatus, note: str

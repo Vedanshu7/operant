@@ -52,6 +52,23 @@ _ANY_INPUT_EVENT = 0xFFFFFFFF
 # A person counts as done once the mouse and keyboard rest this long.
 _PERSON_IDLE_S = 3.0
 _PERSON_WAIT_S = 120.0
+_PERSON_POLL_S = 0.5
+# Pauses that let the window server catch up after a lookup or a raise.
+_WINDOW_POLL_S = 0.4
+_RAISE_SETTLE_S = 0.4
+_WINDOW_TIMEOUT_S = 5.0
+_SNAPSHOT_TIMEOUT_S = 3.0
+# Bringing the app forward: polls of the frontmost app, and the helpers'
+# own time limit.
+_FOREGROUND_TRIES = 10
+_FOREGROUND_POLL_S = 0.2
+_FOREGROUND_LOOKUP_S = 1.0
+_HELPER_TIMEOUT_S = 10
+# Fault injection restarts the backend, then polls until it serves again.
+_RESTART_TIMEOUT_S = 120
+_HEALTH_POLL_S = 3.0
+_HEALTH_TIMEOUT_S = 10
+_CAPTURE_POLL_S = 0.15
 
 
 # #############################################################################
@@ -167,7 +184,7 @@ class WindowSession:
             found = self._find_window(pattern)
             if found is not None:
                 return found
-            time.sleep(0.4)
+            time.sleep(_WINDOW_POLL_S)
 
     def close_stale_tabs(self) -> int:
         """
@@ -232,15 +249,15 @@ class WindowSession:
         while seconds_since_person_input() < _PERSON_IDLE_S:
             if time.monotonic() > deadline:
                 raise errors.DriverError(PERSON_ACTIVE)
-            time.sleep(0.5)
+            time.sleep(_PERSON_POLL_S)
 
     def raise_window(self) -> None:
         """
         Bring the bound window forward; best effort.
         """
         try:
-            self.window(timeout=5.0).perform_action("raise")
-            time.sleep(0.4)
+            self.window(timeout=_WINDOW_TIMEOUT_S).perform_action("raise")
+            time.sleep(_RAISE_SETTLE_S)
         except xa11y.XA11yError:
             pass
 
@@ -285,7 +302,9 @@ class WindowSession:
         # and is unaffected; only the evidence pixels need this.
         self._foreground_target()
         try:
-            xa11y.screenshot(element=self.window(timeout=3.0)).save_png(path)
+            xa11y.screenshot(
+                element=self.window(timeout=_SNAPSHOT_TIMEOUT_S)
+            ).save_png(path)
             captured = True
         # Try the fallback before failing.
         except Exception as primary:
@@ -332,7 +351,7 @@ class WindowSession:
             raise errors.DriverError(
                 "Fault injection is not configured for this profile"
             )
-        subprocess.run(fault.restart_cmd, check=True, timeout=120)
+        subprocess.run(fault.restart_cmd, check=True, timeout=_RESTART_TIMEOUT_S)
         deadline = time.monotonic() + fault.timeout_s
         recovered = False
         while not recovered and time.monotonic() < deadline:
@@ -341,7 +360,7 @@ class WindowSession:
                 recovered = True
             else:
                 # Not yet: wait and poll again.
-                time.sleep(3)
+                time.sleep(_HEALTH_POLL_S)
         if not recovered:
             raise TimeoutError(
                 f"{fault.health_url} did not come back after restart"
@@ -370,14 +389,17 @@ class WindowSession:
         except (errors.DriverError, RuntimeError):
             target_pid = None
         if target_pid is not None:
-            for _ in range(10):
+            for _ in range(_FOREGROUND_TRIES):
                 try:
-                    if xa11y.App.foreground(timeout=1.0).pid == target_pid:
+                    if (
+                        xa11y.App.foreground(timeout=_FOREGROUND_LOOKUP_S).pid
+                        == target_pid
+                    ):
                         foreground = True
                         break
                 except xa11y.XA11yError:
                     pass
-                time.sleep(0.2)
+                time.sleep(_FOREGROUND_POLL_S)
         return foreground
 
     def _bring_forward(self) -> None:
@@ -399,12 +421,16 @@ class WindowSession:
                     f"(first process whose unix id is {self._pid}) to true"
                 )
                 subprocess.run(
-                    ["osascript", "-e", script], check=False, timeout=10
+                    ["osascript", "-e", script],
+                    check=False,
+                    timeout=_HELPER_TIMEOUT_S,
                 )
             else:
                 # Otherwise activate the app by name.
                 subprocess.run(
-                    ["open", "-a", self.app_name], check=False, timeout=10
+                    ["open", "-a", self.app_name],
+                    check=False,
+                    timeout=_HELPER_TIMEOUT_S,
                 )
         except (subprocess.SubprocessError, OSError):
             pass
@@ -442,7 +468,7 @@ class WindowSession:
         # A window-bounds grab keeps the evidence scoped to the target
         # window (the session's privacy guarantee), never the whole screen.
         try:
-            bounds = self.window(timeout=3.0).bounds
+            bounds = self.window(timeout=_SNAPSHOT_TIMEOUT_S).bounds
             if bounds is None:
                 raise errors.DriverError("The window reports no bounds")
             with mss.mss() as grabber:
@@ -530,7 +556,9 @@ def _healthy(url: str) -> bool:
     Report whether ``url`` responds with a healthy status.
     """
     try:
-        response = httpx.get(url, timeout=10, follow_redirects=False)
+        response = httpx.get(
+            url, timeout=_HEALTH_TIMEOUT_S, follow_redirects=False
+        )
     except httpx.HTTPError:
         healthy = False
     else:
@@ -556,7 +584,7 @@ def _pump_events(
         while not stop.is_set():
             event = subscription.try_recv()
             if event is None:
-                time.sleep(0.15)
+                time.sleep(_CAPTURE_POLL_S)
                 continue
             if event.event_type not in interesting:
                 continue

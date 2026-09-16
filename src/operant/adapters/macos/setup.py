@@ -39,6 +39,8 @@ import operant.infra.repositories.learned_tools as learned_
 import operant.infra.settings as settings
 
 OnEvent = events.OnGatewayEvent
+# Between re-reads while checking that an action took effect.
+_VERIFY_POLL_S = 0.2
 OnDecision = collections.abc.Callable[
     [approval.PolicyDecision, actions.SurfaceAction], None
 ]
@@ -149,7 +151,7 @@ def _fill_verifier(
             last = got
         if _text_visible(expected, result):
             return True, "(text visible on screen)"
-        time.sleep(0.2)
+        time.sleep(_VERIFY_POLL_S)
     return False, _verify_reason(action, last, expected)
 
 
@@ -173,7 +175,7 @@ def _select_verifier(
             if got and (got.lower() == expected or expected in got.lower()):
                 return True, _settled(action, got)
             last = got
-        time.sleep(0.2)
+        time.sleep(_VERIFY_POLL_S)
     return False, _verify_reason(action, last, expected)
 
 

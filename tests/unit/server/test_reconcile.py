@@ -8,6 +8,8 @@ import asyncio
 import pathlib
 from typing import Tuple
 
+import pytest
+
 import operant.adapters.secrets.factory as sffactor
 import operant.domain.models.runs as mrruns
 import operant.infra.db.engine as dbeng
@@ -71,3 +73,14 @@ def test_cancel_settles_an_orphan(tmp_path: pathlib.Path) -> None:
     _orphan(runs, "r-zombie", "waiting_intervention")
     manager.cancel("r-zombie")
     assert runs.get("r-zombie").status == "cancelled"
+
+
+def test_reconcile_reaches_runs_past_the_first_page(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(jmmanage, "_RECONCILE_PAGE", 2)
+    manager, runs = _manager(tmp_path)
+    for index in range(5):
+        _orphan(runs, f"replay-{index}", "running")
+    assert manager.reconcile_interrupted() == 5
+    assert {runs.get(f"replay-{i}").status for i in range(5)} == {"failed"}

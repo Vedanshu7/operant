@@ -24,6 +24,11 @@ import operant.domain.models.tools as tools
 
 _NO_TARGET: Final = "no resolved target element in context"
 _NO_BOUNDS: Final = "window reports no bounds"
+# Pauses that let the app react to synthesized input before the next step.
+_CLICK_SETTLE_S: Final = 0.3
+_CHORD_SETTLE_S: Final = 0.15
+_SCROLL_SETTLE_S: Final = 0.4
+_WINDOW_TIMEOUT_S: Final = 5.0
 
 
 # #############################################################################
@@ -76,12 +81,12 @@ class OsInputTool:
                 return tools.ToolResult(status="failed", reason=_NO_TARGET)
             if action.kind == "click":
                 sim.click(element)
-                time.sleep(0.3)
+                time.sleep(_CLICK_SETTLE_S)
                 return tools.ToolResult(status="ok", verified=False)
             sim.click(element)
-            time.sleep(0.3)
+            time.sleep(_CLICK_SETTLE_S)
             sim.chord("a", held=["Meta"])
-            time.sleep(0.15)
+            time.sleep(_CHORD_SETTLE_S)
             sim.type_text(action.value or "")
             return tools.ToolResult(status="ok", verified=False)
         except xa11y.XA11yError as err:
@@ -123,7 +128,7 @@ class OsInputScrollTool:
         """
         try:
             self.session.ensure_foreground()
-            bounds = self.session.window(timeout=5.0).bounds
+            bounds = self.session.window(timeout=_WINDOW_TIMEOUT_S).bounds
             if bounds is None:
                 # No window bounds to aim at.
                 result = tools.ToolResult(status="failed", reason=_NO_BOUNDS)
@@ -138,7 +143,7 @@ class OsInputScrollTool:
                     centre,
                     dy=(action.amount or actions.DEFAULT_SCROLL_NOTCHES) * sign,
                 )
-                time.sleep(0.4)
+                time.sleep(_SCROLL_SETTLE_S)
                 result = tools.ToolResult(status="ok", verified=False)
         except (xa11y.XA11yError, errors.DriverError, RuntimeError) as err:
             result = tools.ToolResult(status="failed", reason=str(err))
@@ -191,7 +196,7 @@ class CoordinateClickTool:
             # Click the window-relative point.
             try:
                 self.session.ensure_foreground()
-                bounds = self.session.window(timeout=5.0).bounds
+                bounds = self.session.window(timeout=_WINDOW_TIMEOUT_S).bounds
                 if bounds is None:
                     # No window bounds to map against.
                     result = tools.ToolResult(status="failed", reason=_NO_BOUNDS)
@@ -202,7 +207,7 @@ class CoordinateClickTool:
                         round(float(bounds.y) + action.y * float(bounds.height)),
                     )
                     xa11y.input_sim().click(point)
-                    time.sleep(0.4)
+                    time.sleep(_SCROLL_SETTLE_S)
                     result = tools.ToolResult(status="ok", verified=False)
             except (xa11y.XA11yError, errors.DriverError, RuntimeError) as err:
                 result = tools.ToolResult(status="failed", reason=str(err))
