@@ -159,6 +159,25 @@ def unread_sibling(pattern: str, text: str, value: str) -> Optional[str]:
     return unread
 
 
+# Placeholders the planner sees where values were masked: the redactor's
+# mask, a scrubbed entity such as <PERSON>, and memory's <n>.
+_PLACEHOLDER_RE = re.compile(r"\[REDACTED\]|<[A-Za-z_]+>")
+
+
+def _text_pattern(value: str) -> re.Pattern[str]:
+    """
+    Turn a check's text into a pattern: placeholders match any value.
+
+    The planner writes checks from the redacted screen, so it may copy
+    "balance: $[REDACTED]"; the real screen shows the value there.
+    """
+    parts = [
+        r"\s+".join(re.escape(word) for word in piece.split())
+        for piece in _PLACEHOLDER_RE.split(value)
+    ]
+    return re.compile(r".+?".join(parts), re.IGNORECASE)
+
+
 def failed_checks(
     checks: collections.abc.Sequence[plan.ScreenCheck],
     screen: Optional[digest.ScreenDigest],
@@ -179,11 +198,11 @@ def failed_checks(
         shown = " ".join([screen.text, screen.dialog or "", *names]).lower()
     failures: List[str] = []
     for check in checks:
-        want = check.value.lower()
+        want = _text_pattern(check.value)
         if check.kind == "text_present":
-            held = want in shown
+            held = want.search(shown) is not None
         elif check.kind == "control_present":
-            held = any(want in name for name in names)
+            held = any(want.search(name) for name in names)
         else:
             try:
                 held = bool(re.search(check.value, outputs.get(check.output, "")))

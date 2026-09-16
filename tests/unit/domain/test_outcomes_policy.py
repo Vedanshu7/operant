@@ -489,3 +489,17 @@ def test_typed_checks_read_text_controls_and_outputs() -> None:
         r"output_matches ref '^\d+$'"
     ]
     assert len(outcomes.failed_checks(checks, None, {})) == 3
+
+
+def test_a_check_copied_from_the_redacted_screen_still_matches() -> None:
+    screen = screens.digest(
+        [screens.control(role="text", name="savings balance: $1,234.56")],
+        text="Welcome back, Jordan Lee",
+    )
+    checks = [
+        mdplan.ScreenCheck(
+            kind="control_present", value="savings balance: $[REDACTED]"
+        ),
+        mdplan.ScreenCheck(kind="text_present", value="Welcome back,  <PERSON>"),
+    ]
+    assert outcomes.failed_checks(checks, screen, {}) == []
