@@ -157,7 +157,7 @@ class ProfileRepository(Protocol):
 
     def save(self, document: profile.AppProfile) -> pathlib.Path:
         """
-        Write ``document`` and returns the path it was written to.
+        Write ``document`` and return the path it was written to.
         """
         ...
 
@@ -216,7 +216,7 @@ class RunRepository(Protocol):
         self, run_id: str, request: approval.ApprovalRequest
     ) -> str:
         """
-        Record a pending approval and returns its id.
+        Record a pending approval and return its id.
         """
         ...
 
@@ -232,7 +232,7 @@ class RunRepository(Protocol):
         self, run_id: str, request: runs.InterventionRequest
     ) -> str:
         """
-        Record a pending intervention and returns its id.
+        Record a pending intervention and return its id.
         """
         ...
 
@@ -251,7 +251,7 @@ class RunRepository(Protocol):
 
     def open_clarification(self, run_id: str, question: str) -> str:
         """
-        Record a pending clarifying question and returns its id.
+        Record a pending clarifying question and return its id.
         """
         ...
 

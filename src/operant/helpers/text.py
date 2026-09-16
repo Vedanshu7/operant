@@ -17,7 +17,7 @@ _PLACEHOLDER_RE = re.compile(r"\{\{(\w+)\}\}")
 
 def slugify(text: str, *, max_length: int = 40) -> str:
     """
-    Lower-cases text into a dash-separated identifier.
+    Lower-case text into a dash-separated identifier.
 
     :param text: Free text such as a window title.
     :param max_length: Hard cap on the result length.
@@ -31,7 +31,7 @@ def slugify(text: str, *, max_length: int = 40) -> str:
 
 def truncate(text: str, limit: int, *, marker: str = "…") -> str:
     """
-    Cuts text to ``limit`` characters, appending ``marker`` when cut.
+    Cut text to ``limit`` characters, appending ``marker`` when cut.
 
     :param text: Input text.
     :param limit: Maximum length of the result including the marker.
@@ -66,7 +66,7 @@ def substitute_placeholders(
 
 def safe_filename(label: str, *, max_length: int = 60) -> str:
     """
-    Reduces a label to characters safe in a filename.
+    Reduce a label to characters safe in a filename.
 
     :param label: Free text.
     :param max_length: Hard cap on the result length.

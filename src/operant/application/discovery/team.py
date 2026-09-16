@@ -85,7 +85,7 @@ class Team:
         self.board: Optional[dsblackb.Blackboard] = None
         self._recalled: Tuple[mdmemory.PlanMemory, ...] = ()
 
-    # ── planning ───────────────────────────────────────────────────────
+    # Planning.
 
     def start(self, turn: int) -> None:
         """
@@ -157,7 +157,7 @@ class Team:
             dsblackb.StepNote(turn=turn, tool=tool, intent=intent, result=first)
         )
 
-    # ── tool interceptions ─────────────────────────────────────────────
+    # Tool interceptions.
 
     def on_subgoal_done(
         self, args: Dict[str, Any], turn: int
@@ -380,8 +380,6 @@ class Team:
         reply = f"A NEW PLAN was made ({reason}).\n{board.executor_block()}"
         return reply
 
-    # ── per-turn hooks ─────────────────────────────────────────────────
-
     def _board(self) -> dsblackb.Blackboard:
         """
         Return the blackboard; the plan exists once ``start`` ran.
@@ -390,7 +388,7 @@ class Team:
             raise errors.DiscoveryError("The team has not planned yet")
         return self.board
 
-    # ── verification ───────────────────────────────────────────────────
+    # Verification.
 
     def _verify(
         self, summary: str, turn: int, *, claim: str
@@ -520,19 +518,19 @@ class Team:
         Tell the executor the subgoal passed and what is next.
         """
         board = self._board()
-        nxt = board.current
+        following = board.current
         reply = (
-            f"VERIFIED. Next: subgoal {nxt.id}: {nxt.description}."
-            if nxt is not None
+            f"VERIFIED. Next: subgoal {following.id}: {following.description}."
+            if following is not None
             else "VERIFIED. Every subgoal is done - call goal_complete now."
         )
         return reply
 
-    # ── after the run ──────────────────────────────────────────────────
+    # After the run.
 
     def _after_finish(self, outcome: tools.ToolOutcome, turn: int) -> None:
         """
-        Review the saved recording and remember the plan that worked.
+        Review the saved recording; memory is updated in ``conclude``.
         """
         result = outcome.finished
         if isinstance(result, config.DiscoveryResult):

@@ -68,7 +68,7 @@ class DiscoveryState:
 
     def shown(self, name: str, value: str) -> str:
         """
-        Masks a credential input's value in anything the model sees.
+        Mask a credential input's value in anything the model sees.
         """
         masked = _MASK if self.input_classes.get(name) == "credential" else value
         return masked

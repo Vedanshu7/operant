@@ -47,7 +47,7 @@ def digest_to_dict(screen: digest.ScreenDigest) -> Dict[str, Any]:
 
 def digest_from_dict(data: Dict[str, Any]) -> digest.ScreenDigest:
     """
-    Reconstructs a screen digest, including its controls and boxes.
+    Reconstruct a screen digest, including its controls and boxes.
     """
     controls = tuple(
         _rebuild(
@@ -74,7 +74,7 @@ def action_to_dict(action: actions.SurfaceAction) -> Dict[str, Any]:
 
 def action_from_dict(data: Dict[str, Any]) -> actions.SurfaceAction:
     """
-    Reconstructs a surface action, keeping every sensitivity tag.
+    Reconstruct a surface action, keeping every sensitivity tag.
     """
     action = _rebuild(actions.SurfaceAction, data)
     return action
@@ -97,7 +97,7 @@ def approval_request_from_dict(
     data: Dict[str, Any],
 ) -> approval.ApprovalRequest:
     """
-    Reconstructs an approval request and its proposed grants.
+    Reconstruct an approval request and its proposed grants.
     """
     grants = tuple(
         approval.ScopeGrant.model_validate(grant)

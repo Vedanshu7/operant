@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Annotated, List, Optional, Union
 
 import typer
@@ -88,8 +89,6 @@ def _approver(deps: cddeps.CliDeps) -> hitl.Approver:
     """
     Build the approver, remembering answers across a discovery run.
     """
-    import sys
-
     # Approve on the terminal when attended, deny every request when not.
     timeout = deps.settings.approval.timeout_s
     inner: hitl.Approver = (

@@ -1,4 +1,5 @@
-"""Deterministic replay over the capability graph. No model anywhere.
+"""
+Deterministic replay over the capability graph. No model anywhere.
 
 Per edge: policy check -> resolve target (ranked strategies,
 param-substituted) -> act -> wait -> assert arrival at the destination

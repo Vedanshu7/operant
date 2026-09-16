@@ -143,7 +143,7 @@ def execute_discovery(
     ] = None,
 ) -> Union[DiscoverOutcome, config.DiscoveryFailure]:
     """
-    Run discovery, commits the recording, and persists the profile.
+    Run discovery, commit the recording, and persist the profile.
 
     :param request: What to discover.
     :param factory: Builds the run context.

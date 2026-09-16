@@ -1,4 +1,5 @@
-"""Redaction of known secret values before anything is written.
+"""
+Redaction of known secret values before anything is written.
 
 The evidence logger and the recorder both pass through a ``Redactor``
 seeded with every secret value known at runtime (environment secrets
@@ -71,7 +72,7 @@ class Redactor:
 
     def redact(self, text: str) -> str:
         """
-        Masks every registered secret in the text.
+        Mask every registered secret in the text.
 
         :param text: Text that may contain secret values.
         :return: The text with each secret replaced by ``[REDACTED]``.
@@ -82,7 +83,7 @@ class Redactor:
 
     def redact_deep(self, value: Any) -> Any:
         """
-        Masks secrets inside any JSON-serialisable structure.
+        Mask secrets inside any JSON-serialisable structure.
 
         :param value: A structure of dicts, lists, and scalars; non-JSON
             values are stringified.

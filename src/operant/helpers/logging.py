@@ -1,4 +1,5 @@
-"""Logger factory and one-call process configuration.
+"""
+Logger factory and one-call process configuration.
 
 Typical usage example:
 

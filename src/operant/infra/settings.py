@@ -1,4 +1,5 @@
-"""Typed configuration for every process Operant runs.
+"""
+Typed configuration for every process Operant runs.
 
 Values come from the environment (prefix ``OPERANT_``, nested groups
 separated by ``__``) and an optional ``.env`` file. Only the composition

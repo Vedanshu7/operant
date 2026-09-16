@@ -74,7 +74,7 @@ class Surface(Protocol):
         self, app_name: str, window_title_pattern: str
     ) -> Tuple[str, str]:
         """
-        Rebinds the session to another application window.
+        Rebind the session to another application window.
 
         :param app_name: OS application to bind.
         :param window_title_pattern: Regex the window title must match.
@@ -109,7 +109,7 @@ class Surface(Protocol):
 
     def grant_scope(self, grant: daapprov.ScopeGrant) -> None:
         """
-        Widens the policy allowlists for the rest of the run.
+        Widen the policy allowlists for the rest of the run.
         """
         ...
 

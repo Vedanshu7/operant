@@ -23,10 +23,13 @@ import operant.application.recorder.segment as rssegmen
 import operant.domain.graph.merge as merge
 import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as graph
+import operant.domain.models.targets as targets
 import operant.ports.repositories as prepos
 
 # Actions that act on a control, as opposed to launch, press or scroll.
 _TARGETED = frozenset({"click", "fill", "select"})
+# Strategies that find a control by what it is called.
+_NAMED_STRATEGIES = (targets.RoleStrategy, targets.LabelProximityStrategy)
 
 
 def commit_recording(
@@ -116,7 +119,7 @@ def _remap_invoke(
     edge: graph.Edge, remaps: Dict[str, Dict[str, str]]
 ) -> graph.Edge:
     """
-    Rewrites an invoke edge's target node to its merged graph id.
+    Rewrite an invoke edge's target node to its merged graph id.
     """
     ref = edge.action.graph_ref
     remapped = edge
@@ -154,11 +157,22 @@ def accessibility_of(
     coordinate = unnamed = 0
     for edge in targeted:
         strategies = edge.target.strategies if edge.target is not None else []
-        if all(getattr(s, "role", "") == recdng.REGION_ROLE for s in strategies):
+        if all(_is_region(s) for s in strategies):
             # No target, or only a recorded screen point.
             coordinate += 1
-        elif not {s.kind for s in strategies} & {"role", "labelProximity"}:
+        elif not any(isinstance(s, _NAMED_STRATEGIES) for s in strategies):
             unnamed += 1
     return artifact.Accessibility(
         steps=len(targeted), coordinate_steps=coordinate, unnamed_steps=unnamed
     )
+
+
+def _is_region(strategy: targets.TargetStrategy) -> bool:
+    """
+    Report whether a strategy is only a recorded screen point.
+    """
+    region = (
+        isinstance(strategy, targets.RegionStrategy)
+        and strategy.role == recdng.REGION_ROLE
+    )
+    return region

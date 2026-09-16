@@ -16,8 +16,10 @@ from __future__ import annotations
 
 import collections.abc
 import dataclasses
+import os
 from typing import Any, Dict, List, Optional, Protocol
 
+import operant.application.approval as aaapprov
 import operant.application.escalation as escal
 import operant.domain.approval as approval
 import operant.domain.errors as errors
@@ -142,7 +144,7 @@ class RunContextFactory:
 
         # Wire the log, surface, broker, and approver for this run.
         run_identifier = run_identifier or ids.run_id(kind)
-        redactor = redact.redactor_from_env(_environ(), scrub=self._scrub())
+        redactor = redact.redactor_from_env(dict(os.environ), scrub=self._scrub())
         log = run_log.RunLog(
             self._settings.paths.evidence_dir, run_identifier, redactor
         )
@@ -171,7 +173,7 @@ class RunContextFactory:
             surface=surface,
             health_table=health_table,
             broker=broker,
-            approver=approver or _deny_all(),
+            approver=approver or aaapprov.DenyAllApprover(),
             approval_cache=cache,
         )
         return context
@@ -205,26 +207,6 @@ def parse_inputs(pairs: List[str]) -> Dict[str, str]:
             raise errors.ConfigError(f"--input must be key=value, got '{pair}'")
         parsed[key] = value
     return parsed
-
-
-def _deny_all() -> hitl.Approver:
-    """
-    Build the deny-by-default approver.
-    """
-    import operant.application.approval as aaapprov
-
-    approver = aaapprov.DenyAllApprover()
-    return approver
-
-
-def _environ() -> Dict[str, str]:
-    """
-    Snapshot the process environment as a plain dict.
-    """
-    import os
-
-    environ = dict(os.environ)
-    return environ
 
 
 def _log_event(log: run_log.RunLog, event: events.GatewayEvent) -> None:

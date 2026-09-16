@@ -124,7 +124,7 @@ def _resolve_secret(
 
 def record_outputs(ctx: context.ReplayContext, outputs: Dict[str, str]) -> None:
     """
-    Tags outputs with origin and redacts sensitive ones from now on.
+    Tag outputs with origin and redact sensitive ones from now on.
 
     The caller still receives the values as the result; only what is
     written to evidence from this moment on is masked.

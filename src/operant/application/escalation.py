@@ -250,7 +250,7 @@ class ControlBroker:
 
     def resume_automation(self, detail: str) -> None:
         """
-        Completes a hand-back once the engine re-verified the state.
+        Complete a hand-back once the engine re-verified the state.
         """
         with self._lock:
             if self._state == "resuming":

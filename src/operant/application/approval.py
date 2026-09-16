@@ -47,7 +47,7 @@ class ScriptedApprover:
 
     def ask(self, request: approval.ApprovalRequest) -> approval.ApprovalDecision:
         """
-        Record the request and returns the next scripted answer.
+        Record the request and return the next scripted answer.
         """
         self.asked.append(request)
         if not self._answers:

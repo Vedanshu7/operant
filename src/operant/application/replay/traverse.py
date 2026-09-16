@@ -179,7 +179,7 @@ def _invoke_capability(
     """
     Synthesize the capability that drives a nested invoke.
     """
-    cap = artifact.CapabilityArtifact(
+    capability = artifact.CapabilityArtifact(
         id=f"invoke:{ref.graph_id}",
         name=f"invoke {ref.graph_id}",
         description=f"cross-domain invoke into {ref.graph_id}",
@@ -196,7 +196,7 @@ def _invoke_capability(
         policy_scope=caller.policy_scope,
         provenance=artifact.Provenance(**caller.provenance.model_dump()),
     )
-    return cap
+    return capability
 
 
 def _invoke_opts(

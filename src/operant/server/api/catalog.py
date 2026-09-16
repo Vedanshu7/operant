@@ -149,7 +149,7 @@ def save_profile(
     profile_id: str, document: profile.AppProfile, state: State
 ) -> Any:
     """
-    Validate and stores an edited app profile.
+    Validate and store an edited app profile.
     """
     if document.vendor_id != profile_id:
         raise fastapi.HTTPException(

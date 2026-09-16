@@ -461,7 +461,7 @@ def handle_act(
     turn: int,
 ) -> ToolOutcome:
     """
-    Perform one UI action through the policy gate and records it.
+    Perform one UI action through the policy gate and record it.
     """
     kind = str(args.get("action", ""))
     planned = _plan_act(session, args, kind)

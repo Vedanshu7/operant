@@ -1,4 +1,5 @@
-"""Approval vocabulary: the questions a policy puts to a human.
+"""
+Approval vocabulary: the questions a policy puts to a human.
 
 Provides the approval-related models shared by the policy evaluator,
 the approval loop, and the HTTP layer: what kinds of approval exist,

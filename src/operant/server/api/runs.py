@@ -31,7 +31,7 @@ State = Annotated[deps.ServerState, fastapi.Depends(deps.get_state)]
 @router.post("/runs/discovery")
 def start_discovery(body: schemas.StartDiscoveryBody, state: State) -> Any:
     """
-    Start an LLM discovery run and returns its initial record.
+    Start an LLM discovery run and return its initial record.
     """
     run = state.manager.start_discovery(body.to_request())
     summary = schemas.run_summary(run)
@@ -41,7 +41,7 @@ def start_discovery(body: schemas.StartDiscoveryBody, state: State) -> Any:
 @router.post("/runs/replay")
 def start_replay(body: schemas.StartReplayBody, state: State) -> Any:
     """
-    Start a deterministic replay run and returns its initial record.
+    Start a deterministic replay run and return its initial record.
     """
     run = state.manager.start_replay(body.to_request())
     summary = schemas.run_summary(run)

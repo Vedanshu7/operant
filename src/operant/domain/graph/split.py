@@ -38,7 +38,7 @@ def _invoke_edge(
     edge: graph.Edge, new_graph_id: str, entry_node: str
 ) -> graph.Edge:
     """
-    Rewrites a crossing edge into an invoke that returns to caller.
+    Rewrite a crossing edge into an invoke that returns to caller.
     """
     rewritten = edge.model_copy(
         update={

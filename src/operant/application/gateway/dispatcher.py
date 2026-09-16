@@ -297,7 +297,7 @@ class Dispatcher:
         result: tools.ToolResult,
     ) -> None:
         """
-        Journals one executed attempt.
+        Journal one executed attempt.
         """
         self.on_event(
             events.GatewayAction(

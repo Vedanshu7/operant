@@ -34,27 +34,30 @@ def register(app: typer.Typer) -> None:
         deps: cddeps.CliDeps = ctx.obj
         database, runs = deps.open_runs()
         try:
-            for cap in deps.artifacts.list():
+            for capability in deps.artifacts.list():
                 stability = runs.stability(
-                    cap.id, window=deps.settings.governance.window
+                    capability.id, window=deps.settings.governance.window
                 )
                 inputs = ", ".join(
-                    f"{k}: {v.type}" for k, v in cap.inputs.items()
+                    f"{k}: {v.type}" for k, v in capability.inputs.items()
                 )
                 outputs = ", ".join(
-                    f"{k}: {v.type}" for k, v in cap.outputs.items()
+                    f"{k}: {v.type}" for k, v in capability.outputs.items()
                 )
                 typer.echo(
-                    f"  {cap.id} v{cap.version} [{cap.status}] | stability "
+                    f"  {capability.id} v{capability.version} [{capability.status}] | stability "
                     f"{stability.successes}/{stability.runs}"
                 )
-                typer.echo(f"    {cap.description}")
+                typer.echo(f"    {capability.description}")
                 typer.echo(
                     f"    inputs: ({inputs or 'none'}) -> "
                     f"outputs: ({outputs or 'none'})"
                 )
-                if cap.accessibility is not None and cap.accessibility.steps:
-                    typer.echo(f"    {_accessibility(cap.accessibility)}")
+                if (
+                    capability.accessibility is not None
+                    and capability.accessibility.steps
+                ):
+                    typer.echo(f"    {_accessibility(capability.accessibility)}")
         finally:
             database.close()
 

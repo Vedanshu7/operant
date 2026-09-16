@@ -1,4 +1,5 @@
-"""Typed evidence events.
+"""
+Typed evidence events.
 
 Untyped event dicts let a ``type=`` kwarg silently overwrite the event
 name (every ``input_declared`` event in every run was unreadable) and

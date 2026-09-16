@@ -1,4 +1,5 @@
-"""Pure resolution of a target-strategy stack against a screen digest.
+"""
+Pure resolution of a target-strategy stack against a screen digest.
 
 No OS calls, no accessibility API, which keeps replay deterministic,
 unit-testable, and portable to any surface that can produce a digest.
@@ -28,7 +29,7 @@ import operant.domain.models.targets as targets
 
 def _norm(text: str) -> str:
     """
-    Collapses whitespace and lower-cases for tolerant comparison.
+    Collapse whitespace and lower-case for tolerant comparison.
     """
     normalized = re.sub(r"\s+", " ", text).strip().lower()
     return normalized

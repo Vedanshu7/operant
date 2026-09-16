@@ -52,7 +52,7 @@ class FileProfileRepository:
 
     def get(self, profile_id: str) -> profile.AppProfile:
         """
-        Load and validates one profile.
+        Load and validate one profile.
         """
         path = self.path(profile_id)
         if not path.exists():
@@ -83,7 +83,7 @@ class FileProfileRepository:
 
     def save(self, document: profile.AppProfile) -> pathlib.Path:
         """
-        Write the profile atomically under a lock and returns its path.
+        Write the profile atomically under a lock and return its path.
         """
         if document.vendor_id in self._reserved():
             # The base profiles hold the deny-by-default policy; an app

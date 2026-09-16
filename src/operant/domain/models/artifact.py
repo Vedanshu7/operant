@@ -207,7 +207,8 @@ class Stability(pydantic.BaseModel):
 
 
 class CapabilityArtifact(pydantic.BaseModel):
-    """A capability: a path query over the application graph.
+    """
+    A capability: a path query over the application graph.
 
     :ivar schema_version: On-disk schema version this document uses.
     :ivar id: Capability id; also the file stem.

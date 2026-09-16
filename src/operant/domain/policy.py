@@ -1,4 +1,5 @@
-"""Policy model and the pure enforcement decision.
+"""
+Policy model and the pure enforcement decision.
 
 Both discovery and replay act through the gateway's policy guard, so no
 code path can reach the OS without a policy check. Decisions are
@@ -124,7 +125,7 @@ def propose_scope(
     local_hosts: FrozenSet[str] = DEFAULT_LOCAL_HOSTS,
 ) -> Optional[daapprov.ScopeRequest]:
     """
-    Proposes the coarse grant a human would approve for a launch.
+    Propose the coarse grant a human would approve for a launch.
 
     The whole registrable domain for a URL, the whole scheme for a non-
     HTTP URL, the whole app for a native launch.
@@ -482,7 +483,7 @@ def _evaluate_launch(
     local_hosts: FrozenSet[str],
 ) -> Optional[daapprov.PolicyDecision]:
     """
-    Decides a launch against the scope allowlists and grants.
+    Decide a launch against the scope allowlists and grants.
     """
     blocked, needed = _scope_grants_for(
         policy, action, grants, local_hosts=local_hosts
@@ -583,7 +584,7 @@ def _evaluate_fill(
     app: str,
 ) -> Optional[daapprov.PolicyDecision]:
     """
-    Decides a fill or select against the sensitivity gates.
+    Decide a fill or select against the sensitivity gates.
     """
     typed, name, dc = _classify_typed(policy, action, control)
     decision: Optional[daapprov.PolicyDecision] = None
@@ -635,7 +636,7 @@ def _evaluate_mutating(
     app: str,
 ) -> daapprov.PolicyDecision:
     """
-    Decides the action against the mutating gate.
+    Decide the action against the mutating gate.
     """
     trigger = _mutating_trigger(policy, action, screen, control)
     if trigger is None:

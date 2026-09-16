@@ -1,4 +1,5 @@
-"""Structured evidence for a run: a JSONL event log plus screenshots.
+"""
+Structured evidence for a run: a JSONL event log plus screenshots.
 
 Everything lands under ``<evidence_root>/<run_id>/``. Every write is
 redacted first, never after. Events are typed (``operant.domain.events``)

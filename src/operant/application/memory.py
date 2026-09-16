@@ -280,9 +280,10 @@ class AgentMemory:
         """
         plan_ids = [p.id for p in self._store.plans(vendor_id) if not _usable(p)]
         lesson_ids = [
-            lsn.id
-            for lsn in self._store.lessons(vendor_id)
-            if _age(lsn.last_used_at) > _LESSON_EXPIRY_DAYS * time.SECONDS_PER_DAY
+            lesson.id
+            for lesson in self._store.lessons(vendor_id)
+            if _age(lesson.last_used_at)
+            > _LESSON_EXPIRY_DAYS * time.SECONDS_PER_DAY
         ]
         self._store.delete(plan_ids, lesson_ids)
         return len(plan_ids), len(lesson_ids)
@@ -315,7 +316,9 @@ def summary(
             dataclasses.asdict(p) for v in vendors for p in memory.plans(v)
         ],
         "lessons": [
-            dataclasses.asdict(lsn) for v in vendors for lsn in memory.lessons(v)
+            dataclasses.asdict(lesson)
+            for v in vendors
+            for lesson in memory.lessons(v)
         ],
         "tools": [
             {"signature": sig, "tools": dict(tools)}
@@ -374,7 +377,7 @@ def _lesson_score(lesson: mdmemory.Lesson, key: str, graph_version: int) -> floa
 
 def _age(iso: str) -> float:
     """
-    Seconds since ``iso``; unparseable times count as very old.
+    Return the seconds since ``iso``; unparseable times count as very old.
     """
     try:
         then = datetime.datetime.fromisoformat(iso)

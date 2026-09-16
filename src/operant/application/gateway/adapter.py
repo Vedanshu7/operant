@@ -77,7 +77,7 @@ class GatewaySurface:
         self, app_name: str, window_title_pattern: str
     ) -> Tuple[str, str]:
         """
-        Rebinds the session to another app window.
+        Rebind the session to another app window.
         """
         previous: Tuple[str, str] = self._session.retarget(
             app_name, window_title_pattern

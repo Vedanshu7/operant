@@ -1,4 +1,5 @@
-"""Condition evaluation, outcome-edge matching, and output extraction.
+"""
+Condition evaluation, outcome-edge matching, and output extraction.
 
 All pure functions over a screen digest.
 

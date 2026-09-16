@@ -1,4 +1,5 @@
-"""Secret store backends: environment, macOS Keychain, and a chain of both.
+"""
+Secret store backends: environment, macOS Keychain, and a chain of both.
 
 Typical usage example:
 

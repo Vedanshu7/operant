@@ -85,7 +85,7 @@ def audit_all(
     memory_text: Optional[collections.abc.Sequence[str]] = None,
 ) -> List[Finding]:
     """
-    Audits every artifact, graph version, and evidence run.
+    Audit every artifact, graph version, and evidence run.
 
     :param artifact_store: Where capabilities live.
     :param graph_store: Where graph versions live.
@@ -99,9 +99,11 @@ def audit_all(
     """
     gate = gate or govern.StabilityGate()
     findings: List[Finding] = []
-    for cap in artifact_store.list():
-        findings += audit_artifact(cap, graph_store)
-        findings += _audit_stability(cap, stability_of(cap.id), gate)
+    for capability in artifact_store.list():
+        findings += audit_artifact(capability, graph_store)
+        findings += _audit_stability(
+            capability, stability_of(capability.id), gate
+        )
     findings += _audit_graphs(graph_store)
     if evidence_root is not None and evidence_root.exists():
         for run_dir in sorted(p for p in evidence_root.iterdir() if p.is_dir()):
@@ -148,7 +150,7 @@ def audit_memory(texts: collections.abc.Sequence[str]) -> List[Finding]:
 
 
 def _audit_stability(
-    cap: artifact.CapabilityArtifact,
+    capability: artifact.CapabilityArtifact,
     stability: artifact.Stability,
     gate: govern.StabilityGate,
 ) -> List[Finding]:
@@ -156,14 +158,14 @@ def _audit_stability(
     Warn when an approved capability fails the stability gate.
     """
     findings: List[Finding] = []
-    if cap.status == "approved" and not gate.passes(
+    if capability.status == "approved" and not gate.passes(
         stability.runs, stability.successes
     ):
         findings.append(
             Finding(
                 "warning",
                 "approved-unstable",
-                f"artifacts/{cap.id}",
+                f"artifacts/{capability.id}",
                 f"approved with stability {stability.successes}/{stability.runs}"
                 f" ({gate.describe(stability.runs, stability.successes)})",
             )
@@ -188,15 +190,15 @@ def _audit_graphs(
 
 
 def audit_artifact(
-    cap: artifact.CapabilityArtifact,
+    capability: artifact.CapabilityArtifact,
     graph_store: graphs.FileGraphRepository,
 ) -> List[Finding]:
     """
     Check one capability against the graph version it pins.
     """
-    subject = f"artifacts/{cap.id}"
+    subject = f"artifacts/{capability.id}"
     try:
-        graph = graph_store.get(cap.vendor_id, cap.graph_version)
+        graph = graph_store.get(capability.vendor_id, capability.graph_version)
     except (errors.RepositoryError, OSError, pydantic.ValidationError) as err:
         # A missing or unreadable pinned graph is itself the finding.
         findings = [
@@ -204,20 +206,20 @@ def audit_artifact(
                 "error",
                 "artifact-graph-missing",
                 subject,
-                f"pinned graph {cap.vendor_id} v{cap.graph_version} "
+                f"pinned graph {capability.vendor_id} v{capability.graph_version} "
                 f"cannot be loaded: {err}",
             )
         ]
     else:
         # Graph loaded: run the node, path, and IO checks.
-        findings = _audit_nodes(cap, graph, subject)
-        findings += _audit_compiled_path(cap, graph, subject)
-        findings += _audit_io(cap, subject)
+        findings = _audit_nodes(capability, graph, subject)
+        findings += _audit_compiled_path(capability, graph, subject)
+        findings += _audit_io(capability, subject)
     return findings
 
 
 def _audit_nodes(
-    cap: artifact.CapabilityArtifact,
+    capability: artifact.CapabilityArtifact,
     graph: mggraph.AppGraph,
     subject: str,
 ) -> List[Finding]:
@@ -227,9 +229,9 @@ def _audit_nodes(
     findings: List[Finding] = []
     node_ids = {n.id for n in graph.nodes}
     named = (
-        ("start_node", cap.start_node),
-        ("goal_node", cap.goal_node),
-        ("extract_at_node", cap.extract_at_node),
+        ("start_node", capability.start_node),
+        ("goal_node", capability.goal_node),
+        ("extract_at_node", capability.extract_at_node),
     )
     for label, node in named:
         if node and node != "*" and node not in node_ids:
@@ -238,15 +240,15 @@ def _audit_nodes(
                     "error",
                     "artifact-node-unknown",
                     subject,
-                    f"{label} {node!r} is not in graph {cap.vendor_id} "
-                    f"v{cap.graph_version}",
+                    f"{label} {node!r} is not in graph {capability.vendor_id} "
+                    f"v{capability.graph_version}",
                 )
             )
     return findings
 
 
 def _audit_compiled_path(
-    cap: artifact.CapabilityArtifact,
+    capability: artifact.CapabilityArtifact,
     graph: mggraph.AppGraph,
     subject: str,
 ) -> List[Finding]:
@@ -255,11 +257,11 @@ def _audit_compiled_path(
     """
     findings: List[Finding] = []
     edges = (
-        pathfind.compiled_edges(graph, cap.compiled_path)
-        if cap.compiled_path
+        pathfind.compiled_edges(graph, capability.compiled_path)
+        if capability.compiled_path
         else []
     )
-    if cap.compiled_path and edges is None:
+    if capability.compiled_path and edges is None:
         # Named edges that don't resolve: report and stop.
         findings = [
             Finding(
@@ -267,18 +269,18 @@ def _audit_compiled_path(
                 "compiled-path-unresolvable",
                 subject,
                 "compiled_path names edges missing from graph "
-                f"v{cap.graph_version}",
+                f"v{capability.graph_version}",
             )
         ]
     elif edges:
         # Path resolved: audit its shape and dataflow.
-        findings += _audit_path_shape(cap, edges, subject)
-        findings += _audit_path_dataflow(cap, edges, subject)
+        findings += _audit_path_shape(capability, edges, subject)
+        findings += _audit_path_dataflow(capability, edges, subject)
     return findings
 
 
 def _audit_path_shape(
-    cap: artifact.CapabilityArtifact,
+    capability: artifact.CapabilityArtifact,
     edges: List[mggraph.Edge],
     subject: str,
 ) -> List[Finding]:
@@ -286,45 +288,48 @@ def _audit_path_shape(
     Check the path's endpoints, continuity, and extract node.
     """
     findings: List[Finding] = []
-    if cap.start_node != "*" and edges[0].from_node != cap.start_node:
+    if (
+        capability.start_node != "*"
+        and edges[0].from_node != capability.start_node
+    ):
         findings.append(
             Finding(
                 "error",
                 "compiled-path-start",
                 subject,
                 f"path starts at {edges[0].from_node!r}, artifact says "
-                f"{cap.start_node!r}",
+                f"{capability.start_node!r}",
             )
         )
-    for prev, nxt in itertools.pairwise(edges):
-        if nxt.from_node != prev.to_node:
+    for prev, following in itertools.pairwise(edges):
+        if following.from_node != prev.to_node:
             findings.append(
                 Finding(
                     "error",
                     "compiled-path-disconnected",
                     subject,
-                    f"edge {nxt.id} starts at {nxt.from_node!r} but "
+                    f"edge {following.id} starts at {following.from_node!r} but "
                     f"{prev.id} ends at {prev.to_node!r}",
                 )
             )
-    if edges[-1].to_node != cap.goal_node:
+    if edges[-1].to_node != capability.goal_node:
         findings.append(
             Finding(
                 "error",
                 "compiled-path-goal",
                 subject,
                 f"path ends at {edges[-1].to_node!r}, goal is "
-                f"{cap.goal_node!r}",
+                f"{capability.goal_node!r}",
             )
         )
     visited = {edges[0].from_node} | {e.to_node for e in edges}
-    if cap.extract_at_node and cap.extract_at_node not in visited:
+    if capability.extract_at_node and capability.extract_at_node not in visited:
         findings.append(
             Finding(
                 "error",
                 "extract-node-unreached",
                 subject,
-                f"extract_at_node {cap.extract_at_node!r} is never visited "
+                f"extract_at_node {capability.extract_at_node!r} is never visited "
                 "by the compiled path",
             )
         )
@@ -332,7 +337,7 @@ def _audit_path_shape(
 
 
 def _audit_path_dataflow(
-    cap: artifact.CapabilityArtifact,
+    capability: artifact.CapabilityArtifact,
     edges: List[mggraph.Edge],
     subject: str,
 ) -> List[Finding]:
@@ -341,7 +346,7 @@ def _audit_path_dataflow(
     """
     findings: List[Finding] = []
     needed: Set[str] = set().union(*(_edge_params(e) for e in edges))
-    undeclared = needed - set(cap.inputs)
+    undeclared = needed - set(capability.inputs)
     if undeclared:
         findings.append(
             Finding(
@@ -357,7 +362,7 @@ def _audit_path_dataflow(
         for e in edges
         if e.action.value is not None and e.action.value.from_output is not None
     }
-    unflowed = flows - set(cap.outputs)
+    unflowed = flows - set(capability.outputs)
     if unflowed:
         findings.append(
             Finding(
@@ -369,26 +374,28 @@ def _audit_path_dataflow(
             )
         )
     expected_kinds = sorted({e.action.kind for e in edges})
-    if cap.policy_scope.required_action_kinds != expected_kinds:
+    if capability.policy_scope.required_action_kinds != expected_kinds:
         findings.append(
             Finding(
                 "warning",
                 "policy-scope-drift",
                 subject,
                 "policy_scope.required_action_kinds "
-                f"{cap.policy_scope.required_action_kinds} != path kinds "
+                f"{capability.policy_scope.required_action_kinds} != path kinds "
                 f"{expected_kinds}",
             )
         )
     return findings
 
 
-def _audit_io(cap: artifact.CapabilityArtifact, subject: str) -> List[Finding]:
+def _audit_io(
+    capability: artifact.CapabilityArtifact, subject: str
+) -> List[Finding]:
     """
     Check declared outputs are covered and IO sensitivity is classified.
     """
     findings: List[Finding] = []
-    uncovered = set(cap.outputs) - {s.output for s in cap.extract}
+    uncovered = set(capability.outputs) - {s.output for s in capability.extract}
     if uncovered:
         findings.append(
             Finding(
@@ -400,7 +407,10 @@ def _audit_io(cap: artifact.CapabilityArtifact, subject: str) -> List[Finding]:
                 "leaked from elsewhere)",
             )
         )
-    for kind, fields in (("input", cap.inputs), ("output", cap.outputs)):
+    for kind, fields in (
+        ("input", capability.inputs),
+        ("output", capability.outputs),
+    ):
         for name, spec in fields.items():
             guess = sensv.classify(name=name)
             if spec.data_class == "none" and sensv.is_sensitive(guess):

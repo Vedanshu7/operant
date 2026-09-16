@@ -172,7 +172,7 @@ def _parameterize_value(
     state: _BuildState,
 ) -> None:
     """
-    Rewrites a literal fill: dataflow beats params beats promotion.
+    Rewrite a literal fill: dataflow beats params beats promotion.
     """
     value = edge.action.value
     if value is None or value.literal is None:

@@ -65,7 +65,7 @@ class SqlRunRepository:
         error: Optional[str] = None,
     ) -> None:
         """
-        Move a run to ``status`` and records its result or error.
+        Move a run to ``status`` and record its result or error.
         """
         with self._db.session() as session:
             row = self._require(session, run_id)
@@ -123,7 +123,7 @@ class SqlRunRepository:
         self, run_id: str, request: approval.ApprovalRequest
     ) -> str:
         """
-        Record a pending approval and returns its id.
+        Record a pending approval and return its id.
         """
         approval_id = f"{run_id}~{ids.short_id('approval')}"
         with self._db.session() as session:
@@ -170,7 +170,7 @@ class SqlRunRepository:
         self, run_id: str, request: runs.InterventionRequest
     ) -> str:
         """
-        Record a pending intervention and returns its id.
+        Record a pending intervention and return its id.
         """
         intervention_id = f"{run_id}~{ids.short_id('iv')}"
         with self._db.session() as session:
@@ -216,7 +216,7 @@ class SqlRunRepository:
 
     def open_clarification(self, run_id: str, question: str) -> str:
         """
-        Record a pending clarifying question and returns its id.
+        Record a pending clarifying question and return its id.
         """
         clarification_id = f"{run_id}~{ids.short_id('clar')}"
         with self._db.session() as session:

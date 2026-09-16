@@ -116,7 +116,7 @@ def perform_and_record(
     settle: Optional[SettlePolicy] = None,
 ) -> digest.ScreenDigest:
     """
-    Perform the action through the approval gate, then records the edge.
+    Perform the action through the approval gate, then record the edge.
 
     ``ApprovalDeniedError`` and ``PolicyViolationError`` propagate -
     callers own the blocked-action experience.

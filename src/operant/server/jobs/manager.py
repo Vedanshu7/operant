@@ -106,7 +106,7 @@ class _Handle:
 
 class RunManager:
     """
-    Start runs, streams their events, and routes human answers.
+    Start runs, stream their events, and route human answers.
     """
 
     def __init__(
@@ -140,7 +140,7 @@ class RunManager:
 
     def start_replay(self, request: replay.ReplayRequest) -> mrruns.RunRecord:
         """
-        Queue a replay run and returns its initial record.
+        Queue a replay run and return its initial record.
         """
         capability = self._artifacts.get(request.capability_id)
         run_id = ids.run_id("replay")
@@ -164,7 +164,7 @@ class RunManager:
         self, request: discover.DiscoverRequest
     ) -> mrruns.RunRecord:
         """
-        Queue a discovery run and returns its initial record.
+        Queue a discovery run and return its initial record.
         """
         run_id = ids.run_id("discovery")
         record = mrruns.RunRecord(

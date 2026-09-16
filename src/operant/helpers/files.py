@@ -1,4 +1,5 @@
-"""Atomic JSON persistence for pydantic models and plain documents.
+"""
+Atomic JSON persistence for pydantic models and plain documents.
 
 Every write goes to a sibling temporary file and is renamed into place,
 so a crash never leaves a half-written document. Read-modify-write
@@ -80,7 +81,7 @@ def read_model[ModelT: pydantic.BaseModel](
     path: pathlib.Path, model: type[ModelT]
 ) -> ModelT:
     """
-    Load and validates a pydantic model from JSON.
+    Load and validate a pydantic model from JSON.
 
     :param path: File to read.
     :param model: Model class to validate against.

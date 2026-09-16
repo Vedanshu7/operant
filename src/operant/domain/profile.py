@@ -1,4 +1,5 @@
-"""App profile: per-vendor knowledge shared by every capability.
+"""
+App profile: per-vendor knowledge shared by every capability.
 
 Where the application runs, its policy, tenant bindings, and the
 app-wide outcome edges (session loss, auth failure, error pages). File

@@ -325,7 +325,7 @@ def _spend_budget(
     budget: Budget,
 ) -> None:
     """
-    Decrements the recovery budget, hard-failing when it runs out.
+    Decrement the recovery budget, hard-failing when it runs out.
     """
     budget.left -= 1
     if budget.left < 0:

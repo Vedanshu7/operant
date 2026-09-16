@@ -60,7 +60,7 @@ class UiApprover:
 
     def ask(self, request: approval.ApprovalRequest) -> approval.ApprovalDecision:
         """
-        Record the request, waits for a human, and returns the answer.
+        Record the request, wait for a human, and return the answer.
         """
         approval_id = self._runs.open_approval(self._run_id, request)
         answer = self._register(approval_id)
@@ -148,7 +148,7 @@ class UiClarifier:
 
     def ask(self, question: str, *, run_id: str) -> str:
         """
-        Record the question, waits for a human, returns the answer.
+        Record the question, wait for a human, return the answer.
         """
         clarification_id = self._runs.open_clarification(self._run_id, question)
         answer = self._register(clarification_id)
@@ -216,7 +216,7 @@ class UiCredentialRequester:
         self, name: str, *, run_id: str, reason: str
     ) -> Optional[odsec.CredentialGrant]:
         """
-        Emit a credential request, waits for the operator, returns a grant.
+        Emit a credential request, wait for the operator, return a grant.
         """
         request_id = f"{self._run_id}~cred~{ids.nonce()}"
         answer = self._register(request_id)

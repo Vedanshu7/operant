@@ -1,4 +1,5 @@
-"""Data classification for the guardrails: what counts as sensitive.
+"""
+Data classification for the guardrails: what counts as sensitive.
 
 Pure. Signals are unioned (control role, field name or label, the
 value's own shape, and the model's declaration) so no single party,
@@ -216,7 +217,7 @@ def classify(
     extra_patterns: collections.abc.Sequence[str] = (),
 ) -> artifact.DataClass:
     """
-    Unions every sensitivity signal and returns the strongest class.
+    Union every sensitivity signal and return the strongest class.
 
     :param name: Accessible name of the field.
     :param label: Nearby anchoring text of the field.

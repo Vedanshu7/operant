@@ -1,4 +1,5 @@
-"""Plumbing shared by the operator server and the driver daemon.
+"""
+Plumbing shared by the operator server and the driver daemon.
 
 Bearer-token authentication, a problem+json error envelope for every
 error a route raises, and the health payload. Both FastAPI apps install these so

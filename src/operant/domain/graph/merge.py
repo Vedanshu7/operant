@@ -205,7 +205,7 @@ def merge_recording(
     window_title_pattern: str = "",
 ) -> Tuple[graph.AppGraph, bool, Dict[str, str], Dict[str, str]]:
     """
-    Folds a recorded flow into ``base`` (or a fresh graph).
+    Fold a recorded flow into ``base`` (or a fresh graph).
 
     :param base: The current graph version, or ``None`` for a first
         save.

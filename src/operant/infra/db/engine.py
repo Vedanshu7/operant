@@ -1,4 +1,5 @@
-"""Engine and session factory for the SQLite database.
+"""
+Engine and session factory for the SQLite database.
 
 Typical usage example:
 

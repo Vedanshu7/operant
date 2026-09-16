@@ -39,7 +39,7 @@ class GatewayConfig(pydantic.BaseModel):
 
 def load_gateway_config(path: pathlib.Path) -> GatewayConfig:
     """
-    Load and validates the gateway chain configuration.
+    Load and validate the gateway chain configuration.
 
     :param path: The gateway policy JSON file.
     :return: The parsed configuration.

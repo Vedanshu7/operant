@@ -223,7 +223,7 @@ class DiscoverySession:
         )
         self.trace_id = uuid.uuid4().hex
 
-    # ── conveniences the tool handlers use ─────────────────────────────
+    # Conveniences the tool handlers use.
 
     @property
     def surface(self) -> pssurfac.Surface:
@@ -304,7 +304,7 @@ class DiscoverySession:
         self, boot: Optional[bstrap.VendorBootstrap]
     ) -> Optional[Tuple[str, str]]:
         """
-        Retargets the session ahead of an app-switching launch.
+        Retarget the session ahead of an app-switching launch.
         """
         state = self.state
         if (
@@ -347,7 +347,7 @@ class DiscoverySession:
         args: Dict[str, object],
     ) -> None:
         """
-        Adopts a successful launch's vendor binding.
+        Adopt a successful launch's vendor binding.
         """
         if boot is not None:
             app = boot.app_name or str(args.get("app") or "")
@@ -378,7 +378,7 @@ class DiscoverySession:
         )
         return recording
 
-    # ── the loop ───────────────────────────────────────────────────────
+    # The loop.
 
     def run(
         self,

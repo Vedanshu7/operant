@@ -1,4 +1,5 @@
-"""Task-input substitution into target strategies and conditions.
+"""
+Task-input substitution into target strategies and conditions.
 
 Recorded strategies and element-visible conditions may carry
 ``{{name}}`` placeholders for task inputs (e.g. an account number in a
@@ -30,7 +31,7 @@ def substitute_strategies(
     params: collections.abc.Mapping[str, str],
 ) -> List[targets.TargetStrategy]:
     """
-    Substitutes parameters into the textual parts of strategies.
+    Substitute parameters into the textual parts of strategies.
 
     Role strategies substitute ``name``; label-proximity strategies
     substitute ``anchor_text``; structural and region strategies are
@@ -60,7 +61,7 @@ def substitute_condition(
     cond: graph.Condition, params: collections.abc.Mapping[str, str]
 ) -> graph.Condition:
     """
-    Substitutes parameters into an element-visible condition.
+    Substitute parameters into an element-visible condition.
 
     Title and text conditions are returned unchanged.
 
