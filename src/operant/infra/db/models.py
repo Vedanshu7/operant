@@ -15,6 +15,9 @@ from typing import Optional
 import sqlalchemy
 import sqlalchemy.orm
 
+import operant.domain.models.runs as runs
+import operant.domain.secrets as dsecrets
+
 # #############################################################################
 # Base
 # #############################################################################
@@ -41,10 +44,10 @@ class RunRow(Base):
     id: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
         sqlalchemy.String(64), primary_key=True
     )
-    kind: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+    kind: sqlalchemy.orm.Mapped[runs.RunKind] = sqlalchemy.orm.mapped_column(
         sqlalchemy.String(16), nullable=False
     )
-    status: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+    status: sqlalchemy.orm.Mapped[runs.RunStatus] = sqlalchemy.orm.mapped_column(
         sqlalchemy.String(32), nullable=False, index=True
     )
     goal: sqlalchemy.orm.Mapped[Optional[str]] = sqlalchemy.orm.mapped_column(
@@ -177,8 +180,10 @@ class ApprovalRow(Base):
     proposed_grants_json: sqlalchemy.orm.Mapped[str] = (
         sqlalchemy.orm.mapped_column(sqlalchemy.Text, default="[]")
     )
-    status: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
-        sqlalchemy.String(16), nullable=False, index=True
+    status: sqlalchemy.orm.Mapped[runs.ApprovalStatus] = (
+        sqlalchemy.orm.mapped_column(
+            sqlalchemy.String(16), nullable=False, index=True
+        )
     )
     decided_by: sqlalchemy.orm.Mapped[Optional[str]] = (
         sqlalchemy.orm.mapped_column(sqlalchemy.String(64))
@@ -227,8 +232,10 @@ class InterventionRow(Base):
     screenshot_file: sqlalchemy.orm.Mapped[Optional[str]] = (
         sqlalchemy.orm.mapped_column(sqlalchemy.String(255))
     )
-    state: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
-        sqlalchemy.String(16), nullable=False, index=True
+    state: sqlalchemy.orm.Mapped[runs.InterventionState] = (
+        sqlalchemy.orm.mapped_column(
+            sqlalchemy.String(16), nullable=False, index=True
+        )
     )
     note: sqlalchemy.orm.Mapped[Optional[str]] = sqlalchemy.orm.mapped_column(
         sqlalchemy.Text
@@ -271,8 +278,10 @@ class ClarificationRow(Base):
     answer: sqlalchemy.orm.Mapped[Optional[str]] = sqlalchemy.orm.mapped_column(
         sqlalchemy.Text
     )
-    status: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
-        sqlalchemy.String(16), nullable=False, index=True
+    status: sqlalchemy.orm.Mapped[runs.ClarificationStatus] = (
+        sqlalchemy.orm.mapped_column(
+            sqlalchemy.String(16), nullable=False, index=True
+        )
     )
     raised_at: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
         sqlalchemy.String(40), nullable=False
@@ -425,8 +434,8 @@ class SecretRefRow(Base):
     name: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
         sqlalchemy.String(128), primary_key=True
     )
-    backend: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
-        sqlalchemy.String(16), nullable=False
+    backend: sqlalchemy.orm.Mapped[dsecrets.SecretBackend] = (
+        sqlalchemy.orm.mapped_column(sqlalchemy.String(16), nullable=False)
     )
     locator: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
         sqlalchemy.Text, nullable=False

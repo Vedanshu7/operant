@@ -17,7 +17,6 @@ from typing import Annotated, Any, Dict
 
 import fastapi
 
-import operant.domain.errors as errors
 import operant.server.deps as deps
 import operant.server.schemas as schemas
 
@@ -75,13 +74,8 @@ def check_ref(name: str, state: State) -> Any:
     """
     Report whether the store currently resolves the reference.
     """
-    result = None
-    for record in state.secret_refs.list():
-        if record.name == name:
-            present = state.secret_store.exists(record.locator)
-            state.secret_refs.mark_presence(name, present)
-            result = {"name": name, "present": present}
-            break
-    if result is None:
-        raise errors.NotFoundError("No such reference")
+    record = state.secret_refs.get(name)
+    present = state.secret_store.exists(record.locator)
+    state.secret_refs.mark_presence(name, present)
+    result = {"name": name, "present": present}
     return result

@@ -102,7 +102,7 @@ def test_approval_intervention_and_clarification_lifecycle(
         repo.update_intervention("missing", "abandoned")
     clar = repo.open_clarification("replay-1", "which account?")
     repo.answer_clarification(clar, "12456")
-    with pytest.raises(errors.NotFoundError):
+    with pytest.raises(errors.UnknownClarificationError):
         repo.answer_clarification("missing", "x")
 
 
@@ -167,3 +167,24 @@ def test_secret_ref_repository(
     assert refs.list() == []
     with pytest.raises(errors.NotFoundError):
         refs.delete("password")
+
+
+def test_getters_raise_for_unknown_ids(repo: rrruns.SqlRunRepository) -> None:
+    with pytest.raises(errors.UnknownApprovalError):
+        repo.get_approval("nope")
+    with pytest.raises(errors.UnknownInterventionError):
+        repo.get_intervention("nope")
+    with pytest.raises(errors.UnknownClarificationError):
+        repo.get_clarification("nope")
+    with pytest.raises(errors.UnknownClarificationError):
+        repo.answer_clarification("nope", "a")
+
+
+def test_a_secret_ref_is_read_by_name() -> None:
+    database = engine.Database.open(None)
+    database.create_all()
+    refs = rrruns.SqlSecretRefRepository(database)
+    refs.upsert(runs.SecretRefMeta(name="pw", backend="env", locator="APP_PW"))
+    assert refs.get("pw").locator == "APP_PW"
+    with pytest.raises(errors.NotFoundError):
+        refs.get("other")

@@ -42,6 +42,7 @@ _STATUS_BY_ERROR: Final[Tuple[Tuple[type[Exception], int], ...]] = (
     (errors.InvalidIdError, 422),
     (errors.UnknownApprovalError, 404),
     (errors.UnknownInterventionError, 404),
+    (errors.UnknownClarificationError, 404),
     (errors.PolicyViolationError, 403),
     (errors.ApprovalRequiredError, 428),
     (errors.ApprovalDeniedError, 403),

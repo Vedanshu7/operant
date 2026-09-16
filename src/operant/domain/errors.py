@@ -415,3 +415,14 @@ class UnknownApprovalError(ControlError):
     """
     No pending approval has the given id.
     """
+
+
+# #############################################################################
+# UnknownClarificationError
+# #############################################################################
+
+
+class UnknownClarificationError(ControlError):
+    """
+    No clarifying question has the given id.
+    """

@@ -238,7 +238,7 @@ class SqlRunRepository:
         with self._db.session() as session:
             row = session.get(models.ClarificationRow, clarification_id)
             if row is None:
-                raise errors.NotFoundError(clarification_id)
+                raise errors.UnknownClarificationError(clarification_id)
             row.answer = answer
             row.status = "answered"
             row.answered_at = time.iso_now()
@@ -382,13 +382,18 @@ class SqlRunRepository:
             ]
             return records
 
-    def get_approval(self, approval_id: str) -> Optional[runs.ApprovalRecord]:
+    def get_approval(self, approval_id: str) -> runs.ApprovalRecord:
         """
-        Return one approval, or ``None`` when absent.
+        Return one approval.
+
+        :raises errors.UnknownApprovalError: When no approval has the
+            id.
         """
         with self._db.session() as session:
             row = session.get(models.ApprovalRow, approval_id)
-            record = _approval_from_row(row) if row is not None else None
+            if row is None:
+                raise errors.UnknownApprovalError(approval_id)
+            record = _approval_from_row(row)
             return record
 
     def pending_approvals(self) -> collections.abc.Sequence[runs.ApprovalRecord]:
@@ -425,15 +430,18 @@ class SqlRunRepository:
             ]
             return records
 
-    def get_intervention(
-        self, intervention_id: str
-    ) -> Optional[runs.InterventionRecord]:
+    def get_intervention(self, intervention_id: str) -> runs.InterventionRecord:
         """
-        Return one intervention, or ``None`` when absent.
+        Return one intervention.
+
+        :raises errors.UnknownInterventionError: When no intervention
+            has the id.
         """
         with self._db.session() as session:
             row = session.get(models.InterventionRow, intervention_id)
-            record = _intervention_from_row(row) if row is not None else None
+            if row is None:
+                raise errors.UnknownInterventionError(intervention_id)
+            record = _intervention_from_row(row)
             return record
 
     def run_interventions(
@@ -456,13 +464,18 @@ class SqlRunRepository:
 
     def get_clarification(
         self, clarification_id: str
-    ) -> Optional[runs.ClarificationRecord]:
+    ) -> runs.ClarificationRecord:
         """
-        Return one clarification, or ``None`` when absent.
+        Return one clarifying question.
+
+        :raises errors.UnknownClarificationError: When no question has
+            the id.
         """
         with self._db.session() as session:
             row = session.get(models.ClarificationRow, clarification_id)
-            record = _clarification_from_row(row) if row is not None else None
+            if row is None:
+                raise errors.UnknownClarificationError(clarification_id)
+            record = _clarification_from_row(row)
             return record
 
     def run_clarifications(
@@ -518,6 +531,19 @@ class SqlSecretRefRepository:
             rows = session.execute(statement).scalars().all()
             records = [_meta_from_row(row) for row in rows]
             return records
+
+    def get(self, name: str) -> runs.SecretRefMeta:
+        """
+        Return one reference.
+
+        :raises errors.NotFoundError: When no reference has the name.
+        """
+        with self._db.session() as session:
+            row = session.get(models.SecretRefRow, name)
+            if row is None:
+                raise errors.NotFoundError(f"No secret reference '{name}'")
+            record = _meta_from_row(row)
+            return record
 
     def upsert(self, meta: runs.SecretRefMeta) -> None:
         """
@@ -606,8 +632,8 @@ def _run_from_row(row: models.RunRow) -> runs.RunRecord:
         result = results.result_adapter.validate_json(row.result_json)
     record = runs.RunRecord(
         id=row.id,
-        kind=row.kind,  # type: ignore[arg-type]
-        status=row.status,  # type: ignore[arg-type]
+        kind=row.kind,
+        status=row.status,
         vendor_id=row.vendor_id or "",
         capability_id=row.capability_id,
         tenant=row.tenant or "",
@@ -630,7 +656,7 @@ def _meta_from_row(row: models.SecretRefRow) -> runs.SecretRefMeta:
     """
     meta = runs.SecretRefMeta(
         name=row.name,
-        backend=row.backend,  # type: ignore[arg-type]
+        backend=row.backend,
         locator=row.locator,
         description=row.description,
         updated_at=row.last_checked_at or row.created_at,
@@ -650,7 +676,7 @@ def _approval_from_row(
         kind=row.kind,
         summary=row.summary,
         action_kind=row.action_kind,
-        status=row.status,  # type: ignore[arg-type]
+        status=row.status,
         step=row.step,
         app=row.app,
         details=json.loads(row.details_json),
@@ -674,7 +700,7 @@ def _intervention_from_row(
         id=row.id,
         run_id=row.run_id,
         reason=row.reason,
-        state=row.state,  # type: ignore[arg-type]
+        state=row.state,
         page_title=row.page_title,
         edge_id=row.edge_id,
         screenshot_file=row.screenshot_file,
@@ -697,7 +723,7 @@ def _clarification_from_row(
         id=row.id,
         run_id=row.run_id,
         question=row.question,
-        status=row.status,  # type: ignore[arg-type]
+        status=row.status,
         answer=row.answer,
         raised_at=row.raised_at,
         answered_at=row.answered_at,

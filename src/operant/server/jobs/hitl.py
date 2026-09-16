@@ -71,7 +71,7 @@ class UiApprover:
                 run_id=self._run_id,
                 type="approval_requested",
                 summary=f"approval needed ({request.kind}): {request.summary}",
-                data={"approval": dataclasses.asdict(record)} if record else {},
+                data={"approval": dataclasses.asdict(record)},
                 run_status="waiting_approval",
             )
         )
@@ -159,11 +159,7 @@ class UiClarifier:
                 run_id=self._run_id,
                 type="clarify",
                 summary=f"clarify: {question}",
-                data=(
-                    {"clarification": dataclasses.asdict(record)}
-                    if record
-                    else {}
-                ),
+                data={"clarification": dataclasses.asdict(record)},
                 run_status="waiting_clarification",
             )
         )

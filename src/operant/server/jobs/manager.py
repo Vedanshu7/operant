@@ -15,7 +15,6 @@ import operant.server.jobs.manager as jmmanage
 
 from __future__ import annotations
 
-import asyncio
 import collections.abc
 import dataclasses
 import threading
@@ -138,9 +137,7 @@ class RunManager:
         self._pending: Dict[str, jppendin.PendingAnswer[object]] = {}
         self._seq: Dict[str, int] = {}
 
-    def start_replay(
-        self, request: replay.ReplayRequest, *, created_by: str = ""
-    ) -> mrruns.RunRecord:
+    def start_replay(self, request: replay.ReplayRequest) -> mrruns.RunRecord:
         """
         Queue a replay run and returns its initial record.
         """
@@ -163,7 +160,7 @@ class RunManager:
         return stored
 
     def start_discovery(
-        self, request: discover.DiscoverRequest, *, created_by: str = ""
+        self, request: discover.DiscoverRequest
     ) -> mrruns.RunRecord:
         """
         Queue a discovery run and returns its initial record.
@@ -677,17 +674,13 @@ class RunManager:
         """
         if handle.iv_db_id is not None:
             record = self._runs.get_intervention(handle.iv_db_id)
-            state = record.state if record else ""
+            state = record.state
             self._emit(
                 jhhub.SseEnvelope(
                     run_id=handle.run_id,
                     type=type_,
                     summary=f"control: {state}",
-                    data=(
-                        {"intervention": dataclasses.asdict(record)}
-                        if record
-                        else {}
-                    ),
+                    data={"intervention": dataclasses.asdict(record)},
                     run_status=run_status,
                 )
             )
@@ -797,11 +790,3 @@ def _run_of(answer_id: str) -> str:
     """
     run_id = answer_id.split("~", 1)[0]
     return run_id
-
-
-def make_hub(loop: asyncio.AbstractEventLoop) -> jhhub.EventHub:
-    """
-    Build an event hub bound to the server's event loop.
-    """
-    hub = jhhub.EventHub(loop)
-    return hub

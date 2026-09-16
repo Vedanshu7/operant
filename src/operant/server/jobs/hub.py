@@ -14,7 +14,6 @@ import operant.server.jobs.hub as jhhub
 from __future__ import annotations
 
 import asyncio
-import collections.abc
 import contextlib
 import dataclasses
 from typing import Any, Dict, List, Optional, Tuple
@@ -90,21 +89,6 @@ class EventHub:
             self._queues.setdefault(run_id, []).append(queue)
         subscription = Subscription(self, run_id, queue)
         return queue, subscription
-
-    async def stream(
-        self, run_id: str, replay: List[SseEnvelope]
-    ) -> collections.abc.AsyncIterator[SseEnvelope]:
-        """
-        Yield replayed events, then live ones until the run is terminal.
-        """
-        queue, subscription = await self.subscribe(run_id)
-        try:
-            for envelope in replay:
-                yield envelope
-            while True:
-                yield await queue.get()
-        finally:
-            await subscription.close()
 
     def _fan_out(self, envelope: SseEnvelope) -> None:
         """

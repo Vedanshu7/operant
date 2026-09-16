@@ -81,15 +81,20 @@ def _build_state(
     hub = jhhub.EventHub(loop)
     settings.paths.screen_lock.parent.mkdir(parents=True, exist_ok=True)
     lease = jllease.DriverLease(settings.paths.screen_lock)
+    # One instance of each store, shared by the routes and the run manager.
+    artifact_repo = artifact.FileArtifactRepository(settings.paths.artifacts_dir)
+    graph_repo = graphs.FileGraphRepository(settings.paths.graphs_dir)
+    profile_repo = profiles.FileProfileRepository(
+        settings.paths.policies_dir, settings.paths.discovery_base_profile
+    )
+    secret_store = sffactor.secret_store(settings.secrets)
     manager = jmmanage.RunManager(
         settings=settings,
         factory=factory,
-        artifacts=artifact.FileArtifactRepository(settings.paths.artifacts_dir),
-        graphs=graphs.FileGraphRepository(settings.paths.graphs_dir),
-        profiles=profiles.FileProfileRepository(
-            settings.paths.policies_dir, settings.paths.discovery_base_profile
-        ),
-        secret_store=sffactor.secret_store(settings.secrets),
+        artifacts=artifact_repo,
+        graphs=graph_repo,
+        profiles=profile_repo,
+        secret_store=secret_store,
         runs=run_repo,
         hub=hub,
         lease=lease,
@@ -100,12 +105,10 @@ def _build_state(
         database=database,
         runs=run_repo,
         secret_refs=runs.SqlSecretRefRepository(database),
-        artifacts=artifact.FileArtifactRepository(settings.paths.artifacts_dir),
-        graphs=graphs.FileGraphRepository(settings.paths.graphs_dir),
-        profiles=profiles.FileProfileRepository(
-            settings.paths.policies_dir, settings.paths.discovery_base_profile
-        ),
-        secret_store=sffactor.secret_store(settings.secrets),
+        artifacts=artifact_repo,
+        graphs=graph_repo,
+        profiles=profile_repo,
+        secret_store=secret_store,
         manager=manager,
         hub=hub,
         lease=lease,
