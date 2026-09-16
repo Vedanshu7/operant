@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Build the README GIFs from real evidence and eval results.
 
@@ -29,8 +30,8 @@ import sys
 import tempfile
 from typing import Any, Dict, List, Tuple
 
-import PIL.ImageChops as pchops
 import PIL.Image as pimage
+import PIL.ImageChops as pchops
 import PIL.ImageDraw as pdraw
 import PIL.ImageFont as pfont
 
@@ -292,7 +293,9 @@ def _changed(first: pimage.Image, second: pimage.Image) -> bool:
     return pchops.difference(first, second).getbbox() is not None
 
 
-def _mp4(frames: List[pimage.Image], durations: List[int], out: pathlib.Path) -> None:
+def _mp4(
+    frames: List[pimage.Image], durations: List[int], out: pathlib.Path
+) -> None:
     """
     Encode the frames with their hold times as an H.264 MP4 via ffmpeg.
     """
@@ -307,10 +310,24 @@ def _mp4(frames: List[pimage.Image], durations: List[int], out: pathlib.Path) ->
         (pathlib.Path(tmp) / "frames.txt").write_text("\n".join(listing))
         subprocess.run(
             [
-                "ffmpeg", "-y", "-loglevel", "error",
-                "-f", "concat", "-safe", "0", "-i", "frames.txt",
-                "-vf", "fps=10,format=yuv420p",
-                "-c:v", "libx264", "-crf", "26", "-movflags", "+faststart",
+                "ffmpeg",
+                "-y",
+                "-loglevel",
+                "error",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                "frames.txt",
+                "-vf",
+                "fps=10,format=yuv420p",
+                "-c:v",
+                "libx264",
+                "-crf",
+                "26",
+                "-movflags",
+                "+faststart",
                 str(out),
             ],
             cwd=tmp,

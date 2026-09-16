@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Drive a live Operant run through the operator API, as the web UI would.
 
@@ -16,8 +17,8 @@ the UI started instead of starting one over the API.
 
 Run: ``uv run python scripts/live_demo.py --base
 http://127.0.0.1:7080
-        --token <token> --profile <id> --tenant <tenant> --goal "<goal>"
-[--agents multi] [--replay] [--clarify "url=
+          --token <token> --profile <id> --tenant <tenant> --goal
+"<goal>" [--agents multi] [--replay] [--clarify "url=
 http://..."]``
 """
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Turn eval result files into the README's markdown tables.
 

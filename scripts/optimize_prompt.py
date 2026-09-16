@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Optimize the discovery prompts with GEPA over the eval scenarios.
 

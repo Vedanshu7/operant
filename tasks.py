@@ -14,7 +14,7 @@ import invoke
 
 # The vendored linter and its helper library are third-party, maintained
 # upstream, and excluded from linting rather than held to this repo's standard.
-_SOURCE_DIRS = ("src/operant", "tests")
+_SOURCE_DIRS = ("src/operant", "tests", "scripts")
 _EXCLUDED_DIRS = ("src/operant/dev/helpers", "src/operant/dev/linters")
 _LINTER_ENTRY_POINT = "operant.dev.linters.base"
 
