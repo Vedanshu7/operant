@@ -45,4 +45,7 @@ jobs:
       - run: uv sync --frozen --extra macos
       # No macOS-only tests yet: exit 5 (nothing collected) is not a failure.
       - run: uv run pytest -q -m "macos" || [ "$?" -eq 5 ]
+      # The audit reads the committed evidence fixtures, not runtime output.
       - run: uv run operant audit --strict --evidence
+        env:
+          OPERANT_PATHS__EVIDENCE_DIR: tests/fixtures/evidence

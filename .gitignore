@@ -15,3 +15,5 @@ web/node_modules/
 web/dist/
 
 linter_warnings.txt
+**/.HEAD.lock
+.coverage
