@@ -226,17 +226,11 @@ def _environ() -> Dict[str, str]:
     return environ
 
 
-def _log_event(log: run_log.RunLog, event: Dict[str, Any]) -> None:
+def _log_event(log: run_log.RunLog, event: events.GatewayEvent) -> None:
     """
-    Log one gateway action event.
+    Log one gateway event.
     """
-    data = {k: v for k, v in event.items() if k != "type"}
-    log.event(
-        event.get("type", "gateway_action"),
-        **data,
-        summary=f"{event.get('tool')}: {event.get('action')} -> "
-        f"{event.get('status', event.get('reason', ''))}",
-    )
+    log.emit(event)
 
 
 def _log_decision(

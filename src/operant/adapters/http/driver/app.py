@@ -24,6 +24,7 @@ import operant.application.gateway.registry as grregist
 import operant.application.gateway.wire as wire
 import operant.domain.approval as approval
 import operant.domain.errors as errors
+import operant.domain.events as events
 import operant.domain.models.actions as actions
 import operant.domain.profile as dpprofil
 import operant.domain.redaction as redact
@@ -321,14 +322,13 @@ def serve_driver(
     redactor = build_daemon_redactor(profile, settings)
 
     # Log every gateway event with secret values redacted.
-    def on_event(event: Dict[str, Any]) -> None:
+    def on_event(event: events.GatewayEvent) -> None:
         _LOG.info(
-            "%s tool=%s action=%s status=%s %s",
-            event.get("type"),
-            event.get("tool"),
-            event.get("action"),
-            event.get("status", ""),
-            redactor.redact(str(event.get("reason", ""))),
+            "%s tool=%s action=%s %s",
+            event.type,
+            event.tool,
+            event.action,
+            redactor.redact(event.summary),
         )
 
     # Log each policy decision with its reason redacted.

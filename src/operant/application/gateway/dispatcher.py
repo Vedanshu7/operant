@@ -25,12 +25,12 @@ from typing import Dict, List, Optional, Tuple
 import operant.application.gateway.learner as gllearne
 import operant.application.gateway.registry as grregist
 import operant.domain.errors as errors
+import operant.domain.events as events
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as mddigest
 import operant.domain.models.tools as tools
 import operant.ports.tool as pttool
 
-Event = Dict[str, object]
 Verifier = collections.abc.Callable[
     [actions.SurfaceAction, tools.ExecutionContext], Tuple[bool, str]
 ]
@@ -59,7 +59,7 @@ class DispatchOutcome:
     digest: Optional[mddigest.ScreenDigest] = None
 
 
-def _no_event(_event: Event) -> None:
+def _no_event(_event: events.GatewayEvent) -> None:
     """
     Drop the event (default sink).
     """
@@ -86,7 +86,7 @@ class Dispatcher:
 
     registry: grregist.ToolRegistry
     config: grregist.GatewayConfig
-    on_event: collections.abc.Callable[[Event], None] = _no_event
+    on_event: events.OnGatewayEvent = _no_event
     verifiers: Dict[str, Verifier] = dataclasses.field(default_factory=dict)
     learner: Optional[gllearne.ToolLearner] = None
     signature_of: Optional[SignatureOf] = None
@@ -252,13 +252,13 @@ class Dispatcher:
             return
         if self.learner.record(sig, tool_name):
             self.on_event(
-                {
-                    "type": "gateway_learned",
-                    "action": kind,
-                    "tool": tool_name,
-                    "signature": sig,
-                    "reason": "recorded winning tool for this surface",
-                }
+                events.GatewayLearned(
+                    action=kind,
+                    tool=tool_name,
+                    signature=sig,
+                    reason="recorded winning tool for this surface",
+                    summary=f"{tool_name}: {kind} learned",
+                )
             )
 
     def _record_failure(self, sig: Optional[str], tool_name: str) -> None:
@@ -282,12 +282,12 @@ class Dispatcher:
         name = tool.spec.name
         attempts.append(tools.Attempt(name, status, reason))
         self.on_event(
-            {
-                "type": "gateway_skip",
-                "action": action.kind,
-                "tool": name,
-                "reason": reason,
-            }
+            events.GatewaySkip(
+                action=action.kind,
+                tool=name,
+                reason=reason,
+                summary=f"{name}: {action.kind} -> {reason}",
+            )
         )
 
     def _journal_action(
@@ -300,13 +300,13 @@ class Dispatcher:
         Journals one executed attempt.
         """
         self.on_event(
-            {
-                "type": "gateway_action",
-                "action": action.kind,
-                "tool": tool.spec.name,
-                "status": result.status,
-                "reason": result.reason,
-                "verified": result.verified,
-                "target": action.target_text,
-            }
+            events.GatewayAction(
+                action=action.kind,
+                tool=tool.spec.name,
+                status=result.status,
+                reason=result.reason,
+                verified=result.verified,
+                target=action.target_text,
+                summary=f"{tool.spec.name}: {action.kind} -> {result.status}",
+            )
         )

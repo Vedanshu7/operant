@@ -17,14 +17,14 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 import operant.adapters.http.common as common
 import operant.domain.approval as approval
+import operant.domain.events as events
 import operant.domain.models.actions as actions
 import operant.domain.policy as dppolicy
 import operant.domain.profile as profile
 import operant.infra.settings as issettin
 import operant.ports.surface as pssurfac
 
-Event = dict[str, Any]
-OnEvent = collections.abc.Callable[[Event], None]
+OnEvent = events.OnGatewayEvent
 OnDecision = collections.abc.Callable[
     [approval.PolicyDecision, actions.SurfaceAction], None
 ]

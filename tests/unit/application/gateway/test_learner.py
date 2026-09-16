@@ -4,6 +4,7 @@ from typing import List
 import operant.application.gateway.dispatcher as dispat
 import operant.application.gateway.learner as gllearne
 import operant.application.gateway.registry as grregist
+import operant.domain.events as odevents
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
 import operant.domain.models.tools as tools
@@ -135,7 +136,7 @@ def test_dispatcher_learns_winner_then_leads_with_it():
     registry.register(b)
     config = grregist.GatewayConfig(chains={"fill": ["a", "b"]})
     learner = gllearne.ToolLearner(ports.FakePreferenceStore())
-    events: List[dict] = []
+    events: List[odevents.GatewayEvent] = []
     dispatcher = dispat.Dispatcher(
         registry,
         config,
@@ -153,9 +154,7 @@ def test_dispatcher_learns_winner_then_leads_with_it():
     out1 = dispatcher.dispatch(act, ctx)
     assert out1.tool == "b"
     assert a.calls == ["fill"]
-    assert any(
-        e["type"] == "gateway_learned" and e["tool"] == "b" for e in events
-    )
+    assert any(e.type == "gateway_learned" and e.tool == "b" for e in events)
     # Second run: b leads the chain, a is never tried.
     a.calls.clear()
     out2 = dispatcher.dispatch(act, ctx)

@@ -27,17 +27,16 @@ import httpx
 import operant.application.gateway.wire as wire
 import operant.domain.approval as daapprov
 import operant.domain.errors as errors
+import operant.domain.events as events
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
-
-Event = dict[str, Any]
 
 _APPROVAL_REQUIRED = 428
 _POLICY_DENIED = 403
 _ALL_TOOLS_FAILED = 502
 
 
-def _no_event(_event: Event) -> None:
+def _no_event(_event: events.GatewayEvent) -> None:
     """
     Drop the event (default sink).
     """
@@ -58,7 +57,7 @@ class RemoteGatewaySurface:
         base_url: str,
         *,
         token: Optional[str] = None,
-        on_event: collections.abc.Callable[[Event], None] = _no_event,
+        on_event: events.OnGatewayEvent = _no_event,
         client: Optional[httpx.Client] = None,
     ) -> None:
         headers = {"Authorization": f"Bearer {token}"} if token else {}
@@ -272,9 +271,7 @@ class RemoteGatewaySurface:
         """
         attempts = response.json().get("attempts", [])
         for attempt in attempts:
-            self._on_event(
-                {"type": "gateway_action", "action": action.kind, **attempt}
-            )
+            self._on_event(_attempt_event(action, attempt))
         detail = "; ".join(
             f"{a['tool']}: {a['status']} ({a.get('reason', '')})"
             for a in attempts
@@ -290,17 +287,15 @@ class RemoteGatewaySurface:
         Emit gateway events for each attempt and return the body.
         """
         for attempt in body.get("attempts", []):
-            self._on_event(
-                {"type": "gateway_action", "action": action.kind, **attempt}
-            )
+            self._on_event(_attempt_event(action, attempt))
         if not body.get("attempts"):
             self._on_event(
-                {
-                    "type": "gateway_action",
-                    "action": action.kind,
-                    "tool": body.get("tool"),
-                    "status": "ok",
-                }
+                events.GatewayAction(
+                    action=action.kind,
+                    tool=body.get("tool"),
+                    status="ok",
+                    summary=f"{body.get('tool')}: {action.kind} -> ok",
+                )
             )
         return body
 
@@ -324,3 +319,19 @@ class RemoteGatewaySurface:
             except httpx.HTTPError:
                 pass
             time.sleep(0.5)
+
+
+def _attempt_event(
+    action: actions.SurfaceAction, attempt: Dict[str, Any]
+) -> events.GatewayAction:
+    """
+    Rebuild the event for one attempt the daemon reported.
+    """
+    event = events.GatewayAction(
+        action=action.kind,
+        tool=attempt.get("tool"),
+        status=str(attempt.get("status", "")),
+        reason=attempt.get("reason"),
+        summary=f"{attempt.get('tool')}: {action.kind} -> {attempt.get('status')}",
+    )
+    return event

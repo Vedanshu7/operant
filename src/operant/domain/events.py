@@ -18,6 +18,7 @@ import operant.domain.events as events
 
 from __future__ import annotations
 
+import collections.abc
 from typing import Annotated, Any, Dict, Final, List, Literal, Optional, Union
 
 import pydantic
@@ -153,6 +154,11 @@ class GatewayLearned(BaseEvent):
     tool: str
     signature: str
     reason: str = ""
+
+
+# What the gateway journals while it dispatches an action.
+GatewayEvent = Union[GatewayAction, GatewaySkip, GatewayLearned]
+OnGatewayEvent = collections.abc.Callable[[GatewayEvent], None]
 
 
 # #############################################################################

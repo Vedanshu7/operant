@@ -4,7 +4,7 @@ The remote surface speaks the driver protocol against the real daemon app.
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import List
 
 import httpx
 import pytest
@@ -12,12 +12,13 @@ import pytest
 import operant.adapters.http.remote_surface as remote
 import operant.domain.approval as daapprov
 import operant.domain.errors as errors
+import operant.domain.events as odevents
 import operant.domain.models.actions as actions
 import tests.support.driver as driver
 
 
 def _remote(
-    events: List[Dict[str, object]],
+    events: List[odevents.GatewayEvent],
 ) -> tuple[remote.RemoteGatewaySurface, driver.FakeGatewaySurface]:
     client, surface = driver.client()
     built = remote.RemoteGatewaySurface(
@@ -36,18 +37,19 @@ def test_observe_retarget_and_grant_round_trip() -> None:
 
 
 def test_perform_journals_the_tool_that_served_it() -> None:
-    events: List[Dict[str, object]] = []
+    events: List[odevents.GatewayEvent] = []
     surface_remote, surface = _remote(events)
     surface_remote.perform(actions.SurfaceAction(kind="click", ref="c0"))
     assert surface.performed[0].kind == "click"
-    assert events == [
-        {
-            "type": "gateway_action",
-            "action": "click",
-            "tool": "ax-action",
-            "status": "ok",
-        }
-    ]
+    assert len(events) == 1
+    event = events[0]
+    assert isinstance(event, odevents.GatewayAction)
+    assert (event.type, event.action, event.tool, event.status) == (
+        "gateway_action",
+        "click",
+        "ax-action",
+        "ok",
+    )
 
 
 def test_gated_and_denied_actions_raise_the_domain_errors() -> None:

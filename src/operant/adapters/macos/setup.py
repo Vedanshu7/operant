@@ -28,6 +28,7 @@ import operant.application.gateway.guard as guard
 import operant.application.gateway.learner as gllearne
 import operant.application.gateway.registry as grregist
 import operant.domain.approval as approval
+import operant.domain.events as events
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
 import operant.domain.models.tools as mttools
@@ -37,8 +38,7 @@ import operant.domain.sensitivity as sensv
 import operant.infra.repositories.learned_tools as learned_
 import operant.infra.settings as settings
 
-Event = dict[str, object]
-OnEvent = collections.abc.Callable[[Event], None]
+OnEvent = events.OnGatewayEvent
 OnDecision = collections.abc.Callable[
     [approval.PolicyDecision, actions.SurfaceAction], None
 ]

@@ -7,6 +7,7 @@ import operant.application.gateway.dispatcher as dispat
 import operant.application.gateway.guard as guard
 import operant.application.gateway.registry as grregist
 import operant.domain.errors as errors
+import operant.domain.events as odevents
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
 import operant.domain.models.tools as tools
@@ -46,13 +47,13 @@ def make(
 
 def setup(
     scripted: List[ScriptedTool], chains: Dict[str, List[str]], **dispatcher_kw
-) -> Tuple[dispat.Dispatcher, List[dict]]:
+) -> Tuple[dispat.Dispatcher, List[odevents.GatewayEvent]]:
     registry = grregist.ToolRegistry()
     for tool in scripted:
         registry.register(tool)
     config = grregist.GatewayConfig(chains=chains)
     registry.validate(config)
-    events: List[dict] = []
+    events: List[odevents.GatewayEvent] = []
     dispatcher = dispat.Dispatcher(
         registry, config, on_event=events.append, **dispatcher_kw
     )
@@ -71,7 +72,7 @@ def test_first_ok_tool_wins_and_is_journaled():
     )
     assert outcome.tool == "a"
     assert b.calls == []
-    assert [e["tool"] for e in events if e["type"] == "gateway_action"] == ["a"]
+    assert [e.tool for e in events if e.type == "gateway_action"] == ["a"]
 
 
 def test_failed_tool_falls_through_to_next():
@@ -116,7 +117,7 @@ def test_unavailable_health_skips_tool_without_executing():
     )
     assert outcome.tool == "b"
     assert a.calls == []
-    assert any(e["type"] == "gateway_skip" and e["tool"] == "a" for e in events)
+    assert any(e.type == "gateway_skip" and e.tool == "a" for e in events)
 
 
 def test_all_tools_failed_raises_with_attempt_detail():
@@ -177,9 +178,7 @@ def test_sensitive_fill_skips_tools_that_leak_the_value():
     )
     assert outcome.tool == "ax" and leaky.calls == []
     assert outcome.attempts[0].status == "skipped_sensitive"
-    assert any(
-        e["type"] == "gateway_skip" and e["tool"] == "clip" for e in events
-    )
+    assert any(e.type == "gateway_skip" and e.tool == "clip" for e in events)
     assert "hunter2" not in repr(events)
     plain = dispatcher.dispatch(
         actions.SurfaceAction(kind="fill", ref="c1", value="hello"), CTX
