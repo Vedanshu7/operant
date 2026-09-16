@@ -28,7 +28,7 @@ Evidence:
   matching or beating agents given AX or HTML text.
 - ScreenSpot-Pro shows grounding drops on large, dense screens, and
   recovers when the search is narrowed to a region.
-- The replay robustness suite (`tests/evals/perturb.py`, README) shows
+- The replay robustness suite (`tests/evals/perturb.py`, docs/EVALS.md) shows
   the AX stack absorbs renames, reorders, banners and moves without
   acting on the wrong control. The gap is apps with no tree, not apps
   whose tree changes.

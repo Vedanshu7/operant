@@ -105,4 +105,4 @@ Scenarios:
   was made on. These are metrics, not checks, so pass rates stay
   comparable across runs. They are also sent to Langfuse as `traj:*`
   scores.
-- `scripts/eval_report.py` turns result files into the README tables.
+- `scripts/eval_report.py` turns result files into the tables in docs/EVALS.md.

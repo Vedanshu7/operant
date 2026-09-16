@@ -65,7 +65,7 @@ the right control. It still never sees secret values.
 
 - Code: `ports/privacy.py`, `adapters/privacy/` (Presidio, no-op,
   factory). Optional extra: `privacy`; the spaCy model is installed
-  separately (see the README) or via the Docker build args.
+  separately (see docs/GUIDE.md) or via the Docker build args.
 - Evidence scrubbing scrubs string values after exact redaction, never the
   JSON text, so a match cannot break the structure.
 - The small spaCy model masks some UI labels as `<PERSON>`; this is why
