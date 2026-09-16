@@ -138,7 +138,19 @@ def test_budget_drops_full_digests_until_it_fits() -> None:
         counter=_FixedCounter(limit=150),
     )
     assert window.kept_full == 1
+    assert window.forced
     assert window.tokens <= window.limit
+
+
+def test_a_window_within_budget_is_not_forced() -> None:
+    window = dswindow.build(
+        "sys",
+        _history(2),
+        budget=dswindow.WindowBudget(keep_full_turns=3),
+        counter=dswindow.EstimatedCounter(),
+    )
+    assert window.kept_full == 2
+    assert not window.forced
 
 
 def test_an_unfittable_window_fails_the_run(tmp_path: pathlib.Path) -> None:

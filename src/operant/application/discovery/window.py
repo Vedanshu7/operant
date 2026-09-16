@@ -99,6 +99,8 @@ class Window:
     :ivar limit: The token budget the window had to fit.
     :ivar kept_full: Turns sent with their full screen digest.
     :ivar dropped_images: Older screenshots replaced by a note.
+    :ivar forced: The budget cut full digests below the configured
+        count.
     """
 
     messages: Tuple[llm.ChatMessage, ...]
@@ -106,6 +108,7 @@ class Window:
     limit: int
     kept_full: int
     dropped_images: int
+    forced: bool = False
 
 
 def build(
@@ -141,6 +144,9 @@ def build(
         # Over budget: send one fewer full digest and count again.
         keep -= 1
         window = _render(system, history, keep, counter, limit)
+    window = dataclasses.replace(
+        window, forced=keep < max(1, budget.keep_full_turns)
+    )
     return window
 
 

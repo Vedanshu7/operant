@@ -813,7 +813,7 @@ class DiscoverySession:
             budget=self.deps.window_budget,
             counter=self.deps.token_counter,
         )
-        if window.kept_full < min(self.deps.window_budget.keep_full_turns, turn):
+        if window.forced:
             # The budget forced harder compaction than usual: record it.
             self.log.emit(
                 events.ContextCompacted(
