@@ -200,7 +200,7 @@ TOOL_SCHEMAS: Final[Tuple[llm.ToolSchema, ...]] = (
         name="declare_input",
         description=(
             "Register a task parameter you extracted from the goal or "
-            "determined from the screen (e.g. accountId=13344). These "
+            "determined from the screen (e.g. orderId=48213). These "
             "become the reusable capability's typed inputs. Do NOT declare "
             "credentials."
         ),
@@ -209,7 +209,7 @@ TOOL_SCHEMAS: Final[Tuple[llm.ToolSchema, ...]] = (
             "properties": {
                 "name": {
                     "type": "string",
-                    "description": "short input name, e.g. accountId",
+                    "description": "short input name, e.g. orderId",
                 },
                 "value": {
                     "type": "string",

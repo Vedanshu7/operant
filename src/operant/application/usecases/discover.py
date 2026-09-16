@@ -284,7 +284,7 @@ def _commit(
     if bootstrap and profiles.exists(document.vendor_id):
         # A generic (bootstrap) run derived the id of a profile that
         # already exists. It must never overwrite the curated one (that
-        # once wiped ParaBank's tenants and secret refs); give the run
+        # once wiped a demo app's tenants and secret refs); give the run
         # its own generic id and carry it onto the graph and capability
         # so profile, graph, and recording stay consistent.
         generic = _generic_id(profiles, graphs, document.vendor_id)

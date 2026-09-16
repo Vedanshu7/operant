@@ -304,8 +304,8 @@ def _affordance_toward(
     The goal page names itself in its own nav (a menu link whose text is
     the page title); the same link sits on adjacent pages. We pick the
     live clickable control whose name is the longest run contained in
-    the goal's title, so "Accounts Overview" wins over a bare "ParaBank"
-    home link, and ``None`` when nothing names the goal.
+    the goal's title, so "Order history" wins over a bare app-name home
+    link, and ``None`` when nothing names the goal.
     """
     title = _goal_title(goal_node)
     edge: Optional[graph.Edge] = None
