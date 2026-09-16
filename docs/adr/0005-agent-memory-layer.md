@@ -150,9 +150,11 @@ recency x importance) and the memory-poisoning literature.
   - Hints keep no numbers.
 - **Visibility.** `operant memory list|forget|prune` and
   `GET /api/v1/memory`.
-- **Single mode.** `OPERANT_DISCOVERY__MEMORY_IN_SINGLE=true` gives a
-  single agent the recall block. It is off until an eval shows it does
-  not cost turns.
+- **Single mode.** A single agent also gets the recall block
+  (`OPERANT_DISCOVERY__MEMORY_IN_SINGLE`, on by default). In the memory
+  eval, 3 skins × 3 trials of a transfer flow, a recalled plan cut the
+  turns in every skin: 14.3 to 13.7, 14.7 to 13.0, and 15.0 to 14.0. All
+  runs completed, and stale memory still lost to the screen.
 
 ### Migration
 
