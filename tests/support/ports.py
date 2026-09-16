@@ -182,6 +182,9 @@ class FakeProfileRepository:
         self.root = root
         self.items: Dict[str, Any] = {}
 
+    def exists(self, profile_id: str) -> bool:
+        return profile_id in self.items
+
     def get(self, profile_id: str) -> Any:
         return self.items[profile_id]
 
@@ -192,8 +195,8 @@ class FakeProfileRepository:
         self.items[document.vendor_id] = document
         return self.root / f"{document.vendor_id}.json"
 
-    def discovery_base(self) -> pathlib.Path:
-        return self.root / "discovery"
+    def discovery_base(self) -> Any:
+        return self.items["discovery-base"]
 
 
 # #############################################################################

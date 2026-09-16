@@ -16,10 +16,8 @@ import operant.application.context as accontex
 import operant.application.replay.options as rooption
 import operant.application.replay.traverse as traverse
 import operant.domain.models.results as results
-import operant.infra.repositories.artifacts as artifact
-import operant.infra.repositories.graphs as rggraphs
-import operant.infra.repositories.profiles as rpprofil
 import operant.ports.hitl as hitl
+import operant.ports.repositories as prepos
 
 # #############################################################################
 # ReplayRequest
@@ -48,9 +46,9 @@ def execute_replay(
     request: ReplayRequest,
     *,
     factory: accontex.ContextBuilder,
-    artifacts: artifact.FileArtifactRepository,
-    graphs: rggraphs.FileGraphRepository,
-    profiles: rpprofil.FileProfileRepository,
+    artifacts: prepos.ArtifactRepository,
+    graphs: prepos.GraphRepository,
+    profiles: prepos.ProfileRepository,
     approver: Optional[hitl.Approver] = None,
     run_identifier: Optional[str] = None,
     should_stop: Optional[collections.abc.Callable[[], bool]] = None,

@@ -133,8 +133,15 @@ class GraphRepository(Protocol):
 @runtime_checkable
 class ProfileRepository(Protocol):
     """
-    Application profiles and where discovery evidence is rooted.
+    Application profiles, and the deny-by-default profile discovery starts
+    from.
     """
+
+    def exists(self, profile_id: str) -> bool:
+        """
+        Report whether a profile is stored under ``profile_id``.
+        """
+        ...
 
     def get(self, profile_id: str) -> profile.AppProfile:
         """
@@ -154,9 +161,9 @@ class ProfileRepository(Protocol):
         """
         ...
 
-    def discovery_base(self) -> pathlib.Path:
+    def discovery_base(self) -> profile.AppProfile:
         """
-        Return the directory discovery runs write evidence under.
+        Load the deny-by-default profile a bootstrap discovery runs under.
         """
         ...
 

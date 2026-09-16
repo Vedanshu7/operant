@@ -23,8 +23,7 @@ import operant.application.recorder.segment as rssegmen
 import operant.domain.graph.merge as merge
 import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as graph
-import operant.infra.repositories.artifacts as raartifa
-import operant.infra.repositories.graphs as graphs
+import operant.ports.repositories as prepos
 
 # Actions that act on a control, as opposed to launch, press or scroll.
 _TARGETED = frozenset({"click", "fill", "select"})
@@ -33,8 +32,8 @@ _TARGETED = frozenset({"click", "fill", "select"})
 def commit_recording(
     recording: recdng.Recording,
     *,
-    graph_store: graphs.FileGraphRepository,
-    artifact_store: raartifa.FileArtifactRepository,
+    graph_store: prepos.GraphRepository,
+    artifact_store: prepos.ArtifactRepository,
 ) -> Tuple[artifact.CapabilityArtifact, graph.AppGraph]:
     """
     Merge a recording into its graph(s) and saves the capability.
@@ -85,7 +84,7 @@ def commit_recording(
 
 def _merge_segment(
     recording: recdng.Recording,
-    graph_store: graphs.FileGraphRepository,
+    graph_store: prepos.GraphRepository,
 ) -> Tuple[graph.AppGraph, Dict[str, str], Dict[str, str]]:
     """
     Merge one recording into its vendor's graph; skips a no-op write.

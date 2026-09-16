@@ -28,15 +28,13 @@ import operant.domain.models.graph as dmgraph
 import operant.domain.profile as dmprofil
 import operant.infra.db.engine as engine
 import operant.infra.db.migrate as migrate
-import operant.infra.repositories.artifacts as raartifa
-import operant.infra.repositories.graphs as rggraphs
 import operant.infra.repositories.memory as rmmemory
-import operant.infra.repositories.profiles as rpprofil
 import operant.infra.repositories.remediations as rgremed
 import operant.infra.settings as issettin
 import operant.ports.hitl as hitl
 import operant.ports.llm as plllm
 import operant.ports.privacy as ppprivac
+import operant.ports.repositories as prepos
 import operant.ports.secrets as secrets
 import operant.ports.tracing as pttracin
 
@@ -130,9 +128,9 @@ def execute_discovery(
     request: DiscoverRequest,
     *,
     factory: accontex.ContextBuilder,
-    artifacts: raartifa.FileArtifactRepository,
-    graphs: rggraphs.FileGraphRepository,
-    profiles: rpprofil.FileProfileRepository,
+    artifacts: prepos.ArtifactRepository,
+    graphs: prepos.GraphRepository,
+    profiles: prepos.ProfileRepository,
     models: ModelWiring,
     secret_store: secrets.SecretStore,
     clarifier: Optional[hitl.Clarifier] = None,
@@ -272,9 +270,9 @@ def _memory(
 
 def _commit(
     result: config.DiscoveryResult,
-    artifacts: raartifa.FileArtifactRepository,
-    graphs: rggraphs.FileGraphRepository,
-    profiles: rpprofil.FileProfileRepository,
+    artifacts: prepos.ArtifactRepository,
+    graphs: prepos.GraphRepository,
+    profiles: prepos.ProfileRepository,
     *,
     bootstrap: bool,
 ) -> DiscoverOutcome:
@@ -303,8 +301,8 @@ def _commit(
 
 
 def _generic_id(
-    profiles: rpprofil.FileProfileRepository,
-    graphs: rggraphs.FileGraphRepository,
+    profiles: prepos.ProfileRepository,
+    graphs: prepos.GraphRepository,
     vendor_id: str,
 ) -> str:
     """
