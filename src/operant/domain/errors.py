@@ -106,17 +106,6 @@ class AllToolsFailedError(SurfaceError):
 
 
 # #############################################################################
-# TargetNotFoundError
-# #############################################################################
-
-
-class TargetNotFoundError(SurfaceError):
-    """
-    No control on screen satisfied the target strategies.
-    """
-
-
-# #############################################################################
 # PolicyError
 # #############################################################################
 
@@ -280,17 +269,6 @@ class VersionConflictError(RepositoryError):
 
 
 # #############################################################################
-# SchemaVersionUnsupportedError
-# #############################################################################
-
-
-class SchemaVersionUnsupportedError(RepositoryError):
-    """
-    A stored document declares a schema this build cannot read.
-    """
-
-
-# #############################################################################
 # ReplayError
 # #############################################################################
 
@@ -349,28 +327,6 @@ class LlmError(DiscoveryError):
     def __init__(self, message: str, *, retryable: bool) -> None:
         super().__init__(message)
         self.retryable = retryable
-
-
-# #############################################################################
-# ToolArgumentError
-# #############################################################################
-
-
-class ToolArgumentError(DiscoveryError):
-    """
-    The model called a tool with arguments that cannot be acted on.
-    """
-
-
-# #############################################################################
-# ClarificationUnavailableError
-# #############################################################################
-
-
-class ClarificationUnavailableError(DiscoveryError):
-    """
-    The model asked a question but no clarification channel exists.
-    """
 
 
 # #############################################################################

@@ -289,7 +289,7 @@ class ScriptedRequester:
 
 
 def test_credential_declaration_is_rejected(tmp_path: pathlib.Path) -> None:
-    result, _, deps, _ = _run_gated(
+    result, _, deps, log_text = _run_gated(
         tmp_path,
         [
             (
@@ -307,6 +307,8 @@ def test_credential_declaration_is_rejected(tmp_path: pathlib.Path) -> None:
     assert isinstance(result, config.DiscoveryResult), result
     assert "password" not in result.recording.inputs
     assert any("request_secret" in reply for reply in _tool_replies(deps))
+    assert "demo-pw-1" not in _prompt_dump(deps)
+    assert "demo-pw-1" not in log_text
 
 
 def test_request_secret_typed_value_fills_via_placeholder(

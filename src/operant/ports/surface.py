@@ -16,7 +16,6 @@ import collections.abc
 import pathlib
 from typing import (
     TYPE_CHECKING,
-    Any,
     Optional,
     Protocol,
     Tuple,
@@ -105,35 +104,6 @@ class Surface(Protocol):
     def stop_human_capture(self) -> None:
         """
         Stop the stream started by ``start_human_capture``.
-        """
-        ...
-
-    def start_capture(
-        self,
-        out_dir: pathlib.Path,
-        task: str,
-        window: Optional[collections.abc.Mapping[str, Optional[str]]],
-        *,
-        video: bool = True,
-    ) -> bool:
-        """
-        Start full UI-activity capture (screen, input, window).
-
-        :param out_dir: Directory the capture is written to.
-        :param task: Label stored with the capture.
-        :param window: Window filter, e.g. ``{"owner": app, "title":
-            None}``.
-        :param video: Whether to record screen video.
-        :return: Whether capture started; ``False`` when unsupported.
-        """
-        ...
-
-    def stop_capture(self) -> collections.abc.Mapping[str, Any]:
-        """
-        Stop full capture.
-
-        :return: The capture summary (``dir``, ``summary.action_count``,
-            ``summary.video``), or empty when nothing was captured.
         """
         ...
 

@@ -33,8 +33,6 @@ import operant.ports.surface as pssurfac
 
 _LOG = logging.get_logger(__name__)
 
-_CAPTURE_UNAVAILABLE = "full UI capture is not available in this build"
-
 
 # #############################################################################
 # PerformBody
@@ -237,7 +235,7 @@ def _register_capture(
     router: fastapi.APIRouter, deps: DriverDeps, capture: Dict[str, Any]
 ) -> None:
     """
-    Register the human-capture and session-capture routes.
+    Register the human-capture routes.
     """
 
     @router.post("/capture/start")
@@ -256,21 +254,6 @@ def _register_capture(
     @router.get("/capture/actions")
     def capture_actions() -> Dict[str, Any]:
         return {"actions": list(capture["buffer"])}
-
-    @router.post("/capture/session/start", response_model=None)
-    def capture_session_start(
-        body: Dict[str, Any],
-    ) -> response.JSONResponse:
-        # Full screen+input recording needs the optional capture extra, not
-        # yet wired here; human-action capture above is what interventions
-        # rely on.
-        return response.JSONResponse(
-            status_code=503, content={"error": _CAPTURE_UNAVAILABLE}
-        )
-
-    @router.post("/capture/session/stop")
-    def capture_session_stop() -> Dict[str, Any]:
-        return {"ok": True, "dir": None, "summary": {}}
 
 
 def _register_control(router: fastapi.APIRouter, deps: DriverDeps) -> None:

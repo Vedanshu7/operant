@@ -86,12 +86,6 @@ def test_policy_grant_and_capture_actions() -> None:
     assert actions_body["actions"] == ["human typed"]
 
 
-def test_full_capture_session_is_unavailable() -> None:
-    client, _ = driver.client()
-    started = client.post("/capture/session/start", json={"out_dir": "/tmp/x"})
-    assert started.status_code == 503
-
-
 def test_bearer_token_is_enforced() -> None:
     client, _ = driver.client(token="s3cret")
     assert client.get("/health").status_code == 401

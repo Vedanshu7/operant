@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import collections.abc
 import json
-import logging
 import pathlib
 from typing import Any, Dict, Final, FrozenSet, List
 
@@ -175,10 +174,3 @@ def read_entries(log_path: pathlib.Path) -> List[Dict[str, Any]]:
             except json.JSONDecodeError:
                 _LOG.warning("%s:%d: malformed entry skipped", log_path, number)
     return entries
-
-
-def quiet(level: int = logging.WARNING) -> None:
-    """
-    Lower the echo verbosity (used by tests and the server).
-    """
-    _LOG.setLevel(level)

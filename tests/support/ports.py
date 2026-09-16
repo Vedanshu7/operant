@@ -70,18 +70,6 @@ class FakeSurface:
     def stop_human_capture(self) -> None:
         pass
 
-    def start_capture(
-        self,
-        out_dir: pathlib.Path,
-        task: str,
-        window: Optional[collections.abc.Mapping[str, Optional[str]]],
-        video: bool = True,
-    ) -> bool:
-        return False
-
-    def stop_capture(self) -> collections.abc.Mapping[str, Any]:
-        return {}
-
     def grant_scope(self, grant: Any) -> None:
         pass
 

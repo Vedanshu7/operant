@@ -70,14 +70,3 @@ class AppProfile(pydantic.BaseModel):
     default_tenant: str
     global_outcome_edges: List[graph.OutcomeEdge] = []
     fault_injection: Optional[FaultInjection] = None
-
-    @classmethod
-    def from_json_text(cls, text: str) -> AppProfile:
-        """
-        Validate a profile from its JSON document text.
-
-        :param text: The JSON document, as read from a profile file.
-        :return: The validated profile.
-        """
-        profile = cls.model_validate_json(text)
-        return profile

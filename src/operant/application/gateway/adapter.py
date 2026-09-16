@@ -127,26 +127,6 @@ class GatewaySurface:
         """
         self._session.stop_human_capture()
 
-    def start_capture(
-        self,
-        out_dir: pathlib.Path,
-        task: str,
-        window: Optional[collections.abc.Mapping[str, Optional[str]]],
-        *,
-        video: bool = True,
-    ) -> bool:
-        """
-        Full UI capture is hosted by the daemon; absent in-process.
-        """
-        return False
-
-    def stop_capture(self) -> collections.abc.Mapping[str, Any]:
-        """
-        No-op in-process; returns an empty summary.
-        """
-        summary: collections.abc.Mapping[str, Any] = {}
-        return summary
-
     def inject_session_expiry(self) -> None:
         """
         Force a session-expiry condition for fault-injection tests.

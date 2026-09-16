@@ -196,43 +196,6 @@ class RemoteGatewaySurface:
         """
         self._client.post("/inject-fault", timeout=240.0).raise_for_status()
 
-    def start_capture(
-        self,
-        out_dir: pathlib.Path,
-        task: str,
-        window: Optional[Dict[str, Optional[str]]],
-        *,
-        video: bool = True,
-    ) -> bool:
-        """
-        Start full UI capture on the daemon; ``False`` when unavailable.
-        """
-        try:
-            response = self._client.post(
-                "/capture/session/start",
-                json={
-                    "out_dir": str(out_dir),
-                    "task": task,
-                    "window": window,
-                    "video": video,
-                },
-            )
-            started = response.status_code == 200
-        except httpx.HTTPError:
-            started = False
-        return started
-
-    def stop_capture(self) -> Dict[str, Any]:
-        """
-        Stop full UI capture and returns the daemon's summary.
-        """
-        try:
-            response = self._client.post("/capture/session/stop", timeout=120.0)
-            summary = response.json() if response.status_code == 200 else {}
-        except httpx.HTTPError:
-            summary = {}
-        return summary
-
     def close(self) -> None:
         """
         Stop capture; the daemon persists (its grant outlives us).

@@ -217,13 +217,6 @@ class Recorder:
         self._current_node = ""
         self._binding: Optional[NodeBinding] = None
 
-    @property
-    def current_node(self) -> str:
-        """
-        The node the recording currently stands on.
-        """
-        return self._current_node
-
     def set_binding(
         self, vendor_id: str, app_name: str, window_title_pattern: str
     ) -> None:

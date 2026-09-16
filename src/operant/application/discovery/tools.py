@@ -89,6 +89,10 @@ def handle_declare_input(
     known = declared if declared in {"pii", "financial", "credential"} else None
     data_class = sensv.classify(name=name, value=value, declared=known)
     if data_class == "credential":
+        # The model already wrote the value: keep it out of later turns and
+        # out of the evidence.
+        state.scrub_history(value)
+        log.redactor.add_secret(value)
         return ToolOutcome(
             f'"{name}" is a credential - do NOT declare or type it. Call '
             f'request_secret(name="{name}") so a human provides it, then fill '
@@ -107,8 +111,6 @@ def handle_declare_input(
                 summary=f"input {name} classified {data_class}",
             )
         )
-    if data_class == "credential":
-        state.scrub_history(value)
     log.emit(
         events.InputDeclared(
             name=name,
