@@ -15,6 +15,8 @@ import dataclasses
 import re
 from typing import Final, FrozenSet
 
+import operant.helpers.time as time
+
 # A number or amount not glued to letters (so ids like ``s1`` survive).
 _NUMBER_RE: Final = re.compile(r"(?<![A-Za-z])[$€£]?\d[\d,.]*")
 _WORD_RE: Final = re.compile(r"[a-z<>]+")
@@ -159,7 +161,10 @@ _INSTRUCTION_RE: Final = re.compile(
     r"|\b(assistant|agent|ai|model)\s*[,:]",
     re.IGNORECASE,
 )
-_HALF_LIFE_S: Final = 30 * 86_400
+# Plans and remedies that failed this many more times than they worked
+# are no longer offered.
+NET_FAILURES: Final = 2
+_HALF_LIFE_S: Final = 30 * time.SECONDS_PER_DAY
 _HUMAN_BOOST: Final = 2.0
 _OLD_VERSION_WEIGHT: Final = 0.5
 

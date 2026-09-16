@@ -14,7 +14,13 @@ import operant.domain.models.actions as actions
 from __future__ import annotations
 
 import dataclasses
-from typing import Literal, Optional
+from typing import Final, Literal, Optional
+
+# The app a goal that names only a URL opens.
+DEFAULT_BROWSER: Final = "Google Chrome"
+# Wheel notches a scroll moves when the action names no amount.
+DEFAULT_SCROLL_NOTCHES: Final = 5
+
 
 # #############################################################################
 # SurfaceAction

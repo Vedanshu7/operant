@@ -15,6 +15,8 @@ import pathlib
 import shutil
 from typing import List
 
+import operant.helpers.time as time
+
 
 def expired_runs(
     evidence_dir: pathlib.Path, *, max_age_days: float, now: float
@@ -27,7 +29,7 @@ def expired_runs(
     :param now: The current time, in seconds since the epoch.
     :return: Expired run directories, oldest name first.
     """
-    cutoff = now - max_age_days * 86400
+    cutoff = now - max_age_days * time.SECONDS_PER_DAY
     expired = [
         run_dir
         for run_dir in sorted(evidence_dir.iterdir())

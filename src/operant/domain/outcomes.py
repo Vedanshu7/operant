@@ -23,6 +23,7 @@ import operant.domain.models.artifact as artifact
 import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
 import operant.domain.models.plan as plan
+import operant.domain.redaction as redact
 
 
 def evaluate_condition(
@@ -161,7 +162,7 @@ def unread_sibling(pattern: str, text: str, value: str) -> Optional[str]:
 
 # Placeholders the planner sees where values were masked: the redactor's
 # mask, a scrubbed entity such as <PERSON>, and memory's <n>.
-_PLACEHOLDER_RE = re.compile(r"\[REDACTED\]|<[A-Za-z_]+>")
+_PLACEHOLDER_RE = re.compile(rf"{re.escape(redact.MASK)}|<[A-Za-z_]+>")
 
 
 def _text_pattern(value: str) -> re.Pattern[str]:

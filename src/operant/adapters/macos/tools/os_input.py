@@ -134,7 +134,10 @@ class OsInputScrollTool:
                     round(float(bounds.y) + float(bounds.height) / 2),
                 )
                 sign = 1 if (action.direction or "down") == "down" else -1
-                xa11y.input_sim().scroll(centre, dy=(action.amount or 5) * sign)
+                xa11y.input_sim().scroll(
+                    centre,
+                    dy=(action.amount or actions.DEFAULT_SCROLL_NOTCHES) * sign,
+                )
                 time.sleep(0.4)
                 result = tools.ToolResult(status="ok", verified=False)
         except (xa11y.XA11yError, errors.DriverError, RuntimeError) as err:

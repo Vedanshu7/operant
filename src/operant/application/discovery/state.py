@@ -15,6 +15,7 @@ import operant.application.discovery.bootstrap as bstrap
 import operant.domain.approval as approval
 import operant.domain.models.digest as digest
 import operant.domain.models.llm as llm
+import operant.domain.redaction as redact
 
 _MASK = "[credential]"
 
@@ -104,7 +105,7 @@ class DiscoveryState:
         It would otherwise ride along in the message history for the
         rest of the run.
         """
-        if len(value) >= 3:
+        if len(value) >= redact.MIN_SECRET_LENGTH:
             self.messages = [
                 _scrub_message(message, value) for message in self.messages
             ]
@@ -119,7 +120,7 @@ def mask_credentials(text: str, values: List[str]) -> str:
     """
     masked = text
     for value in values:
-        if len(value) >= 3:
+        if len(value) >= redact.MIN_SECRET_LENGTH:
             masked = masked.replace(value, _MASK)
     return masked
 

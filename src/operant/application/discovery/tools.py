@@ -560,7 +560,7 @@ def _plan_simple(
         )
     if kind == "scroll":
         direction = "up" if args.get("direction") == "up" else "down"
-        amount = int(args.get("amount") or 5)
+        amount = int(args.get("amount") or actions.DEFAULT_SCROLL_NOTCHES)
         return _PlannedAct(
             actions.SurfaceAction(
                 kind="scroll",

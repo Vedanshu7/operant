@@ -25,7 +25,9 @@ from typing import Any, Final, List, Optional
 _SECRET_ENV_RE: Final = re.compile(
     r"PASSWORD|SECRET|TOKEN|API_KEY", re.IGNORECASE
 )
-_MASK: Final = "[REDACTED]"
+MASK: Final = "[REDACTED]"
+# Shorter values would mask ordinary words.
+MIN_SECRET_LENGTH: Final = 3
 
 
 # #############################################################################
@@ -59,7 +61,11 @@ class Redactor:
 
         :param value: The secret value, or ``None``.
         """
-        if value and len(value) >= 3 and value not in self._secrets:
+        if (
+            value
+            and len(value) >= MIN_SECRET_LENGTH
+            and value not in self._secrets
+        ):
             self._secrets.append(value)
             self._secrets.sort(key=len, reverse=True)
 
@@ -71,7 +77,7 @@ class Redactor:
         :return: The text with each secret replaced by ``[REDACTED]``.
         """
         for secret in self._secrets:
-            text = text.replace(secret, _MASK)
+            text = text.replace(secret, MASK)
         return text
 
     def redact_deep(self, value: Any) -> Any:

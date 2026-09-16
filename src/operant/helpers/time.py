@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import datetime
 import time as _time
-from typing import Optional
+from typing import Final, Optional
+
+SECONDS_PER_DAY: Final = 86_400
 
 
 def utc_now() -> datetime.datetime:

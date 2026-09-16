@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Final, List, Optional, Tuple
 
+import operant.domain.models.actions as mdaction
 import operant.domain.models.llm as llm
 
 SYSTEM_PROMPT_TEMPLATE: Final = """You are a computer-use agent operating a real desktop on behalf of an automation platform. Your job is to accomplish the stated goal on the live UI, ONE action per turn, so the run can be recorded as a reusable, replayable capability.
@@ -72,7 +73,7 @@ Finishing:
 
 def build_system_prompt(
     secret_names: List[str],
-    default_browser: str = "Google Chrome",
+    default_browser: str = mdaction.DEFAULT_BROWSER,
     template: Optional[str] = None,
 ) -> str:
     """
@@ -152,7 +153,9 @@ TOOL_SCHEMAS: Final[Tuple[llm.ToolSchema, ...]] = (
                 },
                 "amount": {
                     "type": "integer",
-                    "description": "scroll notches (default 5)",
+                    "description": (
+                        f"scroll notches (default {mdaction.DEFAULT_SCROLL_NOTCHES})"
+                    ),
                 },
                 "x": {
                     "type": "number",

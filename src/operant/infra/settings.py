@@ -28,6 +28,7 @@ import pydantic
 import pydantic_settings
 
 import operant.domain.governance as govern
+import operant.domain.models.actions as actions
 
 _DEFAULT_BROWSER_BINARIES: Tuple[str, ...] = (
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -325,7 +326,7 @@ class BrowserSettings(pydantic.BaseModel):
         exposes typed text in the process table.
     """
 
-    default_app: str = "Google Chrome"
+    default_app: str = actions.DEFAULT_BROWSER
     browser_app_names: FrozenSet[str] = frozenset(
         {"google chrome", "chromium", "safari", "firefox", "arc"}
     )

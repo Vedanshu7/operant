@@ -24,9 +24,11 @@ import dataclasses
 import datetime
 from typing import Any, Dict, Final, List, Literal, Optional, Tuple
 
+import operant.application.gateway.learner as gllearne
 import operant.domain.models.memory as mdmemory
 import operant.domain.models.plan as mdplan
 import operant.domain.remediation as odremed
+import operant.helpers.time as time
 import operant.ports.memory as pmmemory
 
 _MIN_PLAN_SIMILARITY: Final = 0.5
@@ -36,7 +38,6 @@ _MAX_LESSONS: Final = 3
 _STALE_DAYS: Final = 90
 _LESSON_EXPIRY_DAYS: Final = 180
 # A plan that failed this many more times than it worked is not recalled.
-_NET_FAILURES: Final = 2
 _MAX_NOTE_CHARS: Final = 300
 
 
@@ -50,8 +51,8 @@ class Recalled:
     """
     What memory offers the agents for one goal.
 
-    :ivar plans: Up to two past plans for similar goals.
-    :ivar lessons: Up to three lessons from this app.
+    :ivar plans: The best past plans for similar goals.
+    :ivar lessons: The most relevant lessons from this app.
     """
 
     plans: Tuple[mdmemory.PlanMemory, ...] = ()
@@ -281,7 +282,7 @@ class AgentMemory:
         lesson_ids = [
             lsn.id
             for lsn in self._store.lessons(vendor_id)
-            if _age(lsn.last_used_at) > _LESSON_EXPIRY_DAYS * 86_400
+            if _age(lsn.last_used_at) > _LESSON_EXPIRY_DAYS * time.SECONDS_PER_DAY
         ]
         self._store.delete(plan_ids, lesson_ids)
         return len(plan_ids), len(lesson_ids)
@@ -319,12 +320,12 @@ def summary(
         "tools": [
             {"signature": sig, "tools": dict(tools)}
             for sig, tools in sorted(learned.items())
-            if app is None or sig.startswith(f"{app}::")
+            if app is None or gllearne.belongs_to(sig, app)
         ],
         "remedies": [
             {"key": key, **remedy.as_dict()}
             for key, remedy in sorted(remedies.items())
-            if app is None or key.startswith(f"{app}::")
+            if app is None or gllearne.belongs_to(key, app)
         ],
     }
     return view
@@ -342,8 +343,8 @@ def _usable(plan: mdmemory.PlanMemory) -> bool:
     """
     Report whether a plan may be recalled: not failing, not stale.
     """
-    failing = plan.failures >= plan.successes + _NET_FAILURES
-    stale = _age(plan.last_used_at) > _STALE_DAYS * 86_400
+    failing = plan.failures >= plan.successes + mdmemory.NET_FAILURES
+    stale = _age(plan.last_used_at) > _STALE_DAYS * time.SECONDS_PER_DAY
     return not failing and not stale
 
 

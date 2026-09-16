@@ -17,15 +17,25 @@ import operant.application.gateway.learner as gllearne
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional
+from typing import Dict, Final, List, Optional
 
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
 import operant.ports.learning as learning
 
 _TITLE_TAIL = re.compile(r"\s*[-|].*$")
+# Separates the parts of a signature; an unknown app leaves it leading.
+_SEP: Final = "::"
 _DIGITS = re.compile(r"\d+")
 _NAME_CHARS = 24
+
+
+def belongs_to(key: str, app: str) -> bool:
+    """
+    Report whether a signature, or a key built on one, is ``app``'s.
+    """
+    owned = key.startswith(f"{app}{_SEP}")
+    return owned
 
 
 def signature(
@@ -52,7 +62,7 @@ def signature(
     title = screen.window_title if screen is not None else ""
     page = _DIGITS.sub("#", _TITLE_TAIL.sub("", title)).strip().lower()
     owner = app or (screen.app if screen is not None else "")
-    sig = f"{owner}::{page}::{action.kind}::{_target(action, screen)}"
+    sig = _SEP.join((owner, page, action.kind, _target(action, screen)))
     return sig
 
 
@@ -111,7 +121,7 @@ class ToolLearner:
         :return:``True`` if this changed which tool leads (worth
             logging).
         """
-        if sig.startswith("::"):
+        if sig.startswith(_SEP):
             # Unknown app: a key shared by every app would mislead them all.
             return False
         before = self.preferred(sig)
@@ -145,7 +155,7 @@ class ToolLearner:
 
         :return: How many were removed.
         """
-        doomed = [sig for sig in self._counts if sig.startswith(f"{app}::")]
+        doomed = [sig for sig in self._counts if belongs_to(sig, app)]
         for sig in doomed:
             del self._counts[sig]
         if doomed:

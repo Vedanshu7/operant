@@ -18,12 +18,10 @@ from __future__ import annotations
 import dataclasses
 from typing import Dict, Optional
 
+import operant.application.gateway.learner as gllearne
 import operant.domain.models.memory as mdmemory
 import operant.domain.remediation as odremed
 import operant.ports.remediation as psremed
-
-# A remedy that failed this many more times than it worked is not offered.
-_NET_FAILURES = 2
 
 
 def _key(situation_sig: str, error_sig: str) -> str:
@@ -59,7 +57,7 @@ class RemediationMemory:
         """
         remedy = self._remedies.get(_key(situation_sig, error_sig))
         if remedy is not None and remedy.applied - remedy.success >= (
-            remedy.success + _NET_FAILURES
+            remedy.success + mdmemory.NET_FAILURES
         ):
             # Hinted again and again without helping: stop offering it.
             remedy = None
@@ -112,7 +110,7 @@ class RemediationMemory:
 
         :return: How many were removed.
         """
-        doomed = [k for k in self._remedies if k.startswith(f"{app}::")]
+        doomed = [k for k in self._remedies if gllearne.belongs_to(k, app)]
         for key in doomed:
             del self._remedies[key]
         if doomed:

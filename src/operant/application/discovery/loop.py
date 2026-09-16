@@ -70,6 +70,9 @@ import operant.ports.tracing as pttracin
 
 _LOG = logging.get_logger(__name__)
 
+# Recorded moves from a known screen offered to the agent as hints.
+_MAX_STEP_HINTS = 3
+
 _BLIND_TURN_WARNING = 3
 _UNESCAPE = re.compile(r"\\(.)")
 
@@ -135,7 +138,7 @@ class DiscoveryDeps:
     approval_timeout_s: float = 300.0
     llm_retries: int = 3
     retry_base_delay_s: float = 2.0
-    default_browser: str = "Google Chrome"
+    default_browser: str = actions.DEFAULT_BROWSER
     browsers: FrozenSet[str] = bstrap.DEFAULT_BROWSERS
     remediation: Optional[remem.RemediationMemory] = None
     window_budget: dswindow.WindowBudget = dataclasses.field(
@@ -737,7 +740,7 @@ class DiscoverySession:
 
     def _known_next_steps(self, node_id: str) -> str:
         """
-        Up to three distinct edge descriptions leaving ``node_id``.
+        Distinct edge descriptions leaving ``node_id``, a few at most.
 
         Hints only - the goal is unknown at discovery, so these are moves
         already recorded from this state, not a claimed route to the goal.
@@ -749,7 +752,7 @@ class DiscoverySession:
                 text = edge.description.strip()
                 if text and text not in seen:
                     seen.append(text)
-                if len(seen) >= 3:
+                if len(seen) >= _MAX_STEP_HINTS:
                     break
         steps = "; ".join(seen)
         return steps
