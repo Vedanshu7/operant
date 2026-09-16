@@ -69,6 +69,7 @@ dev = [
     "pyment",
     "pillow>=12.3.0",
     "pytest-timeout>=2.4.0",
+    "pytest-cov>=7.1.0",
 ]
 
 [build-system]
@@ -101,3 +102,12 @@ markers = [
     "privacy: needs the privacy extra and a spaCy model",
 ]
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["operant"]
+# The vendored linter is third-party code, tested upstream.
+omit = ["src/operant/dev/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

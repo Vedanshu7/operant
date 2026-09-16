@@ -1,4 +1,5 @@
-"""Task runner for Operant: the single point of `invoke` (run as `i <task>`).
+"""
+Task runner for Operant: the single point of `invoke` (run as `i <task>`).
 
 The coding standard is the vendored amp linter under
 ``src/operant/dev/linters``; ``i lint`` runs it, and it must be clean before
@@ -26,7 +27,9 @@ def _run(ctx: Any, cmd: str, **kwargs: Any) -> Any:
     help={"files": "Space separated files to lint; defaults to all source"}
 )
 def lint(ctx: Any, files: str | None = None) -> None:
-    """Run the vendored linter, which must be clean before every commit."""
+    """
+    Run the vendored linter, which must be clean before every commit.
+    """
     if files is None:
         pathspecs = [f"'{d}/*.py'" for d in _SOURCE_DIRS] + [
             f"':!{d}'" for d in _EXCLUDED_DIRS
@@ -43,8 +46,13 @@ def lint(ctx: Any, files: str | None = None) -> None:
 
 @invoke.task
 def test(ctx: Any) -> None:
-    """Run the unit test suite."""
-    _run(ctx, "uv run pytest tests/unit")
+    """
+    Run the suite CI runs, with a coverage report.
+    """
+    _run(
+        ctx,
+        'uv run pytest -m "not macos and not live" --cov --cov-report=term',
+    )
 
 
 ns = invoke.Collection(lint, test)

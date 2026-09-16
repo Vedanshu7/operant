@@ -2,82 +2,15 @@
 The driver daemon over ASGI: status-code mapping, bearer, and redaction.
 """
 
-import pathlib
-from typing import List, Optional, Tuple
-
 import fastapi.testclient as testclie
 
 import operant.adapters.http.driver.app as app
 import operant.application.gateway.registry as registry
 import operant.application.gateway.wire as wire
 import operant.domain.approval as daapprov
-import operant.domain.errors as errors
 import operant.domain.models.actions as actions
-import operant.domain.models.digest as digest
 import operant.domain.redaction as redact
-
-# #############################################################################
-# _FakeSurface
-# #############################################################################
-
-
-class _FakeSurface:
-
-    def __init__(self) -> None:
-        self.performed: List[actions.SurfaceAction] = []
-        self.grants: List[daapprov.ScopeGrant] = []
-
-    def snapshot(self) -> digest.ScreenDigest:
-        return digest.ScreenDigest(app="App", window_title="Home", text="hi")
-
-    def perform(self, action, *, approval=None):
-        self.performed.append(action)
-        if action.step == "mutating":
-            request = daapprov.ApprovalRequest(
-                kind="mutating", summary="click Transfer", action_kind="click"
-            )
-            raise errors.ApprovalRequiredError(request, "nonce-1", action)
-        if action.step == "denied":
-            raise errors.PolicyViolationError(
-                daapprov.PolicyDecision(
-                    verdict="deny", risk="mutating", reason="not allowed"
-                )
-            )
-        return {"tool": "ax-action", "attempts": []}
-
-    def grant_scope(self, grant) -> None:
-        self.grants.append(grant)
-
-    def screenshot(self, path: pathlib.Path) -> bool:
-        return False
-
-    def retarget(self, app_name, window_title_pattern):
-        return ("App", "Home")
-
-    def target_text_for(self, ref):
-        return ""
-
-    def start_human_capture(self, on_action):
-        on_action("human typed")
-
-    def stop_human_capture(self):
-        pass
-
-    def inject_session_expiry(self):
-        pass
-
-
-def _client(
-    token: Optional[str] = None,
-) -> Tuple[testclie.TestClient, _FakeSurface]:
-    surface = _FakeSurface()
-    deps = app.DriverDeps(
-        surface=surface,
-        registry=registry.ToolRegistry(),
-        redactor=redact.Redactor(),
-        token=token,
-    )
-    return testclie.TestClient(app.create_driver_app(deps)), surface
+import tests.support.driver as driver
 
 
 def _perform_body(action: actions.SurfaceAction) -> dict:
@@ -85,13 +18,13 @@ def _perform_body(action: actions.SurfaceAction) -> dict:
 
 
 def test_health_reports_protocol() -> None:
-    client, _ = _client()
+    client, _ = driver.client()
     body = client.get("/health").json()
     assert body["protocol"] == wire.PROTOCOL_VERSION
 
 
 def test_perform_maps_status_codes() -> None:
-    client, _ = _client()
+    client, _ = driver.client()
     ok = client.post(
         "/perform",
         json=_perform_body(actions.SurfaceAction(kind="click", ref="c0")),
@@ -116,7 +49,7 @@ def test_perform_maps_status_codes() -> None:
 
 
 def test_secret_ref_fill_value_is_registered_with_the_redactor() -> None:
-    surface = _FakeSurface()
+    surface = driver.FakeGatewaySurface()
     redactor = redact.Redactor()
     deps = app.DriverDeps(
         surface=surface,
@@ -139,7 +72,7 @@ def test_secret_ref_fill_value_is_registered_with_the_redactor() -> None:
 
 
 def test_policy_grant_and_capture_actions() -> None:
-    client, surface = _client()
+    client, surface = driver.client()
     grant = daapprov.ScopeGrant(kind="app", pattern="Notes")
     assert (
         client.post(
@@ -154,13 +87,13 @@ def test_policy_grant_and_capture_actions() -> None:
 
 
 def test_full_capture_session_is_unavailable() -> None:
-    client, _ = _client()
+    client, _ = driver.client()
     started = client.post("/capture/session/start", json={"out_dir": "/tmp/x"})
     assert started.status_code == 503
 
 
 def test_bearer_token_is_enforced() -> None:
-    client, _ = _client(token="s3cret")
+    client, _ = driver.client(token="s3cret")
     assert client.get("/health").status_code == 401
     ok = client.get("/health", headers={"Authorization": "Bearer s3cret"})
     assert ok.status_code == 200
