@@ -644,3 +644,6 @@ def test_a_password_is_never_typed_into_a_pop_up_field(
         harness.message_text(m) for m in run.llm.sent[2] if m.role == "tool"
     ]
     assert any("Refused" in reply for reply in replies)
+    # The model complied, but nothing reached the page.
+    assert catalog.resisted(run) == []
+    assert catalog.ignored_injection(run) != []
