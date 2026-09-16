@@ -10,7 +10,7 @@ services:
     build: .
     container_name: operant-server
     ports:
-      - "7080:7080"
+      - "127.0.0.1:7080:7080"
     env_file:
       - .env
     environment:
@@ -46,8 +46,8 @@ services:
 
   # --- Langfuse (opt-in): `docker compose --profile observability up -d` ---
   # Self-hosted model tracing (docs/adr/0002). Only the UI on :3000 reaches
-  # the host. Defaults are for local use only: set every CHANGEME value in
-  # .env before exposing this anywhere (see .env.example).
+  # the host, on loopback. Defaults are for local use only: set every
+  # CHANGEME value in .env before exposing this anywhere (see .env.example).
   langfuse-worker:
     image: docker.langfuse.com/langfuse/langfuse-worker:4
     profiles: ["observability"]
@@ -96,7 +96,7 @@ services:
     restart: unless-stopped
     depends_on: *langfuse-depends-on
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       <<: *langfuse-env
       NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-mysecret} # CHANGEME
