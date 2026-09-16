@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
 import typer
 
@@ -62,13 +62,15 @@ def register(app: typer.Typer) -> None:
         """
         deps: cddeps.CliDeps = ctx.obj
         every = not (plans or lessons or tools or remedies)
-        database, _ = deps.open_runs()
-        try:
-            removed = apmemory.AgentMemory(
-                rmmemory.SqlMemoryStore(database)
-            ).forget(app_name, plans=every or plans, lessons=every or lessons)
-        finally:
-            database.close()
+        removed = (0, 0)
+        if every or plans or lessons:
+            database, _ = deps.open_runs()
+            try:
+                removed = apmemory.AgentMemory(
+                    rmmemory.SqlMemoryStore(database)
+                ).forget(app_name, _kinds(every, plans, lessons))
+            finally:
+                database.close()
         tools_removed = _learner(deps).forget(app_name) if every or tools else 0
         remedies_removed = (
             _remedies(deps).forget(app_name) if every or remedies else 0
@@ -160,3 +162,18 @@ def _days(iso: str) -> str:
         then = then.replace(tzinfo=datetime.timezone.utc)
     days = (datetime.datetime.now(datetime.timezone.utc) - then).days
     return f"{days} day(s) ago"
+
+
+def _kinds(
+    every: bool, plans: bool, lessons: bool
+) -> Literal["plans", "lessons", "all"]:
+    """
+    Name the agent-memory kinds a ``forget`` covers.
+    """
+    if every or (plans and lessons):
+        kinds: Literal["plans", "lessons", "all"] = "all"
+    elif plans:
+        kinds = "plans"
+    else:
+        kinds = "lessons"
+    return kinds

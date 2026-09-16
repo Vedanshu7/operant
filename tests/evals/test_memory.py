@@ -1,6 +1,6 @@
 """
 Behavioral evals for agent memory, in each mode from OPERANT_EVAL_MODES (a
-single agent reads memory when ``memory_in_single`` is on): a recalled plan
+single agent reads memory when the memory mode is ``all``): a recalled plan
 should not cost turns, stale memory must lose to the live screen, and memory
 must keep no values.
 

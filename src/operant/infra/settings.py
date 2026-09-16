@@ -219,10 +219,10 @@ class DiscoverySettings(pydantic.BaseModel):
     :ivar fanout_workers: Upper bound on parallel role calls.
     :ivar compile_review:``"on"`` reviews the saved recording
         (advisory).
-    :ivar memory:``"on"`` recalls and records plans and lessons.
-    :ivar memory_in_single: Whether a single-agent run also reads the
-        recalled plans and lessons (on: in the memory eval it saved about
-        one turn per run and stale memory still lost to the screen).
+    :ivar memory: Which runs recall and record plans and lessons:
+        ``all``, ``multi`` (multi-agent runs only), or ``off``. A single
+        agent reads memory under ``all``: in the memory eval it saved
+        about one turn per run and stale memory still lost to the screen.
     :ivar router_config: A litellm Router config (YAML) naming a model
         group per role (``executor``, ``planner``, ``reviewer``); when
         set it replaces ``model``/``planner_model``/``verifier_model``.
@@ -248,8 +248,7 @@ class DiscoverySettings(pydantic.BaseModel):
     extract_candidates: int = 3
     fanout_workers: int = 4
     compile_review: Literal["on", "off"] = "on"
-    memory: Literal["on", "off"] = "on"
-    memory_in_single: bool = True
+    memory: Literal["all", "multi", "off"] = "all"
     router_config: Optional[pathlib.Path] = None
     request_timeout_s: float = 60.0
 

@@ -240,12 +240,11 @@ def _memory(
     settings: issettin.OperantSettings, agents: str
 ) -> Optional[apmemory.AgentMemory]:
     """
-    Open agent memory when it is enabled: always for a multi-agent run, and for
-    a single agent when ``memory_in_single`` is set.
+    Open agent memory when the configured mode covers this kind of run.
     """
     memory: Optional[apmemory.AgentMemory] = None
-    reads = agents == "multi" or settings.discovery.memory_in_single
-    if reads and settings.discovery.memory == "on":
+    mode = settings.discovery.memory
+    if mode == "all" or (mode == "multi" and agents == "multi"):
         database = engine.Database.open(settings.paths.db_path)
         migrate.upgrade(database)
         memory = apmemory.AgentMemory(rmmemory.SqlMemoryStore(database))

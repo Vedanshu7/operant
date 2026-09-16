@@ -78,7 +78,8 @@ Two layers: a blackboard for each run and a store that lasts across runs.
 
 - Code: `application/memory.py`, `ports/memory.py`,
   `infra/repositories/memory.py`, migration `0002_agent_memory`.
-- Memory is used by multi-agent runs only (`OPERANT_DISCOVERY__MEMORY`).
+- Memory was first used by multi-agent runs only; `OPERANT_DISCOVERY__MEMORY`
+  now picks `all`, `multi` or `off` (see the revision below).
 - Numbers and amounts are masked as `<n>` before storage, on top of
   redaction and scrubbing, so goals and plans keep no record ids.
 - The audit check is shape-based: evidence logs are already redacted, so
@@ -151,7 +152,7 @@ recency x importance) and the memory-poisoning literature.
 - **Visibility.** `operant memory list|forget|prune` and
   `GET /api/v1/memory`.
 - **Single mode.** A single agent also gets the recall block
-  (`OPERANT_DISCOVERY__MEMORY_IN_SINGLE`, on by default). In the memory
+  (`OPERANT_DISCOVERY__MEMORY=all`, the default). In the memory
   eval, 3 skins × 3 trials of a transfer flow, a recalled plan cut the
   turns in every skin: 14.3 to 13.7, 14.7 to 13.0, and 15.0 to 14.0. All
   runs completed, and stale memory still lost to the screen.

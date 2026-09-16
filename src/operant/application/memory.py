@@ -22,7 +22,7 @@ from __future__ import annotations
 import collections.abc
 import dataclasses
 import datetime
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, Final, List, Literal, Optional, Tuple
 
 import operant.domain.models.memory as mdmemory
 import operant.domain.models.plan as mdplan
@@ -251,16 +251,22 @@ class AgentMemory:
         return self._store.lessons(vendor_id)
 
     def forget(
-        self, vendor_id: str, *, plans: bool = True, lessons: bool = True
+        self, vendor_id: str, what: Literal["plans", "lessons", "all"] = "all"
     ) -> Tuple[int, int]:
         """
-        Delete an app's plans and/or lessons.
+        Delete an app's plans, lessons, or both.
 
         :return:``(plans removed, lessons removed)``.
         """
-        plan_ids = [p.id for p in self._store.plans(vendor_id)] if plans else []
+        plan_ids = (
+            [p.id for p in self._store.plans(vendor_id)]
+            if what in ("plans", "all")
+            else []
+        )
         lesson_ids = (
-            [lsn.id for lsn in self._store.lessons(vendor_id)] if lessons else []
+            [lesson.id for lesson in self._store.lessons(vendor_id)]
+            if what in ("lessons", "all")
+            else []
         )
         self._store.delete(plan_ids, lesson_ids)
         return len(plan_ids), len(lesson_ids)

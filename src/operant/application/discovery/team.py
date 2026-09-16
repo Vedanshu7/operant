@@ -16,7 +16,7 @@ import operant.application.discovery.team as dsteam
 from __future__ import annotations
 
 import dataclasses
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
 
 import operant.application.discovery.agents.planner as daplanne
 import operant.application.discovery.agents.reviewers as darevie
@@ -67,7 +67,7 @@ class TeamBudget:
     planner_samples: int = 1
     extract_candidates: int = 3
     fanout_workers: int = 4
-    compile_review: str = "on"
+    compile_review: Literal["on", "off"] = "on"
 
 
 # #############################################################################
