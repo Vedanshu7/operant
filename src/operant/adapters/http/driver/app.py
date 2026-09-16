@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional, Union
 
 import fastapi
 import fastapi.responses as response
+import pydantic
 import uvicorn
 
 import operant.adapters.http.common as common
@@ -33,6 +34,40 @@ import operant.ports.surface as pssurfac
 _LOG = logging.get_logger(__name__)
 
 _CAPTURE_UNAVAILABLE = "full UI capture is not available in this build"
+
+
+# #############################################################################
+# PerformBody
+# #############################################################################
+
+
+class PerformBody(pydantic.BaseModel):
+    """
+    One action for the gateway to perform.
+
+    :ivar action: The action, in wire form.
+    :ivar approval: The nonce of a human approval, when retrying.
+    """
+
+    action: Dict[str, Any]
+    approval: Optional[str] = None
+
+
+# #############################################################################
+# RetargetBody
+# #############################################################################
+
+
+class RetargetBody(pydantic.BaseModel):
+    """
+    The window to rebind the session to.
+
+    :ivar app_name: Application to bind.
+    :ivar window_title_pattern: Window title regex.
+    """
+
+    app_name: str
+    window_title_pattern: str
 
 
 # #############################################################################
@@ -111,15 +146,13 @@ def _register_actions(router: fastapi.APIRouter, deps: DriverDeps) -> None:
 
     @router.post("/perform", response_model=None)
     def perform(
-        body: Dict[str, Any],
+        body: PerformBody,
     ) -> Union[response.JSONResponse, Dict[str, Any]]:
-        action = wire.action_from_dict(body["action"])
+        action = wire.action_from_dict(body.action)
         _register_secret(deps, action)
         with deps.lock:
             try:
-                outcome = deps.surface.perform(
-                    action, approval=body.get("approval")
-                )
+                outcome = deps.surface.perform(action, approval=body.approval)
             except errors.ApprovalRequiredError as need:
                 return _approval_required(need)
             except errors.PolicyViolationError as violation:
@@ -246,16 +279,15 @@ def _register_control(router: fastapi.APIRouter, deps: DriverDeps) -> None:
     """
 
     @router.post("/retarget")
-    def retarget(body: Dict[str, Any]) -> Dict[str, Any]:
+    def retarget(body: RetargetBody) -> Dict[str, Any]:
         with deps.lock:
             previous = deps.surface.retarget(
-                body["app_name"], body["window_title_pattern"]
+                body.app_name, body.window_title_pattern
             )
         return {"previous": list(previous)}
 
     @router.post("/policy/grant")
-    def policy_grant(body: Dict[str, Any]) -> Dict[str, Any]:
-        grant = approval.ScopeGrant.model_validate(body)
+    def policy_grant(grant: approval.ScopeGrant) -> Dict[str, Any]:
         with deps.lock:
             deps.surface.grant_scope(grant)
         _LOG.info(

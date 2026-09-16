@@ -21,6 +21,8 @@ import operant.server.deps as deps
 import operant.server.schemas as schemas
 import operant.server.sse as sse
 
+_MAX_PAGE = 500
+
 router = fastapi.APIRouter(tags=["runs"])
 
 State = Annotated[deps.ServerState, fastapi.Depends(deps.get_state)]
@@ -52,8 +54,8 @@ def list_runs(
     kind: Optional[runs.RunKind] = None,
     status: Optional[runs.RunStatus] = None,
     capability_id: Optional[str] = None,
-    limit: int = 50,
-    offset: int = 0,
+    limit: Annotated[int, fastapi.Query(ge=1, le=_MAX_PAGE)] = 50,
+    offset: Annotated[int, fastapi.Query(ge=0)] = 0,
 ) -> Any:
     """
     List runs newest first, filtered by the given criteria.

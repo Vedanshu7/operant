@@ -19,7 +19,7 @@ import asyncio
 import collections.abc
 import dataclasses
 import threading
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import operant.adapters.llm.litellm_client as litecli
 import operant.adapters.observability.factory as aofactor
@@ -223,14 +223,19 @@ class RunManager:
         return terminal
 
     def answer_approval(
-        self, approval_id: str, *, approved: bool, remember: str, note: str
+        self,
+        approval_id: str,
+        *,
+        approved: bool,
+        remember: Literal["once", "process"],
+        note: str,
     ) -> None:
         """
         Deliver a human's approval decision to the waiting worker.
         """
         decision = daapprov.ApprovalDecision(
             approved=approved,
-            remember="process" if remember == "process" else "once",
+            remember=remember,
             by="console",
             note=note,
         )

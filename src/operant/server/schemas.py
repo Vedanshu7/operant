@@ -21,6 +21,7 @@ import pydantic
 import operant.application.usecases.discover as discover
 import operant.application.usecases.replay as replay
 import operant.domain.models.runs as runs
+import operant.domain.secrets as dsecrets
 import operant.helpers.ids as ids
 
 # #############################################################################
@@ -125,7 +126,7 @@ class ApprovalDecisionBody(pydantic.BaseModel):
     """
 
     approved: bool
-    remember: str = "once"
+    remember: Literal["once", "process"] = "once"
     note: str = ""
 
 
@@ -163,6 +164,12 @@ class CredentialAnswerBody(pydantic.BaseModel):
     value: Optional[str] = None
     locator: Optional[str] = None
 
+    @pydantic.model_validator(mode="after")
+    def _exactly_one(self) -> "CredentialAnswerBody":
+        if (self.value is None) == (self.locator is None):
+            raise ValueError("set exactly one of 'value' and 'locator'")
+        return self
+
 
 # #############################################################################
 # NoteBody
@@ -195,7 +202,7 @@ class SecretRefBody(pydantic.BaseModel):
     """
 
     name: str
-    backend: str
+    backend: dsecrets.SecretBackend
     locator: str
     description: str = ""
 
@@ -205,7 +212,7 @@ class SecretRefBody(pydantic.BaseModel):
         """
         meta = runs.SecretRefMeta(
             name=self.name,
-            backend=self.backend,  # type: ignore[arg-type]
+            backend=self.backend,
             locator=self.locator,
             description=self.description,
         )

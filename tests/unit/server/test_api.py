@@ -243,3 +243,29 @@ def test_every_error_is_problem_json(tmp_path: pathlib.Path) -> None:
             body = answered.json()
             assert body["status"] == status
             assert body["detail"]
+
+
+def test_request_fields_are_constrained(tmp_path: pathlib.Path) -> None:
+    app, _ = _build(tmp_path)
+    with starlette.testclient.TestClient(app) as client:
+        bad = [
+            client.get("/api/v1/runs?limit=0", headers=_AUTH),
+            client.get("/api/v1/runs?offset=-1", headers=_AUTH),
+            client.post(
+                "/api/v1/approvals/x",
+                headers=_AUTH,
+                json={"approved": True, "remember": "forever"},
+            ),
+            client.post(
+                "/api/v1/credentials/x",
+                headers=_AUTH,
+                json={"value": "a", "locator": "b"},
+            ),
+            client.post("/api/v1/credentials/x", headers=_AUTH, json={}),
+            client.post(
+                "/api/v1/secrets/refs",
+                headers=_AUTH,
+                json={"name": "n", "backend": "vault", "locator": "l"},
+            ),
+        ]
+        assert [answered.status_code for answered in bad] == [422] * len(bad)
