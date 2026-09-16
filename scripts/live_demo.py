@@ -15,11 +15,10 @@ types the goal into the desktop app's form and starts it (run it with
 ``OPERANT_DESKTOP_SCRIPT=<file>``); ``--attach`` then operates the run
 the UI started instead of starting one over the API.
 
-Run: ``uv run python scripts/live_demo.py --base
-http://127.0.0.1:7080
-          --token <token> --profile <id> --tenant <tenant> --goal
-"<goal>" [--agents multi] [--replay] [--clarify "url=
-http://..."]``
+Run ``uv run python scripts/live_demo.py --help`` for the options:
+``--base`` and ``--token`` reach the server, ``--profile``, ``--tenant``
+and ``--goal`` describe the run, and ``--agents``, ``--replay`` and
+``--clarify`` are optional.
 """
 
 from __future__ import annotations
