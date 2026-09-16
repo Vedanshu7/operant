@@ -83,10 +83,18 @@ def execute_replay(
     if on_context is not None:
         on_context(context)
     try:
+        engine = context.settings.engine
         options = rooption.ReplayOptions(
             tenant=request.tenant or capability.default_tenant,
             params=dict(request.inputs or {}),
             inject_session_expiry_before=request.inject_session_expiry_before,
+            total_timeout_s=engine.total_timeout_s,
+            poll_interval_s=engine.poll_interval_s,
+            recovery_budget=engine.recovery_budget,
+            retry_delay_s=engine.retry_delay_s,
+            settle_ms=engine.settle_ms,
+            settle_short_ms=engine.settle_short_ms,
+            goal_poll_s=engine.goal_poll_s,
             should_stop=should_stop or (lambda: False),
         )
         result = traverse.run_capability(
@@ -99,6 +107,7 @@ def execute_replay(
             options,
             graph_store=graphs,
             approver=context.approver,
+            max_invoke_depth=engine.max_invoke_depth,
         )
     finally:
         context.close()

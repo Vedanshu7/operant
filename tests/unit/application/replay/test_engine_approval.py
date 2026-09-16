@@ -24,6 +24,7 @@ import operant.domain.redaction
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
 import tests.support.surfaces as surfaces
+import tests.support.timing as timing
 
 POLICY = policy.Policy(
     id="p",
@@ -150,7 +151,7 @@ def _run(
         stop_human_capture=lambda: None,
         on_transition=lambda a, b, d: None,
     )
-    opts = operant.application.replay.options.ReplayOptions(
+    opts = timing.fast_replay_options(
         tenant="t", params=params or {}, output_origins=origins or {}
     )
     result = operant.application.replay.engine.replay_path(

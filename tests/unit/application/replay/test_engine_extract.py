@@ -16,6 +16,7 @@ import operant.domain.redaction
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
 import tests.support.surfaces as surfaces
+import tests.support.timing as timing
 
 TEXTS = {
     "App | Home": "welcome",
@@ -79,9 +80,7 @@ def _run(
             _broker(),
             log,
             operant.domain.redaction.Redactor(),
-            operant.application.replay.options.ReplayOptions(
-                tenant="t", params={}
-            ),
+            timing.fast_replay_options(tenant="t", params={}),
         ),
         surface,
     )
@@ -224,7 +223,7 @@ def test_a_cancelled_replay_stops_before_acting(tmp_path: pathlib.Path) -> None:
         _broker(),
         log,
         operant.domain.redaction.Redactor(),
-        operant.application.replay.options.ReplayOptions(
+        timing.fast_replay_options(
             tenant="t", params={}, should_stop=lambda: True
         ),
     )
@@ -257,9 +256,7 @@ def test_a_templated_pattern_reads_the_record_the_inputs_name(
         _broker(),
         log,
         operant.domain.redaction.Redactor(),
-        operant.application.replay.options.ReplayOptions(
-            tenant="t", params={"accountId": "13344"}
-        ),
+        timing.fast_replay_options(tenant="t", params={"accountId": "13344"}),
     )
     assert result.status == "success", result
     assert result.outputs == {"balance": "$99.00"}

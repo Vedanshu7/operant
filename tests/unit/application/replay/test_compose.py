@@ -15,6 +15,7 @@ import operant.domain.models.results as results
 import operant.domain.redaction
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
+import tests.support.timing as timing
 
 # #############################################################################
 # ComposeSurface
@@ -102,7 +103,7 @@ def _run(tmp_path: pathlib.Path, invoke):
         broker,
         log,
         operant.domain.redaction.Redactor(),
-        operant.application.replay.options.ReplayOptions(tenant="t", params={}),
+        timing.fast_replay_options(tenant="t", params={}),
         invoke_graph=invoke,
         depth=0,
     )

@@ -1,5 +1,4 @@
 import threading
-import time
 from typing import List, Optional
 
 import pytest
@@ -7,6 +6,7 @@ import pytest
 import operant.application.escalation as escal
 import operant.domain.approval as approval
 import operant.domain.errors as errors
+import tests.support.timing as timing
 
 
 def _broker(*, captures: Optional[List[str]] = None) -> escal.ControlBroker:
@@ -43,8 +43,7 @@ def test_intervention_take_hand_back_resume() -> None:
 
     worker = threading.Thread(target=run)
     worker.start()
-    while broker.pending is None:
-        time.sleep(0.005)
+    timing.wait_until(lambda: broker.pending is not None)
     assert broker.state == "paused"
     iv_id = broker.pending.id
     broker.take_control(iv_id)
@@ -67,8 +66,7 @@ def test_abandon_ends_the_run() -> None:
         target=lambda: resolutions.append(broker.raise_intervention(_request()))
     )
     worker.start()
-    while broker.pending is None:
-        time.sleep(0.005)
+    timing.wait_until(lambda: broker.pending is not None)
     broker.abandon(broker.pending.id, "unrecoverable")
     worker.join(timeout=1)
     assert broker.state == "agent"
@@ -86,8 +84,7 @@ def test_second_intervention_while_paused_is_rejected() -> None:
     threading.Thread(
         target=lambda: broker.raise_intervention(_request()), daemon=True
     ).start()
-    while broker.pending is None:
-        time.sleep(0.005)
+    timing.wait_until(lambda: broker.pending is not None)
     with pytest.raises(errors.InvalidTransitionError):
         broker.raise_intervention(_request())
 
@@ -99,8 +96,7 @@ def test_approval_round_trip_and_timeout() -> None:
     )
 
     def console() -> None:
-        while broker.pending_approval is None:
-            time.sleep(0.005)
+        timing.wait_until(lambda: broker.pending_approval is not None)
         broker.resolve_approval(broker.pending_approval.id, True, "once")
 
     threading.Thread(target=console).start()

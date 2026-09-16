@@ -34,8 +34,6 @@ import operant.domain.models.graph as graph
 import operant.domain.models.targets as targets
 import operant.domain.params as params
 
-_ARRIVAL_FLOOR_MS = 4000
-_SETTLE_CAP_MS = 2000
 _HUMAN_ASSIST_POLL_S = 4.0
 _HUMAN_ARRIVAL_POLL_S = 5.0
 
@@ -198,7 +196,7 @@ class EdgeExecutor:
         arrived, screen = outcomes.poll_node(
             ctx,
             edge.to_node,
-            max(edge.wait.timeout_ms, _ARRIVAL_FLOOR_MS) / 1000,
+            max(edge.wait.timeout_ms, ctx.opts.settle_ms) / 1000,
         )
         if not arrived and not self._consult(screen, edge.to_node):
             raise outcomes.fail(
@@ -449,11 +447,11 @@ class EdgeExecutor:
         """
         ctx, edge = self._ctx, self._edge
         if edge.wait.kind == "settle":
-            time.sleep(min(edge.wait.timeout_ms, _SETTLE_CAP_MS) / 1000)
+            time.sleep(min(edge.wait.timeout_ms, ctx.opts.settle_short_ms) / 1000)
         arrived, screen = outcomes.poll_node(
             ctx,
             edge.to_node,
-            max(edge.wait.timeout_ms, _ARRIVAL_FLOOR_MS) / 1000,
+            max(edge.wait.timeout_ms, ctx.opts.settle_ms) / 1000,
         )
         if not arrived:
             self._handle_missed_arrival(screen)

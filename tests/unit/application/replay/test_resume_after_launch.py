@@ -15,7 +15,6 @@ from typing import List, Tuple
 import operant.application.approval as approval
 import operant.application.escalation as escal
 import operant.application.replay.engine as engine
-import operant.application.replay.options as options
 import operant.domain.fingerprint as odfinger
 import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
@@ -24,6 +23,7 @@ import operant.domain.redaction as redact
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
 import tests.support.surfaces as surfaces
+import tests.support.timing as timing
 
 POLICY = policy.Policy(
     id="p",
@@ -164,7 +164,7 @@ def _run(tmp_path: pathlib.Path, surface: ParabankSurface):
         broker,
         log,
         redact.Redactor(),
-        options.ReplayOptions(tenant="t", params={}),
+        timing.fast_replay_options(tenant="t", params={}),
         approver=approval.ScriptedApprover([]),
     )
     return result, surface
@@ -305,7 +305,7 @@ def test_adjacent_landing_navigates_to_goal_via_menu_link(
         broker,
         log,
         redact.Redactor(),
-        options.ReplayOptions(tenant="t", params={}),
+        timing.fast_replay_options(tenant="t", params={}),
         approver=approval.ScriptedApprover([]),
     )
     assert result.status == "success", result
@@ -420,7 +420,7 @@ def test_a_look_alike_of_an_intermediate_page_hops_onto_it_first(
         ),
         run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False),
         redact.Redactor(),
-        options.ReplayOptions(tenant="t", params={"accountId": "13344"}),
+        timing.fast_replay_options(tenant="t", params={"accountId": "13344"}),
         approver=approval.ScriptedApprover([]),
     )
     assert result.status == "success", result
@@ -470,7 +470,7 @@ def test_a_launch_landing_on_another_known_page_resumes_there(
         ),
         run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False),
         redact.Redactor(),
-        options.ReplayOptions(tenant="t", params={}),
+        timing.fast_replay_options(tenant="t", params={}),
         approver=approval.ScriptedApprover([]),
     )
     assert result.status == "success", result

@@ -18,6 +18,7 @@ import operant.domain.redaction
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
 import tests.support.surfaces as surfaces
+import tests.support.timing as timing
 
 # #############################################################################
 # FormSurface
@@ -74,9 +75,7 @@ def _replay(tmp_path: pathlib.Path, edge: graph.Edge, params: Dict[str, str]):
         broker,
         log,
         operant.domain.redaction.Redactor(),
-        operant.application.replay.options.ReplayOptions(
-            tenant="t", params=params
-        ),
+        timing.fast_replay_options(tenant="t", params=params),
     )
     return result, surface
 

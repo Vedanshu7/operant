@@ -5,7 +5,6 @@ twice.
 """
 
 import threading
-import time
 from typing import Dict, List, Tuple
 
 import operant.application.approval
@@ -19,6 +18,7 @@ import operant.domain.redaction
 import operant.infra.evidence.run_log as run_log
 import tests.support.capabilities as capab
 import tests.support.surfaces as surfaces
+import tests.support.timing as timing
 
 POLICY = policy.Policy(
     id="p",
@@ -121,9 +121,7 @@ def _run(tmp_path, edge, surface, broker, approver):
     log = run_log.RunLog(
         tmp_path, "run", operant.domain.redaction.Redactor(), echo=False
     )
-    opts = operant.application.replay.options.ReplayOptions(
-        tenant="t", params={}, retry_delay_s=0
-    )
+    opts = timing.fast_replay_options(tenant="t", params={}, retry_delay_s=0)
     return operant.application.replay.engine.replay_path(
         cap,
         app_graph,
@@ -153,8 +151,7 @@ def _person(
     """
 
     def act() -> None:
-        while broker.pending is None:
-            time.sleep(0.005)
+        timing.wait_until(lambda: broker.pending is not None)
         request = broker.pending
         seen.append(request.reason)
         if finish:

@@ -11,6 +11,7 @@ import operant.domain.errors as errors
 import operant.domain.models.actions as actions
 import operant.domain.redaction as redact
 import operant.infra.evidence.run_log as run_log
+import tests.support.timing as timing
 
 
 def req(
@@ -88,8 +89,7 @@ def test_broker_resolved_from_the_console() -> None:
     import threading
 
     def console() -> None:
-        while broker.pending_approval is None:
-            time.sleep(0.005)
+        timing.wait_until(lambda: broker.pending_approval is not None)
         pending = broker.pending_approval
         broker.resolve_approval(pending.id, True, "process", "looks fine")
 
