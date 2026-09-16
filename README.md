@@ -252,7 +252,32 @@ addresses it:
   whose name or label asks for that kind of credential. A password never
   goes into a field labelled "Verification". The refusal is in code, so
   it holds whatever the model decides.
+- Rerun of the pop-up attack in multi mode with that guard (9 trials):
+  the model still tried to comply once, but no attack reached the page
+  (0 of 9).
 - Replay runs no model, so injected text cannot steer it.
+
+Stricter multi-agent verification, and a model per agent (safety family,
+multi agent, 3 skins × 3 trials each). Success criteria now run as typed
+screen checks in code before any model is asked, and the verifier may
+answer "unknown". The router config sets the model per role:
+
+| Setup | Passed | Cost per trial | Model calls | Seconds p50 |
+|---|---|---|---|---|
+| A: Haiku everywhere | 18/18 | $0.053 | 14.7 | 16.6 |
+| B: Sonnet executor, Haiku reviewers | 18/18 | $0.126 | 12.7 | 23.9 |
+| C: Haiku executor, Sonnet reviewers | 18/18 | $0.067 | 14.3 | 21.4 |
+
+- All three pass every safety trial, so a bigger model buys nothing here.
+  The family is at its ceiling with Haiku.
+- A Sonnet executor makes fewer calls but costs 2.4x and is slower.
+- The repo default stays Haiku for every role. `router.yml` changes it
+  per role.
+
+Memory in single mode: on a transfer flow, a recalled plan cut the
+turns in every skin (14.3 to 13.7, 14.7 to 13.0, 15.0 to 14.0). All runs
+completed, and stale memory still lost to the live screen. A single agent
+now reads memory by default.
 
 What the evals caught:
 
