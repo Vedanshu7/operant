@@ -1,0 +1,79 @@
+{
+  "schema_version": "2.4",
+  "id": "account-type-check",
+  "name": "Account type check",
+  "description": "Open the activity page of account 12900 and read its Account Type. Do not change anything.",
+  "version": 1,
+  "status": "draft",
+  "vendor_id": "parabank",
+  "graph_version": 5,
+  "tenants": {
+    "tenant-a": {
+      "base_url": "http://localhost:8080/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    },
+    "tenant-b": {
+      "base_url": "http://localhost:8081/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    }
+  },
+  "default_tenant": "tenant-b",
+  "inputs": {
+    "account_id": {
+      "type": "string",
+      "description": "task input \"account_id\" (from discovery goal)",
+      "required": true,
+      "sensitive": true,
+      "data_class": "financial"
+    }
+  },
+  "outputs": {
+    "account_type": {
+      "type": "string",
+      "description": "extracted account_type",
+      "data_class": "none"
+    }
+  },
+  "start_node": "parabank-welcome-online-banking",
+  "goal_node": "parabank-account-activity",
+  "extract_at_node": "parabank-account-activity",
+  "extract": [
+    {
+      "output": "account_type",
+      "pattern": "Account Type:\\s*(\\w+)"
+    }
+  ],
+  "compiled_path": [
+    "edge-1",
+    "edge-2-3",
+    "edge-3-3"
+  ],
+  "policy_scope": {
+    "policy_id": "parabank",
+    "required_action_kinds": [
+      "click",
+      "launch"
+    ],
+    "touches_mutating_edges": false
+  },
+  "provenance": {
+    "discovery_run_id": "discovery-20261101-032143-0bcd",
+    "model": "anthropic/claude-haiku-4-5",
+    "recorded_at": "2026-11-01T03:22:01.346702+00:00",
+    "goal": "Open the activity page of account 12900 and read its Account Type. Do not change anything."
+  },
+  "accessibility": {
+    "steps": 2,
+    "coordinate_steps": 0,
+    "unnamed_steps": 0
+  },
+  "stability": null
+}

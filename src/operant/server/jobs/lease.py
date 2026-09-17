@@ -32,7 +32,9 @@ class DriverLease:
 
     def __init__(self, screen_lock: Optional[pathlib.Path] = None) -> None:
         """
-        :param screen_lock: The lock file shared with other processes
+        Set up the lease.
+
+        :param screen_lock: the lock file shared with other processes
             that drive the screen; ``None`` locks within this process
             only.
         """
@@ -45,7 +47,9 @@ class DriverLease:
         self._cond = threading.Condition(self._lock)
 
     def position(self, run_id: str) -> int:
-        """Return queue place (0 = holding, -1 = not waiting)."""
+        """
+        Return queue place (0 = holding, -1 = not waiting).
+        """
         with self._lock:
             if self._holder == run_id:
                 # This run holds the lease: it sits at the head.

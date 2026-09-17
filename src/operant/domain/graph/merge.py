@@ -1,10 +1,11 @@
 """
 Merge a recorded flow into the application graph.
 
-Node identity is the primary ``titleMatches`` pattern: a recorded screen
-that matches an existing node IS that node. This is how login and
-navigation become shared subgraphs reused across capabilities instead of
-being re-recorded. Edges dedupe by (from, to, action signature); outcome
+Node identity is the primary ``titleMatches`` pattern plus content: a
+recorded screen with an existing node's title and enough of its fingerprint
+IS that node, while two states that only share a title stay apart. This is
+how login and navigation become shared subgraphs reused across capabilities
+instead of being re-recorded. Edges dedupe by (from, to, action signature); outcome
 edges by id. Any change yields a new immutable graph version.
 
 ``merge_recording`` takes the recording's nodes, edges, and outcome
@@ -21,6 +22,7 @@ from __future__ import annotations
 import collections.abc
 from typing import Dict, List, Optional, Set, Tuple
 
+import operant.domain.fingerprint as odfinger
 import operant.domain.models.graph as graph
 
 
@@ -95,30 +97,68 @@ def _edge_key(edge: graph.Edge) -> str:
     return key
 
 
+def _same_state(
+    existing: graph.Node,
+    node: graph.Node,
+    existing_edges: collections.abc.Sequence[graph.Edge],
+    edges: collections.abc.Sequence[graph.Edge],
+) -> bool:
+    """
+    Report whether a recorded node is an existing node with the same title.
+
+    With a fingerprint on both sides, content decides. A node with none
+    takes a fingerprint only if the recording leaves it the same way: a
+    logged-in home page must not write its content onto the logged-out one.
+    """
+    if existing.fingerprint and node.fingerprint:
+        cover = odfinger.coverage(existing.fingerprint, set(node.fingerprint))
+        same = cover >= odfinger.SAME_SCREEN_COVERAGE
+    elif node.fingerprint:
+        known = {
+            _target_sig(e) for e in existing_edges if e.from_node == existing.id
+        }
+        recorded = {_target_sig(e) for e in edges if e.from_node == node.id}
+        same = not known or not recorded or bool(known & recorded)
+    else:
+        same = True
+    return same
+
+
 def _merge_nodes(
-    existing_nodes: List[graph.Node], nodes: collections.abc.Sequence[graph.Node]
+    existing_nodes: List[graph.Node],
+    nodes: collections.abc.Sequence[graph.Node],
+    existing_edges: collections.abc.Sequence[graph.Edge] = (),
+    edges: collections.abc.Sequence[graph.Edge] = (),
 ) -> Tuple[Dict[str, str], bool]:
     """
     Append unseen nodes in place; returns (node remap, changed).
     """
-    by_key = {_node_key(n): n for n in existing_nodes}
     node_ids = {n.id for n in existing_nodes}
     node_remap: Dict[str, str] = {}
     changed = False
     for node in nodes:
         key = _node_key(node)
-        if key in by_key:
-            # Reuse the shared node (e.g. the login screen), but backfill
-            # a content fingerprint onto a node that predates them (older
-            # graph), so replay can tell same-title states apart.
-            existing = by_key[key]
+        existing = next(
+            (
+                n
+                for n in existing_nodes
+                if _node_key(n) == key
+                and _same_state(n, node, existing_edges, edges)
+            ),
+            None,
+        )
+        if existing is not None:
+            # Reuse the shared node (e.g. the login screen), adding what an
+            # older recording of it did not capture.
             node_remap[node.id] = existing.id
-            if node.fingerprint and not existing.fingerprint:
-                upgraded = existing.model_copy(
-                    update={"fingerprint": node.fingerprint}
-                )
+            upgraded = existing.model_copy(
+                update={
+                    "fingerprint": existing.fingerprint or node.fingerprint,
+                    "url_paths": sorted({*existing.url_paths, *node.url_paths}),
+                }
+            )
+            if upgraded != existing:
                 existing_nodes[existing_nodes.index(existing)] = upgraded
-                by_key[key] = upgraded
                 changed = True
         else:
             # Recording-local ids can collide with ids already in the
@@ -130,7 +170,6 @@ def _merge_nodes(
                 else node.model_copy(update={"id": new_id})
             )
             existing_nodes.append(stored)
-            by_key[key] = stored
             node_ids.add(new_id)
             node_remap[node.id] = new_id
             changed = True
@@ -174,6 +213,32 @@ def _merge_edges(
     return edge_remap, changed
 
 
+def _retire_edges(
+    existing_edges: List[graph.Edge],
+    retire: collections.abc.Set[str],
+    *,
+    recorded: collections.abc.Set[str],
+    next_version: int,
+) -> bool:
+    """
+    Retire failing edges the recording replaced, in place; returns changed.
+    """
+    reached = {e.to_node for e in existing_edges if e.id in recorded}
+    changed = False
+    for index, edge in enumerate(existing_edges):
+        if (
+            edge.id in retire
+            and edge.id not in recorded
+            and edge.to_node in reached
+            and edge.retired_in is None
+        ):
+            existing_edges[index] = edge.model_copy(
+                update={"retired_in": next_version}
+            )
+            changed = True
+    return changed
+
+
 def _merge_outcomes(
     existing_outcomes: List[graph.OutcomeEdge],
     outcome_edges: collections.abc.Sequence[graph.OutcomeEdge],
@@ -203,20 +268,23 @@ def merge_recording(
     *,
     app_name: str = "",
     window_title_pattern: str = "",
+    retire: collections.abc.Set[str] = frozenset(),
 ) -> Tuple[graph.AppGraph, bool, Dict[str, str], Dict[str, str]]:
     """
     Fold a recorded flow into ``base`` (or a fresh graph).
 
-    :param base: The current graph version, or ``None`` for a first
+    :param base: the current graph version, or ``None`` for a first
         save.
-    :param vendor_id: Application the graph belongs to.
-    :param nodes: Screen nodes the recording observed.
-    :param edges: Actions the recording took between those nodes.
-    :param outcome_edges: Detectors the recording declared.
-    :param app_name: Surface binding; keeps ``base``'s when empty.
-    :param window_title_pattern: Window regex; keeps ``base``'s when
+    :param vendor_id: application the graph belongs to.
+    :param nodes: screen nodes the recording observed.
+    :param edges: actions the recording took between those nodes.
+    :param outcome_edges: detectors the recording declared.
+    :param app_name: surface binding; keeps ``base``'s when empty.
+    :param window_title_pattern: window regex; keeps ``base``'s when
         empty.
-    :return:``(graph, changed, node_remap, edge_remap)``. The remaps map
+    :param retire: edge ids known to keep failing; one retires only if
+        this recording reached its destination another way.
+    :return: ``(graph, changed, node_remap, edge_remap)``. The remaps map
         the recording's node/edge ids to the graph's canonical ids (e.g.
         a reused login subgraph) so the caller can point a capability's
         start/goal and compiled path at them. The graph keeps ``base``'s
@@ -226,12 +294,20 @@ def merge_recording(
     existing_edges = list(base.edges) if base else []
     existing_outcomes = list(base.outcome_edges) if base else []
     # Fold each kind of element into the existing contents in place.
-    node_remap, nodes_changed = _merge_nodes(existing_nodes, nodes)
+    node_remap, nodes_changed = _merge_nodes(
+        existing_nodes, nodes, existing_edges, edges
+    )
     edge_remap, edges_changed = _merge_edges(existing_edges, edges, node_remap)
     outcomes_changed = _merge_outcomes(
         existing_outcomes, outcome_edges, node_remap
     )
-    changed = nodes_changed or edges_changed or outcomes_changed
+    retired = _retire_edges(
+        existing_edges,
+        retire,
+        recorded=set(edge_remap.values()),
+        next_version=(base.graph_version if base else 0) + 1,
+    )
+    changed = nodes_changed or edges_changed or outcomes_changed or retired
     contents = (existing_nodes, existing_edges, existing_outcomes)
     merged = _assemble(base, vendor_id, app_name, window_title_pattern, contents)
     return merged, changed, node_remap, edge_remap

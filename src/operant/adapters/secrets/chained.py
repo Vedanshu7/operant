@@ -23,7 +23,7 @@ class ChainedSecretStore:
     """
     First store with a value wins; writes go to the first writable store.
 
-    :ivar backend: Backends joined with ``+``, e.g. ``"keychain+env"``.
+    :ivar backend: backends joined with ``+``, e.g. ``"keychain+env"``.
     """
 
     def __init__(

@@ -1,6 +1,8 @@
 """
-Settle tests: after a navigating action the recorded screen is the page that
-loaded, not the one still showing while it loaded.
+Settle tests.
+
+After a navigating action the recorded screen is the page that loaded,
+not the one still showing while it loaded.
 """
 
 from __future__ import annotations

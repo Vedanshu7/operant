@@ -26,10 +26,10 @@ class Box:
     """
     A rectangle normalised to the window.
 
-    :ivar x: Left edge, 0..1 of the window width.
-    :ivar y: Top edge, 0..1 of the window height.
-    :ivar w: Width, 0..1 of the window width.
-    :ivar h: Height, 0..1 of the window height.
+    :ivar x: left edge, 0..1 of the window width.
+    :ivar y: top edge, 0..1 of the window height.
+    :ivar w: width, 0..1 of the window width.
+    :ivar h: height, 0..1 of the window height.
     """
 
     x: float
@@ -48,16 +48,16 @@ class Control:
     """
     One actionable element in the accessibility inventory.
 
-    :ivar ref: Ephemeral handle, valid for this snapshot only.
-    :ivar role: Accessibility role, e.g. ``button`` or ``textfield``.
-    :ivar name: Accessible name of the element.
-    :ivar label: Nearby anchoring text (legacy layouts).
-    :ivar path: A11y tree path, e.g.
+    :ivar ref: ephemeral handle, valid for this snapshot only.
+    :ivar role: accessibility role, e.g. ``button`` or ``textfield``.
+    :ivar name: accessible name of the element.
+    :ivar label: nearby anchoring text (legacy layouts).
+    :ivar path: a11y tree path, e.g.
         ``window>group:1>table>row:3>link``.
-    :ivar box: Window-normalised bounds.
-    :ivar value: Current value, when the element carries one.
-    :ivar enabled: Whether the element accepts interaction.
-    :ivar actions: Accessibility actions the element supports.
+    :ivar box: window-normalised bounds.
+    :ivar value: current value, when the element carries one.
+    :ivar enabled: whether the element accepts interaction.
+    :ivar actions: accessibility actions the element supports.
     """
 
     ref: str
@@ -81,11 +81,12 @@ class ScreenDigest:
     """
     What the surface observed in one snapshot.
 
-    :ivar app: Name of the frontmost application.
-    :ivar window_title: Title of the observed window.
-    :ivar text: Concatenated visible text of the tree.
-    :ivar controls: Actionable elements found in the tree.
-    :ivar dialog: Text of a modal dialog, if one is up.
+    :ivar app: name of the frontmost application.
+    :ivar window_title: title of the observed window.
+    :ivar text: concatenated visible text of the tree.
+    :ivar controls: actionable elements found in the tree.
+    :ivar dialog: text of a modal dialog, if one is up.
+    :ivar url: the page address, in a browser that reports it.
     """
 
     app: str
@@ -93,3 +94,4 @@ class ScreenDigest:
     text: str
     controls: Tuple[Control, ...] = ()
     dialog: Optional[str] = None
+    url: Optional[str] = None

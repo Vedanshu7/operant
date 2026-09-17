@@ -47,32 +47,34 @@ class ReplayContext:
     """
     State shared across one capability's per-edge execution.
 
-    :ivar capability: The capability being replayed.
-    :ivar graph: The application graph it traverses.
-    :ivar surface: The actuation surface bound to the app window.
-    :ivar broker: Control broker for human hand-offs.
-    :ivar log: Evidence sink for events and screenshots.
-    :ivar opts: Timing knobs, inputs, and tenant for this run.
-    :ivar base_url: Tenant base URL, trailing slash stripped.
-    :ivar secrets: Resolved secret reference values keyed by ref name.
-    :ivar approver: Who answers approval questions at the choke point.
-    :ivar redactor: Masks sensitive values before they are logged.
-    :ivar path: The edges being executed this run.
-    :ivar outputs: Outputs extracted so far, keyed by name.
-    :ivar output_origins: Where each output came from and how sensitive.
-    :ivar extract_digest: Screen captured at ``extract_at_node``, if
+    :ivar capability: the capability being replayed.
+    :ivar graph: the application graph it traverses.
+    :ivar surface: the actuation surface bound to the app window.
+    :ivar broker: control broker for human hand-offs.
+    :ivar log: evidence sink for events and screenshots.
+    :ivar opts: timing knobs, inputs, and tenant for this run.
+    :ivar base_url: tenant base URL, trailing slash stripped.
+    :ivar secrets: resolved secret reference values keyed by ref name.
+    :ivar approver: who answers approval questions at the choke point.
+    :ivar redactor: masks sensitive values before they are logged.
+    :ivar path: the edges being executed this run.
+    :ivar outputs: outputs extracted so far, keyed by name.
+    :ivar output_origins: where each output came from and how sensitive.
+    :ivar extract_digest: screen captured at ``extract_at_node``, if
         seen.
-    :ivar deadline: Monotonic time the run must finish by; pushed
+    :ivar deadline: monotonic time the run must finish by; pushed
         forward by human wait time so thinking never times a run out.
-    :ivar invoke_graph: Cross-domain composition hook injected by the
+    :ivar invoke_graph: cross-domain composition hook injected by the
         traversal layer; returns ``None`` on success or a terminal
         ``ReplayResult`` to bubble.
-    :ivar depth: Cross-graph composition depth of this run.
-    :ivar fired_bindings: Interrupt binding ids already handled this
+    :ivar depth: cross-graph composition depth of this run.
+    :ivar fired_bindings: interrupt binding ids already handled this
         run.
-    :ivar intervention_id: Broker id of a resumed intervention, once one
+    :ivar intervention_id: broker id of a resumed intervention, once one
         has been handed back; drives the escalated result.
-    :ivar escalation_resolution: How the resumed intervention completed.
+    :ivar escalation_resolution: how the resumed intervention completed.
+    :ivar arrived: nodes already reported as reached this run.
+    :ivar drifted: nodes reached that no longer look as recorded.
     """
 
     capability: artifact.CapabilityArtifact
@@ -97,6 +99,8 @@ class ReplayContext:
     fired_bindings: Set[str] = dataclasses.field(default_factory=set)
     intervention_id: Optional[str] = None
     escalation_resolution: Optional[EscalationResolution] = None
+    arrived: Set[str] = dataclasses.field(default_factory=set)
+    drifted: Set[str] = dataclasses.field(default_factory=set)
 
 
 # #############################################################################
@@ -108,7 +112,7 @@ class Finished(Exception):  # noqa: N818 - control flow, not an error
     """
     Unwinds the edge loop with a decided terminal result.
 
-    :ivar result: The terminal replay result to return to the caller.
+    :ivar result: the terminal replay result to return to the caller.
     """
 
     def __init__(self, result: results.ReplayResult) -> None:

@@ -45,7 +45,7 @@ export interface ReplayFailure {
 }
 
 export type ReplayResult =
-  | { status: "success"; outputs: Record<string, string> }
+  | { status: "success"; outputs: Record<string, string>; drifted?: string[] }
   | { status: "business_outcome"; outcome: string; detail: string }
   | { status: "escalated"; intervention_id: string; resolution: string }
   | { status: "failure"; failure: ReplayFailure };
@@ -69,7 +69,7 @@ export interface RunDetail extends RunSummary {
   lease_position: number | null;
 }
 
-export type ApprovalKind = "scope" | "mutating" | "sensitive_fill" | "sensitive_export";
+export type ApprovalKind = "scope" | "mutating" | "unknown" | "sensitive_fill" | "sensitive_export";
 export type ApprovalStatus = "pending" | "approved" | "denied" | "timed_out";
 export type RememberScope = "once" | "process";
 
@@ -187,7 +187,16 @@ export interface Provenance {
   goal: string;
 }
 
+export interface UnknownStep {
+  edge: string;
+  description: string;
+  judged: string | null;
+  reviewed: boolean;
+}
+
 export interface CapabilityDetail extends CapabilitySummary {
+  unknown_steps: UnknownStep[];
+  latest_graph_version: number | null;
   inputs: Record<string, IoField>;
   outputs: Record<string, { description: string; data_class: string }>;
   start_node: string;
@@ -270,6 +279,7 @@ export interface DiscoveryRequest {
   inputs: Record<string, string>;
   screenshots?: boolean;
   agents?: NonNullable<Schemas["StartDiscoveryBody"]["agents"]>;
+  seed_capability?: string;
 }
 
 export interface ReplayRequest {
@@ -295,6 +305,8 @@ export type CredentialAnswer = Schemas["CredentialAnswerBody"];
 
 export interface CapabilityApproveBody {
   force?: boolean;
+  reviewed_edges?: string[];
+  graph_version?: number;
 }
 
 export interface CapabilityInvokeBody {

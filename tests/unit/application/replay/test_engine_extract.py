@@ -1,6 +1,8 @@
 """
-Capability-scoped extraction at replay: read at extract_at_node (goal or mid-
-path), hard-fail when the extraction node was never reached.
+Capability-scoped extraction at replay.
+
+Read at the extraction node (goal or mid-path), and hard-fail when it
+was never reached.
 """
 
 import pathlib

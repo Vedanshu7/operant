@@ -48,16 +48,16 @@ class TeamBudget:
     """
     Bounds on the multi-agent coordinator.
 
-    :ivar max_replans: Replans before a stuck run escalates to a human.
-    :ivar max_rejections_per_subgoal: Verifier rejections of one subgoal
+    :ivar max_replans: replans before a stuck run escalates to a human.
+    :ivar max_rejections_per_subgoal: verifier rejections of one subgoal
         before a replan.
-    :ivar stall_turns: Executor turns without a verified subgoal before
+    :ivar stall_turns: executor turns without a verified subgoal before
         a replan.
-    :ivar planner_samples: Plan candidates drawn in parallel.
-    :ivar extract_candidates: Regex candidates drawn in parallel when an
+    :ivar planner_samples: plan candidates drawn in parallel.
+    :ivar extract_candidates: regex candidates drawn in parallel when an
         extract does not match.
-    :ivar fanout_workers: Upper bound on parallel role calls.
-    :ivar compile_review:``"on"`` reviews the saved recording
+    :ivar fanout_workers: upper bound on parallel role calls.
+    :ivar compile_review: ``"on"`` reviews the saved recording
         (advisory).
     """
 
@@ -307,6 +307,9 @@ class Team:
 
     @property
     def _budget(self) -> TeamBudget:
+        """
+        Return the team's budget.
+        """
         return self._session.deps.team
 
     def _recall(self) -> str:
@@ -394,12 +397,14 @@ class Team:
         self, summary: str, turn: int, *, claim: str
     ) -> Optional[tools.ToolOutcome]:
         """
-        Run the panel; return a rejection reply, or advance and return ``None``
-        when every member passes.
+        Run the review panel.
 
-        :param summary: The executor's summary of what it achieved.
-        :param turn: The executor turn of the claim.
-        :param claim:``subgoal`` or ``goal`` - which tool made the claim,
+        Return a rejection reply, or advance and return ``None`` when every
+        member passes.
+
+        :param summary: the executor's summary of what it achieved.
+        :param turn: the executor turn of the claim.
+        :param claim: ``subgoal`` or ``goal`` - which tool made the claim,
             logged so evals can score the verifier against the screen.
         """
         screen = self._session.state.screen

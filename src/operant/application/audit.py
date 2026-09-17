@@ -36,6 +36,7 @@ import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as mggraph
 import operant.domain.models.targets as targets
 import operant.domain.sensitivity as sensv
+import operant.helpers.files as files
 import operant.infra.repositories.artifacts as raartifa
 import operant.infra.repositories.graphs as graphs
 
@@ -54,11 +55,11 @@ class Finding:
     """
     One audit finding.
 
-    :ivar severity:``error`` blocks a strict audit; ``warning`` does
+    :ivar severity: ``error`` blocks a strict audit; ``warning`` does
         not.
-    :ivar code: Stable machine-readable finding code.
-    :ivar subject: The file or run the finding is about.
-    :ivar message: Human-readable explanation.
+    :ivar code: stable machine-readable finding code.
+    :ivar subject: the file or run the finding is about.
+    :ivar message: human-readable explanation.
     """
 
     severity: Literal["error", "warning"]
@@ -87,15 +88,15 @@ def audit_all(
     """
     Audit every artifact, graph version, and evidence run.
 
-    :param artifact_store: Where capabilities live.
-    :param graph_store: Where graph versions live.
-    :param evidence_root: Evidence directory to validate; skipped if
+    :param artifact_store: where capabilities live.
+    :param graph_store: where graph versions live.
+    :param evidence_root: evidence directory to validate; skipped if
         ``None``.
-    :param stability_of: Returns a capability's replay track record.
-    :param gate: The approval gate; defaults to the governance default.
-    :param memory_text: Every stored agent-memory text; skipped if
+    :param stability_of: returns a capability's replay track record.
+    :param gate: the approval gate.
+    :param memory_text: every stored agent-memory text; skipped if
         ``None``.
-    :return: Findings, errors and warnings interleaved in scan order.
+    :return: findings, errors and warnings interleaved in scan order.
     """
     gate = gate or govern.StabilityGate()
     findings: List[Finding] = []
@@ -119,11 +120,13 @@ _UNMASKED_NUMBER: Final = re.compile(r"(?<![A-Za-z])\d{3,}")
 
 def audit_memory(texts: collections.abc.Sequence[str]) -> List[Finding]:
     """
-    Check that agent memory holds no values: no unmasked numbers and no value
-    shapes the sensitivity gates treat as sensitive.
+    Check that agent memory holds no values.
 
-    :param texts: Every stored plan and lesson text.
-    :return: One error per offending text.
+    It must hold no unmasked numbers and no value shapes the sensitivity
+    gates treat as sensitive.
+
+    :param texts: every stored plan and lesson text.
+    :return: one error per offending text.
     """
     findings: List[Finding] = []
     for index, text in enumerate(texts):
@@ -183,7 +186,7 @@ def _audit_graphs(
     for vendor_id in graph_store.vendors():
         for version in graph_store.versions(vendor_id):
             path = graph_store.path(vendor_id, version)
-            raw = json.loads(path.read_text(encoding="utf-8"))
+            raw = files.read_json(path)
             graph = mggraph.AppGraph.model_validate(raw)
             findings += audit_graph(graph, raw, graph_store)
     return findings
@@ -495,7 +498,7 @@ def _audit_edge(
     if edge.action.kind == "invoke":
         ref = edge.action.graph_ref
         if ref is None:
-            # No graph_ref at all on the invoke edge.
+            # The invoke edge has no `graph_ref` at all.
             findings.append(
                 Finding(
                     "error",

@@ -1,6 +1,8 @@
 """
-Prompt-window tests: old screenshots and digests are compacted, tool call/reply
-pairs survive, and the token budget is enforced.
+Prompt-window tests.
+
+Old screenshots and digests are compacted, tool call/reply pairs
+survive, and the token budget is enforced.
 """
 
 from __future__ import annotations

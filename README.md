@@ -90,7 +90,7 @@ To skip the terminal, run the desktop app with
 - [docs/DESIGN.md](docs/DESIGN.md): design approach, requirements and
   trade-offs.
 - [REPORT.md](REPORT.md): the design write-up.
-- [docs/adr/](docs/adr/): design decisions (ADRs 1–11).
+- [docs/adr/](docs/adr/): design decisions (ADRs 1–14).
 - [docs/conventions.md](docs/conventions.md): the coding standard,
   enforced by `uv run i lint`.
 

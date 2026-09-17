@@ -1,22 +1,40 @@
 """
-``operant catalog`` - list, describe, approve, and invoke capabilities.
+``operant catalog`` - list, approve, invoke, and canary capabilities.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, List
+import sys
+from typing import Annotated, List, Optional
 
 import typer
 
 import operant.application.canary as apcanary
+import operant.application.capabilities as apcapab
 import operant.application.stability as apstabil
 import operant.application.usecases.replay as replay
 import operant.cli.deps as cddeps
+import operant.domain.errors as errors
 import operant.domain.models.artifact as artifact
+import operant.domain.models.graph as graph
 import operant.helpers.ids as ids
 
 # Below this share of named targets, approval warns that it is brittle.
 _BRITTLE_BELOW = 0.7
+
+
+def _confirm_steps(steps: List[graph.Edge], *, yes: bool) -> None:
+    """
+    Show the unknown steps and require a person to accept them.
+    """
+    for step in steps:
+        verdict = f" (judge: {step.judged})" if step.judged else ""
+        typer.echo(f"  unknown step: {step.description}{verdict}")
+    if steps and not yes:
+        if not sys.stdin.isatty():
+            typer.echo("  pass --yes to accept these steps", err=True)
+            raise typer.Exit(1)
+        typer.confirm("  Have you reviewed these steps?", abort=True)
 
 
 def register(app: typer.Typer) -> None:
@@ -66,9 +84,14 @@ def register(app: typer.Typer) -> None:
         ctx: typer.Context,
         capability_id: str,
         force: Annotated[bool, typer.Option("--force")] = False,
+        yes: Annotated[
+            bool, typer.Option("--yes", help="accept the listed unknown steps")
+        ] = False,
     ) -> None:
         """
         Approve a capability if the stability gate passes (or forced).
+
+        The unknown steps are listed first: approving is their review.
         """
         deps: cddeps.CliDeps = ctx.obj
         database, runs = deps.open_runs()
@@ -83,7 +106,14 @@ def register(app: typer.Typer) -> None:
                     err=True,
                 )
                 raise typer.Exit(1)
+            outstanding = apcapab.outstanding_steps(
+                deps.artifacts.get(capability_id), deps.graphs, runs.edge_records
+            )
+            _confirm_steps(outstanding, yes=yes)
             approved = deps.artifacts.approve(capability_id)
+            apcapab.review_unknown_steps(
+                approved, deps.graphs, runs.edge_records, by="catalog approve"
+            )
         finally:
             database.close()
         found = approved.accessibility
@@ -95,6 +125,39 @@ def register(app: typer.Typer) -> None:
                 err=True,
             )
         typer.echo(f"{approved.id} v{approved.version} is now: {approved.status}")
+
+    @catalog.command("repin")
+    def repin(
+        ctx: typer.Context,
+        capability_id: str,
+        version: Annotated[
+            Optional[int],
+            typer.Option("--version", help="graph version; default newest"),
+        ] = None,
+    ) -> None:
+        """
+        Move a capability to another graph version, as a draft.
+        """
+        deps: cddeps.CliDeps = ctx.obj
+        database, runs = deps.open_runs()
+        try:
+            moved = apcapab.repin(
+                deps.artifacts.get(capability_id),
+                graph_store=deps.graphs,
+                artifact_store=deps.artifacts,
+                run_repo=runs,
+                by="catalog repin",
+                version=version,
+            )
+        except errors.RepinRefusedError as err:
+            typer.echo(f"  {err}", err=True)
+            raise typer.Exit(1) from err
+        finally:
+            database.close()
+        typer.echo(
+            f"{moved.id} v{moved.version} is on graph v{moved.graph_version} "
+            f"({moved.status}); replay and approve it to run unattended"
+        )
 
     @catalog.command("invoke")
     def invoke(
@@ -121,17 +184,22 @@ def register(app: typer.Typer) -> None:
         import operant.application.context as context
 
         # Replay the capability and report its outcome.
-        result = replay.execute_replay(
-            replay.ReplayRequest(
-                capability_id=capability_id,
-                tenant=tenant,
-                inputs=context.parse_inputs(input),
-            ),
-            factory=deps.run_factory(),
-            artifacts=deps.artifacts,
-            graphs=deps.graphs,
-            profiles=deps.profiles,
-        )
+        database, runs = deps.open_runs()
+        try:
+            result = replay.execute_replay(
+                replay.ReplayRequest(
+                    capability_id=capability_id,
+                    tenant=tenant,
+                    inputs=context.parse_inputs(input),
+                ),
+                factory=deps.run_factory(),
+                artifacts=deps.artifacts,
+                graphs=deps.graphs,
+                profiles=deps.profiles,
+                edge_records=runs.edge_records,
+            )
+        finally:
+            database.close()
         typer.echo(result.model_dump_json(indent=2))
         raise typer.Exit(0 if result.status != "failure" else 1)
 
@@ -165,15 +233,21 @@ def register(app: typer.Typer) -> None:
                     artifacts=deps.artifacts,
                     graphs=deps.graphs,
                     profiles=deps.profiles,
+                    edge_records=runs.edge_records,
                 )
                 ok = replay.is_success(result)
-                stability = apstabil.record_replay(
-                    planned.capability_id,
-                    ids.run_id("canary"),
-                    succeeded=ok,
-                    run_repo=runs,
-                    artifact_repo=deps.artifacts,
-                    gate=deps.settings.governance.gate(),
+                gate = deps.settings.governance.gate()
+                stability = (
+                    apstabil.record_replay(
+                        planned.capability_id,
+                        ids.run_id("canary"),
+                        succeeded=replay.is_stable(result),
+                        run_repo=runs,
+                        artifact_repo=deps.artifacts,
+                        gate=gate,
+                    )
+                    if replay.counts_toward_stability(result)
+                    else runs.stability(planned.capability_id, window=gate.window)
                 )
                 failed += not ok
                 status = deps.artifacts.get(planned.capability_id).status

@@ -29,9 +29,12 @@ import pydantic
 
 import operant.domain.models.actions as actions
 
-Risk = Literal["safe", "mutating"]
+Risk = Literal["safe", "mutating", "unknown"]
 Verdict = Literal["allow", "deny", "needs_approval"]
-ApprovalKind = Literal["scope", "mutating", "sensitive_fill", "sensitive_export"]
+ApprovalKind = Literal[
+    "scope", "mutating", "unknown", "sensitive_fill", "sensitive_export"
+]
+UnknownMode = Literal["allow", "commit", "ask", "deny"]
 
 
 # #############################################################################
@@ -43,21 +46,27 @@ class ApprovalPolicy(pydantic.BaseModel):
     """
     Which approval gates a policy turns on.
 
-    :ivar mutating: Ask before a mutating control is activated.
-    :ivar sensitive_fill:``literals`` asks for sensitive values the
+    :ivar mutating: ask before a mutating control is activated.
+    :ivar unknown: how to treat a control neither pattern list names.
+        ``allow`` runs it as safe; ``commit`` lets discovery explore and
+        asks only when the action looks like it commits something, while
+        replay needs the step reviewed; ``ask`` always asks; ``deny``
+        refuses.
+    :ivar sensitive_fill: ``literals`` asks for sensitive values the
         model or caller supplied while a value resolved from a policy-
         held secret reference runs unattended (the gate is keyed on
         risk, and the system entering its own login into an allowlisted
         app is the operator's everyday step); ``always`` gates secret
         references too; ``off`` never asks.
-    :ivar sensitive_export: Ask before a sensitive value extracted in
+    :ivar sensitive_export: ask before a sensitive value extracted in
         one app is typed into another.
-    :ivar sensitive_field_patterns: Vendor-specific field names beyond
+    :ivar sensitive_field_patterns: vendor-specific field names beyond
         the built-in detectors; ``financial:amount`` pins the class, a
         bare pattern counts as pii.
     """
 
     mutating: bool = True
+    unknown: UnknownMode = "allow"
     sensitive_fill: Literal["literals", "always", "off"] = "literals"
     sensitive_export: bool = True
     sensitive_field_patterns: List[str] = []
@@ -76,12 +85,12 @@ class ScopeGrant(pydantic.BaseModel):
     one-off URL, so one approval covers the rest of the run and the
     generated profile.
 
-    :ivar kind: Whether the grant names an app or a URL pattern.
-    :ivar pattern: Exact app name, or a URL regex for the granted
+    :ivar kind: whether the grant names an app or a URL pattern.
+    :ivar pattern: exact app name, or a URL regex for the granted
         domain.
-    :ivar reason: Why the grant was made.
-    :ivar granted_by: Who made the grant.
-    :ivar run_id: Run during which the grant was made.
+    :ivar reason: why the grant was made.
+    :ivar granted_by: who made the grant.
+    :ivar run_id: run during which the grant was made.
     :ivar granted_at: ISO timestamp of the grant.
     """
 
@@ -103,10 +112,10 @@ class ScopeRequest:
     """
     What the agent tried, and the coarse grant approving it would add.
 
-    :ivar kind: Whether the request is for an app or a URL.
-    :ivar value: The exact app name or URL that was attempted.
-    :ivar proposed: The coarse pattern a grant would carry.
-    :ivar reason: Why the agent tried it.
+    :ivar kind: whether the request is for an app or a URL.
+    :ivar value: the exact app name or URL that was attempted.
+    :ivar proposed: the coarse pattern a grant would carry.
+    :ivar reason: why the agent tried it.
     """
 
     kind: Literal["app", "url"]
@@ -125,15 +134,15 @@ class ApprovalRequest:
     """
     The question put to a human; everything in it is safe to log.
 
-    :ivar kind: Which gate raised the question.
-    :ivar summary: One-line description of what is being asked.
-    :ivar details: Structured, printable context for the prompt.
-    :ivar fingerprint: Identity of the question for remember-for-
+    :ivar kind: which gate raised the question.
+    :ivar summary: one-line description of what is being asked.
+    :ivar details: structured, printable context for the prompt.
+    :ivar fingerprint: identity of the question for remember-for-
         process.
-    :ivar action_kind: Kind of the action that raised it.
-    :ivar app: Application the action targets.
-    :ivar step: Edge id at replay, when known.
-    :ivar proposed_grants: Grants that would lift a scope block
+    :ivar action_kind: kind of the action that raised it.
+    :ivar app: application the action targets.
+    :ivar step: edge id at replay, when known.
+    :ivar proposed_grants: grants that would lift a scope block
         (``scope`` only).
     """
 
@@ -157,10 +166,10 @@ class ApprovalDecision:
     """
     A recorded answer to an approval request.
 
-    :ivar approved: Whether the action may proceed.
-    :ivar remember: Whether the answer applies once or for the process.
-    :ivar by: Which channel produced the answer.
-    :ivar note: Free-text remark from the approver.
+    :ivar approved: whether the action may proceed.
+    :ivar remember: whether the answer applies once or for the process.
+    :ivar by: which channel produced the answer.
+    :ivar note: free-text remark from the approver.
     """
 
     approved: bool
@@ -181,10 +190,10 @@ class PolicyDecision:
     """
     The outcome of evaluating one action against a policy.
 
-    :ivar verdict:``allow``, ``deny``, or ``needs_approval``.
-    :ivar risk: Whether the action mutates application state.
-    :ivar reason: Human-readable explanation of the verdict.
-    :ivar approval: The question to ask when ``needs_approval``.
+    :ivar verdict: ``allow``, ``deny``, or ``needs_approval``.
+    :ivar risk: whether the action mutates application state.
+    :ivar reason: human-readable explanation of the verdict.
+    :ivar approval: the question to ask when ``needs_approval``.
     """
 
     verdict: Verdict
@@ -210,10 +219,10 @@ def fingerprint(
     Covers everything that shapes the question and never the value being
     typed, so remember-for-process keys on the question alone.
 
-    :param kind: The approval kind.
-    :param action: The action that raised the question.
-    :param app: Application the action targets.
-    :return: A 16-character hex digest.
+    :param kind: the approval kind.
+    :param action: the action that raised the question.
+    :param app: application the action targets.
+    :return: a 16-character hex digest.
     """
     raw = "|".join(
         [

@@ -48,10 +48,10 @@ class LiteLlmClient:
         """
         Call one model directly, or one model group through a Router.
 
-        :param config: The discovery settings group.
-        :param router: A Router built from the router config, if any.
-        :param alias: The Router model group this client calls.
-        :raises errors.ConfigError: Without a router and without a
+        :param config: the discovery settings group.
+        :param router: a Router built from the router config, if any.
+        :param alias: the Router model group this client calls.
+        :raises errors.ConfigError: without a router and without a
             model.
         """
         if router is None and not config.model:
@@ -235,6 +235,7 @@ ROLE_GROUPS: Final[Dict[str, str]] = {
     "extract": "reviewer",
     "critic": "reviewer",
     "schema": "reviewer",
+    "gate": "reviewer",
 }
 
 
@@ -248,9 +249,9 @@ class ModelClients:
     """
     One client per agent role, and the model each one resolves to.
 
-    :ivar executor: The executor's client.
-    :ivar roles: Clients for the other roles, by role name.
-    :ivar models: The model id behind each role, executor included.
+    :ivar executor: the executor's client.
+    :ivar roles: clients for the other roles, by role name.
+    :ivar models: the model id behind each role, executor included.
     """
 
     executor: LiteLlmClient
@@ -266,9 +267,9 @@ def load_router(path: pathlib.Path) -> litellm.Router:
     role group) and optional ``router_settings``. Keys are read from the
     environment with ``os.environ/NAME``, never written in the file.
 
-    :param path: The YAML file.
-    :return: The Router.
-    :raises errors.ConfigError: If the file is missing or malformed.
+    :param path: the YAML file.
+    :return: the Router.
+    :raises errors.ConfigError: if the file is missing or malformed.
     """
     try:
         raw = yaml.safe_load(path.read_text())
@@ -311,8 +312,8 @@ def build_clients(config: settings.DiscoverySettings) -> ModelClients:
     to ``executor``). Without it, the planner uses ``planner_model``,
     the reviewers ``verifier_model``, and both fall back to ``model``.
 
-    :param config: The discovery settings group.
-    :return: The clients and the model behind each role.
+    :param config: the discovery settings group.
+    :return: the clients and the model behind each role.
     """
     roles: Dict[str, LiteLlmClient] = {}
     models: Dict[str, str] = {}

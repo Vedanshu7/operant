@@ -20,8 +20,8 @@ def available(spacy_model: str) -> bool:
     """
     Report whether Presidio and the spaCy model can be loaded.
 
-    :param spacy_model: The spaCy pipeline name.
-    :return: Whether the ``privacy`` extra and the model are installed.
+    :param spacy_model: the spaCy pipeline name.
+    :return: whether the ``privacy`` extra and the model are installed.
     """
     installed = all(
         importlib.util.find_spec(name) is not None
@@ -35,10 +35,10 @@ def scrubber(config: settings.PrivacySettings) -> ppprivac.TextScrubber:
     """
     Return the scrubber for ``config.scrubber``.
 
-    :param config: The privacy settings group.
+    :param config: the privacy settings group.
     :return: Presidio when chosen (or available under ``auto``), else
         the no-op scrubber.
-    :raises errors.ConfigError: If ``presidio`` is required but missing.
+    :raises errors.ConfigError: if ``presidio`` is required but missing.
     """
     ready = available(config.spacy_model)
     if config.scrubber == "presidio" and not ready:

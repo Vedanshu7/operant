@@ -1,6 +1,8 @@
 """
-Replay primitives: select with a parameterised option, window scroll, and
-coordinate-click replay of a region-only recorded target.
+Replay primitives.
+
+Cover select with a parameterised option, window scroll, and coordinate-
+click replay of a region-only recorded target.
 """
 
 import pathlib

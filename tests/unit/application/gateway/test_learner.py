@@ -118,7 +118,8 @@ def test_learner_orders_by_success_rate():
     sig = "app::page::fill::text_field:username"
     assert learner.order_chain(sig, ["a", "b", "c"]) == ["a", "b", "c"]
     assert learner.record(sig, "c") is True
-    assert learner.record(sig, "c") is False  # still the leader
+    # The leader has not changed.
+    assert learner.record(sig, "c") is False
     assert learner.order_chain(sig, ["a", "b", "c"]) == ["c", "a", "b"]
     # One failure puts a tool behind the untried ones.
     learner.record(sig, "a", ok=False)
@@ -129,8 +130,9 @@ def test_learner_orders_by_success_rate():
 
 
 def test_dispatcher_learns_winner_then_leads_with_it():
-    a = tool("a", ok=False)  # first tool fails
-    b = tool("b", ok=True)  # second tool wins
+    # The first tool fails and the second wins.
+    a = tool("a", ok=False)
+    b = tool("b", ok=True)
     registry = grregist.ToolRegistry()
     registry.register(a)
     registry.register(b)

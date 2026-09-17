@@ -30,23 +30,23 @@ class DiscoveryState:
     """
     What the loop accumulates across turns.
 
-    :ivar params: Declared task inputs (pre-seed plus agent
+    :ivar params: declared task inputs (pre-seed plus agent
         declarations).
-    :ivar input_types: Declared input value types.
-    :ivar input_classes: Sensitivity class per input.
-    :ivar extracted: Output values read from the screen so far.
-    :ivar output_classes: Sensitivity class per output.
-    :ivar output_origins: Vendor each output was read in.
-    :ivar grants: Scope grants made during the run.
-    :ivar messages: The model conversation so far (without the system
+    :ivar input_types: declared input value types.
+    :ivar input_classes: sensitivity class per input.
+    :ivar extracted: output values read from the screen so far.
+    :ivar output_classes: sensitivity class per output.
+    :ivar output_origins: vendor each output was read in.
+    :ivar grants: scope grants made during the run.
+    :ivar messages: the model conversation so far (without the system
         turn).
-    :ivar primary_boot: The first launch's derived vendor, in bootstrap
+    :ivar primary_boot: the first launch's derived vendor, in bootstrap
         mode.
-    :ivar current_binding: The surface binding recording is attributed
+    :ivar current_binding: the surface binding recording is attributed
         to.
-    :ivar screen: The last observed digest, when a window is bound.
-    :ivar denials: What a person refused to approve during the run.
-    :ivar warned_patterns: Extraction patterns already flagged as
+    :ivar screen: the last observed digest, when a window is bound.
+    :ivar denials: what a person refused to approve during the run.
+    :ivar warned_patterns: extraction patterns already flagged as
         reading only the discovery's record; a repeat is taken as
         deliberate.
     """

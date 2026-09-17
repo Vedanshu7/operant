@@ -86,8 +86,8 @@ def asks_for_credential(text: str) -> bool:
     Used to keep credential questions out of the visible clarify
     channel.
 
-    :param text: A question the agent wants to put to a human.
-    :return: Whether it names a credential.
+    :param text: a question the agent wants to put to a human.
+    :return: whether it names a credential.
     """
     found = bool(
         _NAME_PATTERNS["credential"].search(text)
@@ -102,9 +102,9 @@ def strongest(
     """
     Return the highest-ranked class among the arguments.
 
-    :param *classes: Data classes; ``None``, empty, and unknown strings
+    :param *classes: data classes; ``None``, empty, and unknown strings
     rank     as ``none``.
-    :return: The strongest class, ``none`` when nothing ranks higher.
+    :return: the strongest class, ``none`` when nothing ranks higher.
     """
     best: artifact.DataClass = "none"
     for dc in classes:
@@ -117,8 +117,8 @@ def is_sensitive(dc: Optional[Union[artifact.DataClass, str]]) -> bool:
     """
     Report whether a class is anything other than ``none``.
 
-    :param dc: The data class to test.
-    :return:``True`` for pii, financial, and credential.
+    :param dc: the data class to test.
+    :return: ``True`` for pii, financial, and credential.
     """
     sensitive = bool(dc) and dc != "none"
     return sensitive
@@ -128,8 +128,8 @@ def luhn_ok(digits: str) -> bool:
     """
     Check a digit string against the Luhn checksum.
 
-    :param digits: Digits only, no separators.
-    :return:``True`` when the checksum holds.
+    :param digits: digits only, no separators.
+    :return: ``True`` when the checksum holds.
     """
     total = 0
     for i, ch in enumerate(reversed(digits)):
@@ -192,9 +192,9 @@ def parse_extra_patterns(
 
     ``financial:amount`` pins a class; a bare pattern defaults to pii.
 
-    :param patterns: Raw entries from
+    :param patterns: raw entries from
         ``ApprovalPolicy.sensitive_field_patterns``.
-    :return:``(regex, data class)`` pairs in input order.
+    :return: ``(regex, data class)`` pairs in input order.
     """
     out: List[Tuple[str, artifact.DataClass]] = []
     for raw in patterns:
@@ -219,14 +219,14 @@ def classify(
     """
     Union every sensitivity signal and return the strongest class.
 
-    :param name: Accessible name of the field.
-    :param label: Nearby anchoring text of the field.
-    :param value: The value about to be typed.
-    :param control_role: Accessibility role of the field.
-    :param control_value: Current on-screen value of the field.
-    :param declared: Class declared by the model or caller.
-    :param extra_patterns: Policy-supplied field patterns.
-    :return: The strongest class any signal produced.
+    :param name: accessible name of the field.
+    :param label: nearby anchoring text of the field.
+    :param value: the value about to be typed.
+    :param control_role: accessibility role of the field.
+    :param control_value: current on-screen value of the field.
+    :param declared: class declared by the model or caller.
+    :param extra_patterns: policy-supplied field patterns.
+    :return: the strongest class any signal produced.
     """
     extra = parse_extra_patterns(extra_patterns)
     found = strongest(declared)
@@ -246,9 +246,9 @@ def preview(value: Optional[str], dc: Union[artifact.DataClass, str]) -> str:
     """
     Describe a value for a prompt or log without revealing it.
 
-    :param value: The sensitive value.
-    :param dc: Its data class.
-    :return:``[<class>, <n> chars]`` or ``[<class>, empty]``.
+    :param value: the sensitive value.
+    :param dc: its data class.
+    :return: ``[<class>, <n> chars]`` or ``[<class>, empty]``.
     """
     if not value:
         shown = f"[{dc}, empty]"

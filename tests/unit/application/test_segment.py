@@ -1,6 +1,8 @@
 """
-Cross-app recordings: segmentation at app-switch boundaries, per-vendor graph
-commits, and the caller's invoke edge (the shape traversal replays).
+Cross-app recordings.
+
+Cover segmentation at app-switch boundaries, per-vendor graph commits,
+and the caller's invoke edge (the shape traversal replays).
 """
 
 import pathlib

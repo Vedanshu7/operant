@@ -38,11 +38,11 @@ def propose(
     """
     Ask the planner for a plan; fall back to the goal as one subgoal.
 
-    :param session: The discovery session.
-    :param turn: The executor turn the planning happens at.
-    :param reason: Why a replan was asked for, when replanning.
-    :param memory: Recalled plans and lessons, already rendered.
-    :return: The chosen plan, and whether it came from the model.
+    :param session: the discovery session.
+    :param turn: the executor turn the planning happens at.
+    :param reason: why a replan was asked for, when replanning.
+    :param memory: recalled plans and lessons, already rendered.
+    :return: the chosen plan, and whether it came from the model.
     """
     text = session.safe_text(_planner_input(session, reason, memory))
     samples = max(1, session.deps.team.planner_samples)
@@ -58,11 +58,12 @@ def propose(
 
 def pick(plans: collections.abc.Sequence[mdplan.Plan]) -> Optional[mdplan.Plan]:
     """
-    Choose among plan candidates deterministically: fewest subgoals wins, ties
-    go to the earliest candidate.
+    Choose among plan candidates deterministically.
 
-    :param plans: Valid candidate plans, in sample order.
-    :return: The chosen plan, or ``None`` when there are none.
+    The fewest subgoals win, and ties go to the earliest candidate.
+
+    :param plans: valid candidate plans, in sample order.
+    :return: the chosen plan, or ``None`` when there are none.
     """
     ranked = sorted(
         enumerate(plans), key=lambda item: (len(item[1].subgoals), item[0])

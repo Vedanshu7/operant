@@ -32,7 +32,7 @@ def edge(eid: str, frm: str, to: str, kind: str = "click") -> mggraph.Edge:
 
 
 def test_split_extracts_and_rewrites_to_invoke() -> None:
-    # app: a -> b -> settings1 -> settings2; extract the settings domain.
+    # The app runs a -> b -> settings1 -> settings2; extract the settings domain.
     graph = mggraph.AppGraph(
         vendor_id="app",
         app_name="Chrome",

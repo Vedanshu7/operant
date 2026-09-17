@@ -47,6 +47,13 @@ class SqlRunRepository:
     def __init__(self, database: engine.Database) -> None:
         self._db = database
 
+    @property
+    def edge_records(self) -> SqlEdgeRecordRepository:
+        """
+        The reviews of unknown steps, in the same database.
+        """
+        return SqlEdgeRecordRepository(self._db)
+
     def create(self, run: runs.RunRecord) -> None:
         """
         Insert a new run.
@@ -275,21 +282,36 @@ class SqlRunRepository:
         stability = self.stability(capability_id)
         return stability
 
+    def close_samples(self, capability_id: str) -> None:
+        """
+        Stop counting a capability's replays so far.
+        """
+        statement = (
+            sqlalchemy.update(models.StabilitySampleRow)
+            .where(models.StabilitySampleRow.capability_id == capability_id)
+            .values(closed=True)
+        )
+        with self._db.session() as session:
+            session.execute(statement)
+
     def stability(
         self, capability_id: str, window: int = _STABILITY_WINDOW
     ) -> artifact.Stability:
         """
         Return the capability's recent track record (zeroes when none).
 
-        :param capability_id: The capability to report on.
-        :param window: How many of the most recent replays to count.
-        :return: Runs and successes over the window, the last replay's
+        :param capability_id: the capability to report on.
+        :param window: how many of the most recent replays to count.
+        :return: runs and successes over the window, the last replay's
             time, and the failures since the last success.
         """
         with self._db.session() as session:
             samples = session.scalars(
                 sqlalchemy.select(models.StabilitySampleRow)
-                .where(models.StabilitySampleRow.capability_id == capability_id)
+                .where(
+                    models.StabilitySampleRow.capability_id == capability_id,
+                    models.StabilitySampleRow.closed.is_(False),
+                )
                 .order_by(models.StabilitySampleRow.id.desc())
                 .limit(window)
             ).all()
@@ -386,7 +408,7 @@ class SqlRunRepository:
         """
         Return one approval.
 
-        :raises errors.UnknownApprovalError: When no approval has the
+        :raises errors.UnknownApprovalError: when no approval has the
             id.
         """
         with self._db.session() as session:
@@ -434,7 +456,7 @@ class SqlRunRepository:
         """
         Return one intervention.
 
-        :raises errors.UnknownInterventionError: When no intervention
+        :raises errors.UnknownInterventionError: when no intervention
             has the id.
         """
         with self._db.session() as session:
@@ -468,7 +490,7 @@ class SqlRunRepository:
         """
         Return one clarifying question.
 
-        :raises errors.UnknownClarificationError: When no question has
+        :raises errors.UnknownClarificationError: when no question has
             the id.
         """
         with self._db.session() as session:
@@ -536,7 +558,7 @@ class SqlSecretRefRepository:
         """
         Return one reference.
 
-        :raises errors.NotFoundError: When no reference has the name.
+        :raises errors.NotFoundError: when no reference has the name.
         """
         with self._db.session() as session:
             row = session.get(models.SecretRefRow, name)
@@ -729,3 +751,95 @@ def _clarification_from_row(
         answered_at=row.answered_at,
     )
     return record
+
+
+# An edge that failed this often on a version without ever passing can retire.
+_RETIRE_AFTER_FAILURES = 2
+
+
+# #############################################################################
+# SqlEdgeRecordRepository
+# #############################################################################
+
+
+class SqlEdgeRecordRepository:
+    """
+    People's reviews of unknown steps and edge outcomes, in SQLite.
+    """
+
+    def __init__(self, database: engine.Database) -> None:
+        self._db = database
+
+    def is_approved(
+        self, vendor_id: str, graph_version: int, key: Tuple[str, str, str]
+    ) -> bool:
+        """
+        Report whether a person reviewed this step on this graph version.
+        """
+        with self._db.session() as session:
+            row = session.get(
+                models.EdgeApprovalRow, (vendor_id, graph_version, *key)
+            )
+        approved = row is not None
+        return approved
+
+    def approve(
+        self,
+        vendor_id: str,
+        graph_version: int,
+        keys: collections.abc.Sequence[Tuple[str, str, str]],
+        *,
+        by: str,
+    ) -> None:
+        """
+        Record that a person reviewed these steps.
+        """
+        with self._db.session() as session:
+            for edge_id, role, name in keys:
+                session.merge(
+                    models.EdgeApprovalRow(
+                        vendor_id=vendor_id,
+                        graph_version=graph_version,
+                        edge_id=edge_id,
+                        role=role,
+                        name=name,
+                        approved_by=by,
+                        approved_at=time.iso_now(),
+                    )
+                )
+
+    def record_outcome(
+        self, vendor_id: str, graph_version: int, edge_id: str, *, passed: bool
+    ) -> None:
+        """
+        Count one run of an edge.
+        """
+        key = (vendor_id, graph_version, edge_id)
+        with self._db.session() as session:
+            row = session.get(models.EdgeOutcomeRow, key)
+            if row is None:
+                # First run of this edge on this version.
+                row = models.EdgeOutcomeRow(
+                    vendor_id=vendor_id,
+                    graph_version=graph_version,
+                    edge_id=edge_id,
+                    passes=0,
+                    failures=0,
+                )
+                session.add(row)
+            if passed:
+                row.passes += 1
+            else:
+                row.failures += 1
+
+    def failing(self, vendor_id: str) -> collections.abc.Set[str]:
+        """
+        Return edges that failed at least twice on a version and never passed.
+        """
+        statement = sqlalchemy.select(models.EdgeOutcomeRow.edge_id).where(
+            models.EdgeOutcomeRow.vendor_id == vendor_id,
+            models.EdgeOutcomeRow.failures >= _RETIRE_AFTER_FAILURES,
+            models.EdgeOutcomeRow.passes == 0,
+        )
+        with self._db.session() as session:
+            return set(session.scalars(statement))

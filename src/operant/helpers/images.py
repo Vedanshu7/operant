@@ -27,9 +27,9 @@ def black_out(
     """
     Paint each window-normalised box black in the PNG at ``path``.
 
-    :param path: A screenshot of the window the boxes are relative to;
+    :param path: a screenshot of the window the boxes are relative to;
         rewritten in place.
-    :param boxes: Rectangles as fractions of the window, 0..1.
+    :param boxes: rectangles as fractions of the window, 0..1.
     """
     with PIL.Image.open(path) as image:
         canvas = image.convert("RGB")

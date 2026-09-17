@@ -1,6 +1,8 @@
 """
-UI serving tests: client-side routes get index.html, while API paths and
-missing assets still 404.
+UI serving tests.
+
+Client-side routes get index.html, while API paths and missing assets
+still 404.
 """
 
 from __future__ import annotations

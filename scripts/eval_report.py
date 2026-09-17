@@ -100,7 +100,7 @@ def report(sets: List[Tuple[str, List[Dict[str, Any]]]]) -> str:
     """
     Build the markdown report for the given labelled sets.
 
-    :param sets:``(label, rows)`` in column order.
+    :param sets: ``(label, rows)`` in column order.
     :return: Markdown text.
     """
     labels = [label for label, _ in sets]

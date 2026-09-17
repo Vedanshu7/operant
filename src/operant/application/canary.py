@@ -1,6 +1,8 @@
 """
-Choosing canary replays: approved, read-only capabilities replayed on a
-schedule with inputs they ran with before.
+Choose the canary replays.
+
+These are approved, read-only capabilities replayed on a schedule with inputs
+they ran with before.
 
 A capability breaks when its application's UI changes, usually long
 before anyone next needs it. A canary replay finds that early, and each
@@ -32,9 +34,9 @@ class Canary:
     """
     One capability to replay, or why it is skipped.
 
-    :ivar capability_id: The capability.
-    :ivar inputs: Inputs to replay it with; ``None`` when skipped.
-    :ivar skipped: Why it is not replayed, when skipped.
+    :ivar capability_id: the capability.
+    :ivar inputs: inputs to replay it with; ``None`` when skipped.
+    :ivar skipped: why it is not replayed, when skipped.
     """
 
     capability_id: str
@@ -54,9 +56,9 @@ def plan_canaries(
     from the discovery run; a capability with sensitive inputs is
     skipped because stored runs hold those values redacted.
 
-    :param artifact_repo: Where capabilities live.
-    :param run_repo: Where earlier runs and their inputs live.
-    :return: One entry per approved capability, replayable or skipped.
+    :param artifact_repo: where capabilities live.
+    :param run_repo: where earlier runs and their inputs live.
+    :return: one entry per approved capability, replayable or skipped.
     """
     canaries: List[Canary] = []
     for capability in artifact_repo.list():

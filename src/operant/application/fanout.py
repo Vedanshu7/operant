@@ -32,8 +32,8 @@ class Outcome(Generic[_T]):
     """
     What one fanned-out task produced.
 
-    :ivar value: The task's result, when it succeeded.
-    :ivar error: Why it failed, when it did.
+    :ivar value: the task's result, when it succeeded.
+    :ivar error: why it failed, when it did.
     """
 
     value: Optional[_T] = None
@@ -56,11 +56,11 @@ def run(
     """
     Run ``tasks`` on a thread pool and return their outcomes in order.
 
-    :param tasks: Zero-argument callables; each must be screen-free.
-    :param max_workers: Upper bound on parallel tasks (1 runs serially).
-    :param timeout_s: Per-task wait bound; a task that exceeds it is
+    :param tasks: zero-argument callables; each must be screen-free.
+    :param max_workers: upper bound on parallel tasks (1 runs serially).
+    :param timeout_s: per-task wait bound; a task that exceeds it is
         reported as an error (it is not killed).
-    :return: One outcome per task, in input order.
+    :return: one outcome per task, in input order.
     """
     outcomes: List[Outcome[_T]] = []
     if tasks:

@@ -6,6 +6,8 @@ import {
   useCapability,
   useCapabilityGraph,
   useInvokeCapability,
+  useRepinCapability,
+  useStartDiscovery,
 } from "@/api/queries";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -27,6 +29,8 @@ export function CapabilityPage(): ReactElement {
   const graph = useCapabilityGraph(id);
   const approve = useApproveCapability(id);
   const invoke = useInvokeCapability(id);
+  const repin = useRepinCapability(id);
+  const rediscover = useStartDiscovery();
   const [force, setForce] = useState(false);
   const [tenant, setTenant] = useState("");
 
@@ -34,6 +38,8 @@ export function CapabilityPage(): ReactElement {
   if (cap.error || !cap.data) return <ErrorBox error={cap.error ?? "Capability not found"} />;
   const c = cap.data;
   const canApprove = c.status !== "approved" && (c.gate.passes || force);
+  const outstanding = c.unknown_steps.filter((step) => !step.reviewed);
+  const newerGraph = (c.latest_graph_version ?? 0) > c.graph_version;
   const gateTooltip = c.gate.passes
     ? undefined
     : `Stability gate not met: ${c.stability.successes}/${c.stability.runs} runs, need ${c.gate.min_runs} at ${Math.round(c.gate.min_success_rate * 100)}%`;
@@ -67,7 +73,13 @@ export function CapabilityPage(): ReactElement {
               <Button
                 variant="primary"
                 disabled={!canApprove || approve.isPending}
-                onClick={() => approve.mutate({ force })}
+                onClick={() =>
+                  approve.mutate({
+                    force,
+                    reviewed_edges: outstanding.map((step) => step.edge),
+                    graph_version: c.graph_version,
+                  })
+                }
               >
                 {c.status === "approved" ? "Approved" : "Approve"}
               </Button>
@@ -87,6 +99,46 @@ export function CapabilityPage(): ReactElement {
             <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">{gateTooltip}</p>
           )}
           <ErrorBox error={approve.error} className="mt-2" />
+          {outstanding.length > 0 && (
+            <div className="mt-3 text-xs">
+              <p className="font-semibold">Approving also reviews these unknown steps:</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                {outstanding.map((step) => (
+                  <li key={step.edge}>
+                    {step.description}
+                    {step.judged && (
+                      <span className="text-muted-foreground"> (judge: {step.judged})</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {newerGraph && (
+              <Button disabled={repin.isPending} onClick={() => repin.mutate()}>
+                Move to graph v{c.latest_graph_version}
+              </Button>
+            )}
+            <Button
+              disabled={rediscover.isPending}
+              onClick={() =>
+                rediscover.mutate(
+                  {
+                    goal: c.provenance.goal,
+                    capability_id: c.id,
+                    profile_id: null,
+                    inputs: {},
+                    seed_capability: c.id,
+                  },
+                  { onSuccess: (run) => void navigate(`/runs/${run.id}`) },
+                )
+              }
+            >
+              Rediscover
+            </Button>
+          </div>
+          <ErrorBox error={repin.error ?? rediscover.error} className="mt-2" />
         </Card>
 
         <Card title="Provenance">

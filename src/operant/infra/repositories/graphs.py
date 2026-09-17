@@ -81,9 +81,9 @@ class FileGraphRepository:
         """
         Persist ``graph`` as the next immutable version and advances HEAD.
 
-        :param graph: The graph to store; its version fields are
+        :param graph: the graph to store; its version fields are
             overwritten.
-        :return: The stored graph with ``graph_version`` and timestamps
+        :return: the stored graph with ``graph_version`` and timestamps
             set.
         """
         now = time.iso_now()

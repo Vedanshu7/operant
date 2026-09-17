@@ -28,8 +28,8 @@ class Generation(Protocol):
         """
         Record the call's answer, model and token usage.
 
-        :param turn: What the model answered.
-        :param output: The answer as traced text, or ``None`` to omit
+        :param turn: what the model answered.
+        :param output: the answer as traced text, or ``None`` to omit
             it.
         """
         ...
@@ -52,11 +52,11 @@ class Tracer(Protocol):
         """
         Open a generation around one model call.
 
-        :param trace: Where the call belongs.
-        :param model: The model id being called.
-        :param prompt: The already redacted prompt, or ``None`` to omit
+        :param trace: where the call belongs.
+        :param model: the model id being called.
+        :param prompt: the already redacted prompt, or ``None`` to omit
             it.
-        :return: A context manager yielding the open generation.
+        :return: a context manager yielding the open generation.
         """
         ...
 
@@ -66,10 +66,10 @@ class Tracer(Protocol):
         """
         Attach a numeric score (1.0/0.0 for pass/fail) to a trace.
 
-        :param trace_id: The trace to score.
-        :param name: Score name, e.g. ``passed``.
-        :param value: The score.
-        :param comment: Optional explanation.
+        :param trace_id: the trace to score.
+        :param name: score name, e.g. ``passed``.
+        :param value: the score.
+        :param comment: optional explanation.
         """
         ...
 

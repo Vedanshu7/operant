@@ -46,19 +46,19 @@ class PathsSettings(pydantic.BaseModel):
     """
     Where Operant keeps its data; relative paths resolve under ``root``.
 
-    :ivar root: Base directory for every relative path below.
-    :ivar graphs_dir: Versioned app graphs.
-    :ivar artifacts_dir: Versioned capability artifacts.
-    :ivar policies_dir: App profiles (policy + tenants).
-    :ivar evidence_dir: Run logs and screenshots.
-    :ivar state_dir: Machine-local state (database, learned tools).
+    :ivar root: base directory for every relative path below.
+    :ivar graphs_dir: versioned app graphs.
+    :ivar artifacts_dir: versioned capability artifacts.
+    :ivar policies_dir: app profiles (policy + tenants).
+    :ivar evidence_dir: run logs and screenshots.
+    :ivar state_dir: machine-local state (database, learned tools).
     :ivar db_path: SQLite database file.
-    :ivar discovery_base_profile: Deny-by-default profile for bootstrap
+    :ivar discovery_base_profile: deny-by-default profile for bootstrap
         runs.
-    :ivar gateway_policy: Tool fallback chain configuration.
-    :ivar learned_tools: Learned tool preference cache.
-    :ivar chrome_profile_dir: Dedicated automation browser profile.
-    :ivar screen_lock: Lock file every process holds while it drives the
+    :ivar gateway_policy: tool fallback chain configuration.
+    :ivar learned_tools: learned tool preference cache.
+    :ivar chrome_profile_dir: dedicated automation browser profile.
+    :ivar screen_lock: lock file every process holds while it drives the
         screen.
     """
 
@@ -115,13 +115,13 @@ class ServerSettings(pydantic.BaseModel):
     """
     The operator-facing HTTP server.
 
-    :ivar host: Bind address.
-    :ivar port: Bind port.
-    :ivar auth_token: Bearer token required on every API route.
-    :ivar cors_origins: Origins allowed during frontend development.
-    :ivar static_dir: Built frontend to serve at ``/``; ``None``
+    :ivar host: bind address.
+    :ivar port: bind port.
+    :ivar auth_token: bearer token required on every API route.
+    :ivar cors_origins: origins allowed during frontend development.
+    :ivar static_dir: built frontend to serve at ``/``; ``None``
         disables it.
-    :ivar log_format:``"text"`` or ``"json"`` log lines.
+    :ivar log_format: ``"text"`` or ``"json"`` log lines.
     """
 
     host: str = "127.0.0.1"
@@ -141,19 +141,17 @@ class DriverSettings(pydantic.BaseModel):
     """
     The driver daemon that owns the OS automation permissions.
 
-    :ivar host: Bind address when serving the daemon.
-    :ivar port: Bind port when serving the daemon.
-    :ivar url: Daemon URL for clients; ``None`` means in-process
+    :ivar host: bind address when serving the daemon.
+    :ivar port: bind port when serving the daemon.
+    :ivar url: daemon URL for clients; ``None`` means in-process
         surface.
-    :ivar auth_token: Bearer token shared by daemon and clients.
-    :ivar lease_timeout_s: How long a run may wait for the driver.
+    :ivar auth_token: bearer token shared by daemon and clients.
     """
 
     host: str = "127.0.0.1"
     port: int = 7411
     url: Optional[str] = None
     auth_token: Optional[pydantic.SecretStr] = None
-    lease_timeout_s: float = 600.0
 
 
 # #############################################################################
@@ -165,15 +163,15 @@ class EngineSettings(pydantic.BaseModel):
     """
     Deterministic replay timing and budgets.
 
-    :ivar total_timeout_s: Wall-clock budget per replay (human waits
+    :ivar total_timeout_s: wall-clock budget per replay (human waits
         excluded).
-    :ivar poll_interval_s: Delay between node-arrival polls.
-    :ivar recovery_budget: Re-login recoveries allowed per replay.
-    :ivar retry_delay_s: Pause before retrying a locator or edge.
-    :ivar settle_ms: Minimum settle wait after an action.
-    :ivar settle_short_ms: Short settle wait for fast edges.
-    :ivar goal_poll_s: Extra time to wait for the goal node.
-    :ivar max_invoke_depth: Cross-graph composition depth limit.
+    :ivar poll_interval_s: delay between node-arrival polls.
+    :ivar recovery_budget: re-login recoveries allowed per replay.
+    :ivar retry_delay_s: pause before retrying a locator or edge.
+    :ivar settle_ms: minimum settle wait after an action.
+    :ivar settle_short_ms: short settle wait for fast edges.
+    :ivar goal_poll_s: extra time to wait for the goal node.
+    :ivar max_invoke_depth: cross-graph composition depth limit.
     """
 
     total_timeout_s: float = 240.0
@@ -198,37 +196,37 @@ class DiscoverySettings(pydantic.BaseModel):
     :ivar model: litellm model string.
     :ivar api_base: OpenAI-compatible base URL, when proxied.
     :ivar api_key: API key for ``api_base`` providers.
-    :ivar max_turns: Turn budget per discovery run.
-    :ivar llm_retries: Attempts per model call.
-    :ivar screenshots: Whether to send screenshots to the model.
-    :ivar keep_full_turns: Newest turns whose screen digest is sent in
+    :ivar max_turns: turn budget per discovery run.
+    :ivar llm_retries: attempts per model call.
+    :ivar screenshots: whether to send screenshots to the model.
+    :ivar keep_full_turns: newest turns whose screen digest is sent in
         full; older turns keep only their window title.
-    :ivar context_budget_ratio: Share of the model's input limit one
+    :ivar context_budget_ratio: share of the model's input limit one
         call may use.
-    :ivar context_max_tokens: The per-call budget when the model's input
+    :ivar context_max_tokens: the per-call budget when the model's input
         limit is unknown.
-    :ivar agents:``"single"`` (one agent) or ``"multi"`` (planner,
+    :ivar agents: ``"single"`` (one agent) or ``"multi"`` (planner,
         executor, verifier panel; docs/adr/0003).
-    :ivar planner_model: Model for the planner; ``model`` when unset.
-    :ivar verifier_model: Model for the verifier panel and reviewers;
+    :ivar planner_model: model for the planner; ``model`` when unset.
+    :ivar verifier_model: model for the verifier panel and reviewers;
         ``model`` when unset.
-    :ivar max_replans: Replans before a stuck multi-agent run escalates.
-    :ivar max_rejections_per_subgoal: Rejections before a replan.
-    :ivar stall_turns: Turns without a verified subgoal before a replan.
-    :ivar planner_samples: Plan candidates drawn in parallel.
-    :ivar extract_candidates: Regex candidates drawn when an extract
+    :ivar max_replans: replans before a stuck multi-agent run escalates.
+    :ivar max_rejections_per_subgoal: rejections before a replan.
+    :ivar stall_turns: turns without a verified subgoal before a replan.
+    :ivar planner_samples: plan candidates drawn in parallel.
+    :ivar extract_candidates: regex candidates drawn when an extract
         misses.
-    :ivar fanout_workers: Upper bound on parallel role calls.
-    :ivar compile_review:``"on"`` reviews the saved recording
+    :ivar fanout_workers: upper bound on parallel role calls.
+    :ivar compile_review: ``"on"`` reviews the saved recording
         (advisory).
-    :ivar memory: Which runs recall and record plans and lessons:
+    :ivar memory: which runs recall and record plans and lessons:
         ``all``, ``multi`` (multi-agent runs only), or ``off``. A single
         agent reads memory under ``all``: in the memory eval it saved
         about one turn per run and stale memory still lost to the screen.
-    :ivar router_config: A litellm Router config (YAML) naming a model
+    :ivar router_config: a litellm Router config (YAML) naming a model
         group per role (``executor``, ``planner``, ``reviewer``); when
         set it replaces ``model``/``planner_model``/``verifier_model``.
-    :ivar request_timeout_s: Bound on one model request without a Router.
+    :ivar request_timeout_s: bound on one model request without a Router.
     """
 
     model: Optional[str] = None
@@ -264,15 +262,12 @@ class ApprovalSettings(pydantic.BaseModel):
     """
     How long the system waits for a human.
 
-    :ivar timeout_s: Approval wait; a timeout is a denial.
-    :ivar clarification_timeout_s: Clarifying-question wait.
-    :ivar intervention_timeout_s: Control-transfer wait; ``None`` is
-        unbounded.
+    :ivar timeout_s: approval wait; a timeout is a denial.
+    :ivar clarification_timeout_s: clarifying-question wait.
     """
 
     timeout_s: float = 300.0
     clarification_timeout_s: float = 300.0
-    intervention_timeout_s: Optional[float] = None
 
 
 # #############################################################################
@@ -284,11 +279,11 @@ class GovernanceSettings(pydantic.BaseModel):
     """
     The approval gate for unattended replay.
 
-    :ivar min_runs: Replays required before a capability can be
+    :ivar min_runs: replays required before a capability can be
         approved.
-    :ivar min_success_rate: Success ratio required over those replays.
-    :ivar window: How many recent replays the gate judges.
-    :ivar max_consecutive_failures: Failed replays in a row that degrade
+    :ivar min_success_rate: success ratio required over those replays.
+    :ivar window: how many recent replays the gate judges.
+    :ivar max_consecutive_failures: failed replays in a row that degrade
         an approved capability.
     """
 
@@ -319,12 +314,9 @@ class BrowserSettings(pydantic.BaseModel):
     """
     Browser-specific knowledge the adapters need.
 
-    :ivar default_app: App used when a goal names only a URL.
-    :ivar browser_app_names: Lower-cased app names treated as browsers.
-    :ivar binaries: Candidate browser executables, first match wins.
-    :ivar local_hosts: Hostnames treated as local for vendor derivation.
-    :ivar allow_applescript_fill: Permit the keystroke fill tool, which
-        exposes typed text in the process table.
+    :ivar default_app: app used when a goal names only a URL.
+    :ivar browser_app_names: lower-cased app names treated as browsers.
+    :ivar binaries: candidate browser executables, first match wins.
     """
 
     default_app: str = actions.DEFAULT_BROWSER
@@ -332,8 +324,6 @@ class BrowserSettings(pydantic.BaseModel):
         {"google chrome", "chromium", "safari", "firefox", "arc"}
     )
     binaries: Tuple[str, ...] = _DEFAULT_BROWSER_BINARIES
-    local_hosts: FrozenSet[str] = frozenset({"localhost", "127.0.0.1"})
-    allow_applescript_fill: bool = False
 
 
 # #############################################################################
@@ -345,8 +335,8 @@ class SecretsSettings(pydantic.BaseModel):
     """
     Where secret reference values come from.
 
-    :ivar backend:``"env"`` or ``"keychain"``.
-    :ivar keychain_service: Service name for Keychain items.
+    :ivar backend: ``"env"`` or ``"keychain"``.
+    :ivar keychain_service: service name for Keychain items.
     """
 
     backend: Literal["env", "keychain"] = "env"
@@ -362,14 +352,14 @@ class PrivacySettings(pydantic.BaseModel):
     """
     Local PII scrubbing of text that leaves the process or is stored.
 
-    :ivar scrubber:``"auto"`` uses Presidio when the ``privacy`` extra
+    :ivar scrubber: ``"auto"`` uses Presidio when the ``privacy`` extra
         and the spaCy model are installed, else none; ``"presidio"``
         requires them; ``"none"`` disables scrubbing.
-    :ivar spacy_model: The spaCy pipeline Presidio loads.
-    :ivar evidence:``"exact"`` masks only known secret values in the
+    :ivar spacy_model: the spaCy pipeline Presidio loads.
+    :ivar evidence: ``"exact"`` masks only known secret values in the
         evidence log (fast); ``"scrubbed"`` also runs the scrubber on
         every event (slow, opt-in).
-    :ivar evidence_retention_days: How long ``operant evidence prune``
+    :ivar evidence_retention_days: how long ``operant evidence prune``
         keeps a run's evidence; ``None`` keeps it until deleted by hand.
     """
 
@@ -391,9 +381,9 @@ class ObservabilitySettings(pydantic.BaseModel):
     Langfuse keys come from ``LANGFUSE_PUBLIC_KEY`` and
     ``LANGFUSE_SECRET_KEY``.
 
-    :ivar backend:``"none"`` or ``"langfuse"``.
-    :ivar host: The Langfuse base URL (self-hosted by default).
-    :ivar content:``"scrubbed"`` sends prompts after exact redaction and
+    :ivar backend: ``"none"`` or ``"langfuse"``.
+    :ivar host: the Langfuse base URL (self-hosted by default).
+    :ivar content: ``"scrubbed"`` sends prompts after exact redaction and
         PII scrubbing; ``"metadata"`` sends model, usage and tags only.
     """
 
@@ -447,10 +437,9 @@ class OperantSettings(pydantic_settings.BaseSettings):
         unset; ``legacy_sources`` records which ones were used so
         ``operant doctor`` can warn.
 
-        :param root: Overrides ``paths.root``; defaults to the working
-            directory.
-        :param env_file: Overrides the ``.env`` location.
-        :return: The validated settings.
+        :param root: overrides ``paths.root``.
+        :param env_file: overrides the ``.env`` location.
+        :return: the validated settings.
         """
         if env_file is not None:
             # Load an explicitly named env file.
@@ -489,8 +478,8 @@ def _legacy_overrides(
     """
     Map legacy variable names onto nested settings overrides.
 
-    :param environ: The process environment.
-    :return:``{group: {field: value}}`` for every legacy name that is
+    :param environ: the process environment.
+    :return: ``{group: {field: value}}`` for every legacy name that is
         set while its modern equivalent is not.
     """
     overrides: Dict[str, Dict[str, Any]] = {}

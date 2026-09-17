@@ -1,6 +1,9 @@
 """
-Recorder: node synthesis, parameterisation, and capability-scoped extraction -
-the rules that make a recorded flow replayable for OTHER inputs.
+Recorder tests.
+
+Cover node synthesis, parameterisation, and capability-scoped
+extraction: the rules that make a recorded flow replayable for OTHER
+inputs.
 """
 
 import operant.application.recorder.recording

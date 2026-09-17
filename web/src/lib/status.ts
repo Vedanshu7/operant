@@ -37,6 +37,7 @@ export function statusLabel(status: RunStatus): string {
 const APPROVAL_KIND_CLASSES: Record<ApprovalKind, string> = {
   scope: "bg-sky-100 text-sky-900 dark:bg-sky-900 dark:text-sky-100",
   mutating: "bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
+  unknown: "bg-orange-100 text-orange-900 dark:bg-orange-900 dark:text-orange-100",
   sensitive_fill: "bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900 dark:text-fuchsia-100",
   sensitive_export: "bg-red-100 text-red-900 dark:bg-red-900 dark:text-red-100",
 };

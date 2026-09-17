@@ -46,8 +46,8 @@ def timestamp_slug(moment: Optional[datetime.datetime] = None) -> str:
     """
     Format a moment as ``YYYYmmdd-HHMMSS`` for file and run names.
 
-    :param moment: The moment to format; defaults to now.
-    :return: A filesystem-safe timestamp.
+    :param moment: the moment to format.
+    :return: a filesystem-safe timestamp.
     """
     slug = (moment or utc_now()).strftime("%Y%m%d-%H%M%S")
     return slug

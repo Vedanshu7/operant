@@ -27,10 +27,10 @@ class StepNote:
     """
     One executor step, as the reviewers see it.
 
-    :ivar turn: The executor turn.
-    :ivar tool: The tool the executor called.
-    :ivar intent: What the step was for (or its main argument).
-    :ivar result: The first line of the tool's reply.
+    :ivar turn: the executor turn.
+    :ivar tool: the tool the executor called.
+    :ivar intent: what the step was for (or its main argument).
+    :ivar result: the first line of the tool's reply.
     """
 
     turn: int
@@ -49,18 +49,18 @@ class Blackboard:
     """
     Plan and progress for one multi-agent run.
 
-    :ivar plan: The current plan.
-    :ivar active: Index of the subgoal being worked on.
-    :ivar done:``(subgoal description, summary)`` of verified subgoals.
-    :ivar rejections: Verifier rejections per subgoal id.
-    :ivar replans: Replans made so far.
-    :ivar steps: Every executor step, in order.
-    :ivar progress_turn: Last turn a subgoal was verified (or planned).
-    :ivar subgoal_start: Index in the executor history where the active
+    :ivar plan: the current plan.
+    :ivar active: index of the subgoal being worked on.
+    :ivar done: ``(subgoal description, summary)`` of verified subgoals.
+    :ivar rejections: verifier rejections per subgoal id.
+    :ivar replans: replans made so far.
+    :ivar steps: every executor step, in order.
+    :ivar progress_turn: last turn a subgoal was verified (or planned).
+    :ivar subgoal_start: index in the executor history where the active
         subgoal's turns begin.
-    :ivar pending_compaction: History range of a just-verified subgoal,
+    :ivar pending_compaction: history range of a just-verified subgoal,
         folded away at the start of the next turn.
-    :ivar open_rejections: Rejected subgoals not yet verified, keyed by
+    :ivar open_rejections: rejected subgoals not yet verified, keyed by
         their normalised description so they survive a replan; memory
         decides at the end what they teach.
     """

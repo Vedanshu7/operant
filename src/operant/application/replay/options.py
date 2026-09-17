@@ -21,6 +21,8 @@ import collections.abc
 import dataclasses
 from typing import Dict, Optional
 
+import operant.ports.repositories as prepos
+
 # #############################################################################
 # OutputOrigin
 # #############################################################################
@@ -34,8 +36,8 @@ class OutputOrigin:
     Typing a value into another vendor's app is an export, and its class
     decides whether a human must approve that.
 
-    :ivar vendor_id: Vendor the value was extracted in.
-    :ivar data_class: Sensitivity class assigned when it was extracted.
+    :ivar vendor_id: vendor the value was extracted in.
+    :ivar data_class: sensitivity class assigned when it was extracted.
     """
 
     vendor_id: str
@@ -52,24 +54,26 @@ class ReplayOptions:
     """
     Everything one replay needs, plus the timing it runs under.
 
-    :ivar tenant: Tenant binding to resolve base URL and secrets
+    :ivar tenant: tenant binding to resolve base URL and secrets
         against.
-    :ivar params: Task inputs keyed by name.
-    :ivar inject_session_expiry_before: Edge id before which to force a
+    :ivar params: task inputs keyed by name.
+    :ivar inject_session_expiry_before: edge id before which to force a
         session-expiry fault (test infra); cleared once fired.
-    :ivar total_timeout_s: Wall-clock budget; human wait time is
+    :ivar total_timeout_s: wall-clock budget; human wait time is
         excluded.
-    :ivar output_origins: Origins of outputs handed down by a calling
+    :ivar output_origins: origins of outputs handed down by a calling
         graph (the traversal layer fills this on invoke).
-    :ivar poll_interval_s: Delay between node-arrival polls.
-    :ivar recovery_budget: Recover/escalate outcome edges allowed per
+    :ivar poll_interval_s: delay between node-arrival polls.
+    :ivar recovery_budget: recover/escalate outcome edges allowed per
         edge.
-    :ivar retry_delay_s: Pause before retrying a locator or edge.
-    :ivar settle_ms: Arrival-poll floor after an action.
-    :ivar settle_short_ms: Settle-wait cap after an action.
-    :ivar goal_poll_s: Time to wait for the goal node at end of run.
-    :ivar should_stop: Polled before every edge; true ends the replay as
+    :ivar retry_delay_s: pause before retrying a locator or edge.
+    :ivar settle_ms: arrival-poll floor after an action.
+    :ivar settle_short_ms: settle-wait cap after an action.
+    :ivar goal_poll_s: time to wait for the goal node at end of run.
+    :ivar should_stop: polled before every edge; true ends the replay as
         cancelled (the operator pressed Cancel).
+    :ivar edge_records: where people's reviews of unknown steps live;
+        ``None`` means no step counts as reviewed.
     """
 
     tenant: str
@@ -86,3 +90,4 @@ class ReplayOptions:
     settle_short_ms: int = 2000
     goal_poll_s: float = 6.0
     should_stop: collections.abc.Callable[[], bool] = lambda: False
+    edge_records: Optional[prepos.EdgeRecordRepository] = None

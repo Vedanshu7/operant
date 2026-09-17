@@ -371,8 +371,10 @@ class RunManager:
 
     def _settle_pending_hitl(self, run_id: str, note: str) -> None:
         """
-        Resolve a dead run's open approvals, interventions, and questions so
-        they do not linger in the operator inbox nor 404 when answered.
+        Resolve a dead run's open approvals, interventions, and questions.
+
+        They then neither linger in the operator inbox nor 404 when
+        answered.
         """
         for approval_row in self._runs.run_approvals(run_id):
             if approval_row.status == "pending":
@@ -451,21 +453,25 @@ class RunManager:
             profiles=self._profiles,
             approver=approver,
             run_identifier=handle.run_id,
+            edge_records=self._runs.edge_records,
             should_stop=handle.cancelled.is_set,
             on_context=lambda ctx: self._wire(handle, ctx),
         )
-        if request.capability_id:
+        cancelled = handle.cancelled.is_set()
+        if request.capability_id and replay.counts_toward_stability(
+            result, cancelled=cancelled
+        ):
             apstabil.record_replay(
                 request.capability_id,
                 handle.run_id,
-                succeeded=replay.is_success(result),
+                succeeded=replay.is_stable(result),
                 run_repo=self._runs,
                 artifact_repo=self._artifacts,
                 gate=self._settings.governance.gate(),
             )
         status = (
             "cancelled"
-            if handle.cancelled.is_set()
+            if cancelled
             else _RESULT_STATUS.get(result.status, "failed")
         )
         self._runs.update_status(handle.run_id, status, result=result)
@@ -573,6 +579,9 @@ class RunManager:
         """
 
         def listen(entry: Dict[str, Any]) -> None:
+            """
+            Forward a run-log entry to the run's event stream.
+            """
             type_ = str(entry.get("type", ""))
             if type_ in _SKIP_STREAM:
                 return
@@ -602,6 +611,9 @@ class RunManager:
         """
 
         def listen() -> None:
+            """
+            Publish the human requests that are open on the broker.
+            """
             broker = handle.broker
             if broker is None:
                 return

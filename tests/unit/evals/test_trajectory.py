@@ -1,6 +1,8 @@
 """
-Trajectory-metric tests with scripted runs: scoring against reference
-trajectories, and labelling verifier verdicts against the screen.
+Trajectory-metric tests with scripted runs.
+
+Cover scoring against reference trajectories and labelling verifier
+verdicts against the screen.
 """
 
 from __future__ import annotations

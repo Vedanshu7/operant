@@ -1,6 +1,8 @@
 """
-PII scrubber tests: the factory picks the right scrubber, and Presidio masks
-names and account data when the spaCy model is installed.
+PII scrubber tests.
+
+The factory picks the right scrubber, and Presidio masks names and
+account data when the spaCy model is installed.
 """
 
 from __future__ import annotations

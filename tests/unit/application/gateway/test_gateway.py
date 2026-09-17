@@ -8,6 +8,7 @@ import operant.application.gateway.guard as guard
 import operant.application.gateway.registry as grregist
 import operant.domain.errors as errors
 import operant.domain.events as odevents
+import operant.domain.locate as locate
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
 import operant.domain.models.tools as tools
@@ -152,7 +153,7 @@ def test_unverified_ok_goes_through_shared_verifier():
     outcome = dispatcher.dispatch(
         actions.SurfaceAction(kind="fill", ref="c1", value="x"), CTX
     )
-    # a reported ok but verification failed -> fell through to b
+    # Tool a reported ok but verification failed, so it fell through to b.
     assert outcome.tool == "b"
     assert outcome.attempts[0].status == "failed"
     assert "not verified" in outcome.attempts[0].reason
@@ -330,3 +331,38 @@ def test_guard_observe_bypasses_action_allowlist_and_caches_digest():
     assert got is d
     assert gateway.last_digest is d
     assert ctx.digest is d
+
+
+def test_a_point_click_is_judged_by_the_control_under_it() -> None:
+    tool = make("a", {"click"}, tools.ToolResult(status="ok", verified=True))
+    gateway, _ = make_gateway([tool], {"click": ["a"], "observe": []})
+    gateway._last_digest = digest_with(button("c1", "Transfer Funds"))
+    with pytest.raises(errors.ApprovalRequiredError):
+        gateway.perform(
+            actions.SurfaceAction(
+                kind="click", x=0.05, y=0.05, target_text="a harmless link"
+            ),
+            CTX,
+        )
+
+
+def test_the_smallest_control_under_a_point_wins() -> None:
+    tool = make("a", {"click"}, tools.ToolResult(status="ok", verified=True))
+    gateway, _ = make_gateway([tool], {"click": ["a"], "observe": []})
+    wide = digest.Control(
+        ref="w",
+        role="group",
+        name="Panel",
+        label="",
+        path="p",
+        box=digest.Box(0, 0, 1, 1),
+    )
+    gateway._last_digest = digest_with(wide, button("c1", "Inner"))
+    found = locate.control_at(gateway.last_digest, 0.05, 0.05)
+    assert found is not None
+    assert found.name == "Inner"
+
+
+def test_a_point_outside_every_control_names_none() -> None:
+    assert locate.control_at(digest_with(button("c1", "Inner")), 0.9, 0.9) is None
+    assert locate.control_at(None, 0.1, 0.1) is None

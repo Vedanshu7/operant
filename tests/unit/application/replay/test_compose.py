@@ -1,6 +1,8 @@
 """
-Cross-domain composition at the engine level: an invoke edge runs the
-referenced graph and resumes; a nested failure bubbles to the caller.
+Cross-domain composition at the engine level.
+
+An invoke edge runs the referenced graph and resumes; a nested failure
+bubbles to the caller.
 """
 
 import pathlib

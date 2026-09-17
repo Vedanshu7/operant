@@ -1,7 +1,9 @@
 """
-A GEPA adapter over the eval harness: a candidate is a set of role prompts, its
-score is the share of checks a scenario passes, and the check failures are the
-written feedback GEPA reflects on.
+A GEPA adapter over the eval harness.
+
+A candidate is a set of role prompts, its score is the share of checks a
+scenario passes, and the check failures are the written feedback GEPA reflects
+on.
 
 Import as:
 
@@ -37,9 +39,9 @@ def seed_candidate(mode: str) -> Dict[str, str]:
     """
     Return today's prompts as GEPA's starting candidate.
 
-    :param mode:``single`` tunes the executor; ``multi`` also tunes the
+    :param mode: ``single`` tunes the executor; ``multi`` also tunes the
         planner and verifier.
-    :return: Component name -> prompt text.
+    :return: component name -> prompt text.
     """
     seed = {"executor_prompt": prompt.SYSTEM_PROMPT_TEMPLATE}
     if mode == "multi":
@@ -52,8 +54,8 @@ def candidate_problem(candidate: Mapping[str, str]) -> Optional[str]:
     """
     Explain why a candidate cannot run, or ``None`` when it can.
 
-    :param candidate: Component name -> prompt text.
-    :return: The problem, phrased as feedback for the reflection model.
+    :param candidate: component name -> prompt text.
+    :return: the problem, phrased as feedback for the reflection model.
     """
     executor = candidate.get("executor_prompt", prompt.SYSTEM_PROMPT_TEMPLATE)
     missing = [slot for slot in _SLOTS if slot not in executor]
@@ -94,9 +96,9 @@ class OperantAdapter:
         """
         Bind the adapter to a model and a scratch directory.
 
-        :param env: The model, secret store, tracer and scrubber.
-        :param mode: The agent mode every rollout runs in.
-        :param work_dir: Where rollout evidence logs are written.
+        :param env: the model, secret store, tracer and scrubber.
+        :param mode: the agent mode every rollout runs in.
+        :param work_dir: where rollout evidence logs are written.
         """
         self._env = env
         self._mode = mode
@@ -209,8 +211,8 @@ def instances(
     """
     Return every scenario of ``families`` over every skin.
 
-    :param families: Catalog family names.
-    :return: The scenarios, in catalog order.
+    :param families: catalog family names.
+    :return: the scenarios, in catalog order.
     """
     built = [
         scenario

@@ -1,6 +1,8 @@
 """
-Behavioral eval harness: run discovery against a model over synthetic screens,
-then score the run with checks over its tool-call trace.
+Behavioral eval harness.
+
+Run discovery against a model over synthetic screens, then score the run with
+checks over its tool-call trace.
 
 The evals check prompt QUALITY - does a real model follow the rules the
 system prompt states - as opposed to the unit tests, which pin the
@@ -62,7 +64,7 @@ SUMMARY: List[Dict[str, Any]] = []
 
 _POLICY_KINDS = ["launch", "click", "fill", "press", "select", "scroll"]
 _MUTATING = ["transfer", "send", "pay", "submit"]
-# Multi-agent mode spends turns on protocol (subgoal_done), not the task.
+# Multi-agent mode spends turns on protocol (`subgoal_done`), not the task.
 _MULTI_EXTRA_TURNS = 4
 
 
@@ -245,14 +247,14 @@ class EvalEnv:
     """
     What every eval trial runs with.
 
-    :ivar llm: The model under test.
-    :ivar secret_store: Where secret references resolve.
-    :ivar tracer: Where traces go (Langfuse when configured), if any.
-    :ivar scrubber: The PII scrubber for traced text, if any.
-    :ivar role_llms: Per-role clients (scripted tests); ``llm`` serves
+    :ivar llm: the model under test.
+    :ivar secret_store: where secret references resolve.
+    :ivar tracer: where traces go (Langfuse when configured), if any.
+    :ivar scrubber: the PII scrubber for traced text, if any.
+    :ivar role_llms: per-role clients (scripted tests); ``llm`` serves
         every role not listed.
-    :ivar memory: Cross-run agent memory, for the memory evals.
-    :ivar operator_note: When set, an operator resolves interventions by
+    :ivar memory: cross-run agent memory, for the memory evals.
+    :ivar operator_note: when set, an operator resolves interventions by
         handing back with this note.
     """
 
@@ -341,18 +343,18 @@ class Scenario:
     """
     One eval: a goal over a scene, and the checks that score the run.
 
-    :ivar name: Scenario id, unique per family.
-    :ivar family: Rule family (auth, grounding, io, safety, multistep).
-    :ivar skin: The app skin the scene was built from.
-    :ivar goal: The natural-language goal.
-    :ivar scene: The screens the run sees.
-    :ivar checks: Each returns failure strings; empty means pass.
-    :ivar bootstrap: Whether the model must pick the target itself.
-    :ivar known_graph: An app map to localize against, when any.
-    :ivar max_turns: Turn budget.
-    :ivar approval: How the approver answers every gated step.
-    :ivar clarify_answer: What the clarifier answers.
-    :ivar mode:``"single"`` or ``"multi"`` agent discovery.
+    :ivar name: scenario id, unique per family.
+    :ivar family: rule family (auth, grounding, io, safety, multistep).
+    :ivar skin: the app skin the scene was built from.
+    :ivar goal: the natural-language goal.
+    :ivar scene: the screens the run sees.
+    :ivar checks: each returns failure strings; empty means pass.
+    :ivar bootstrap: whether the model must pick the target itself.
+    :ivar known_graph: an app map to localize against, when any.
+    :ivar max_turns: turn budget.
+    :ivar approval: how the approver answers every gated step.
+    :ivar clarify_answer: what the clarifier answers.
+    :ivar mode: ``"single"`` or ``"multi"`` agent discovery.
     """
 
     name: str
@@ -567,13 +569,13 @@ def run_scenario(
     """
     Run one trial of ``scenario`` and capture what it produced.
 
-    :param tmp_path: Where the trial's evidence log is written.
-    :param env: The model, secret store, tracer and scrubber to use.
-    :param scenario: The scenario to run.
-    :param window_budget: Overrides the default prompt-window budget.
-    :param team: Overrides the multi-agent coordinator's bounds.
-    :param prompt_overrides: Per-role prompts to run with (GEPA).
-    :return: The trial's captured run.
+    :param tmp_path: where the trial's evidence log is written.
+    :param env: the model, secret store, tracer and scrubber to use.
+    :param scenario: the scenario to run.
+    :param window_budget: overrides the default prompt-window budget.
+    :param team: overrides the multi-agent coordinator's bounds.
+    :param prompt_overrides: per-role prompts to run with (GEPA).
+    :return: the trial's captured run.
     """
     app_profile = eval_profile()
     recording = RecordingLlm(env.llm)

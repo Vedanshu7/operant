@@ -23,9 +23,9 @@ def tracer(config: settings.ObservabilitySettings) -> pttracin.Tracer:
     """
     Return the tracer for ``config.backend``.
 
-    :param config: The observability settings group.
-    :return: A Langfuse tracer, or the no-op tracer when tracing is off.
-    :raises errors.ConfigError: If Langfuse is chosen but the
+    :param config: the observability settings group.
+    :return: a Langfuse tracer, or the no-op tracer when tracing is off.
+    :raises errors.ConfigError: if Langfuse is chosen but the
         ``observability`` extra or its keys are missing.
     """
     chosen: pttracin.Tracer

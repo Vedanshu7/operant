@@ -182,10 +182,10 @@ class GatedOutcome:
     """
     The result of a gated action.
 
-    :ivar result: Whatever ``surface.perform`` returned.
-    :ivar grants: Scope grants applied during the round-trip.
-    :ivar decisions: Every (request, decision) pair, in order.
-    :ivar waited_s: Seconds a human held the run; replay deadlines
+    :ivar result: whatever ``surface.perform`` returned.
+    :ivar grants: scope grants applied during the round-trip.
+    :ivar decisions: every (request, decision) pair, in order.
+    :ivar waited_s: seconds a human held the run; replay deadlines
         exclude this so thinking time never times a run out.
     """
 
@@ -208,14 +208,14 @@ def perform_gated(
     """
     Perform ``action`` with the approval round-trip.
 
-    :param surface: The surface to act on.
-    :param action: The action to perform.
-    :param approver: Who answers an approval question.
-    :param log: Evidence sink for the request/resolution events.
-    :param run_id: Run id stamped on any scope grant.
-    :return: The gated outcome, including any scope grants and wait
+    :param surface: the surface to act on.
+    :param action: the action to perform.
+    :param approver: who answers an approval question.
+    :param log: evidence sink for the request/resolution events.
+    :param run_id: run id stamped on any scope grant.
+    :return: the gated outcome, including any scope grants and wait
         time.
-    :raises RuntimeError: If approval never converges after three
+    :raises RuntimeError: if approval never converges after three
         attempts.
     """
     outcome = GatedOutcome(result=None)

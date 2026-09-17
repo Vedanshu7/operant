@@ -76,6 +76,7 @@
     ],
     "approval": {
       "mutating": true,
+      "unknown": "commit",
       "sensitive_fill": "literals",
       "sensitive_export": true,
       "sensitive_field_patterns": []

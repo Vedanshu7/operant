@@ -18,6 +18,7 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Tuple, Union
 
 import operant.application.acting as acting
+import operant.application.discovery.agents.gate as dagate
 import operant.application.discovery.bootstrap as bstrap
 import operant.application.discovery.config as config
 import operant.application.escalation as escal
@@ -29,6 +30,7 @@ import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
 import operant.domain.models.targets as targets
 import operant.domain.outcomes as outcomes
+import operant.domain.policy as dmpolicy
 import operant.domain.profile as profile
 import operant.domain.remediation as odremed
 import operant.domain.secrets as odsec
@@ -56,11 +58,11 @@ class ToolOutcome:
     """
     What a tool handler produced.
 
-    :ivar reply: Text fed back to the model as the tool result.
-    :ivar finished: A terminal result that ends the run, when any.
-    :ivar status: What happened, for code that reacts to it; the reply
+    :ivar reply: text fed back to the model as the tool result.
+    :ivar finished: a terminal result that ends the run, when any.
+    :ivar status: what happened, for code that reacts to it; the reply
         wording is for the model and may change.
-    :ivar operator_note: The person's own words after an intervention.
+    :ivar operator_note: the person's own words after an intervention.
     """
 
     reply: Optional[str] = None
@@ -690,6 +692,35 @@ def _plan_launch(
     )
 
 
+def _judged(
+    session: loop.DiscoverySession,
+    action: actions.SurfaceAction,
+    turn: int,
+) -> Tuple[actions.SurfaceAction, Optional[str]]:
+    """
+    Ask the model judge about an unknown control, when the policy wants it.
+
+    :param session: the discovery session.
+    :param action: the action about to run.
+    :param turn: the executor turn.
+    :return: the action, gated unless the judge said ``navigation``, and
+        the verdict, if the judge was asked.
+    """
+    screen = session.state.screen
+    control = acting.control_for(action, screen)
+    probe = acting.risk_probe(action, control)
+    app_policy = session.cfg.profile.policy
+    if (
+        screen is None
+        or control is None
+        or not dmpolicy.needs_judgement(app_policy, probe, screen, control)
+    ):
+        return action, None
+    verdict = dagate.judge(session, control, screen, turn=turn)
+    gated = dataclasses.replace(action, gate_unknown=verdict != "navigation")
+    return gated, verdict
+
+
 def _perform_act(
     session: loop.DiscoverySession,
     planned: _PlannedAct,
@@ -704,11 +735,12 @@ def _perform_act(
     intent = str(args.get("intent", ""))
     prev_target = session.retarget_for(planned.boot)
     situation = _situation_sig(state.screen, planned.surface_action)
+    surface_action, judged = _judged(session, planned.surface_action, turn)
     try:
         state.screen = acting.perform_and_record(
             session.surface,
             session.cfg.profile.policy,
-            planned.surface_action,
+            surface_action,
             approver=session.approver,
             log=log,
             recorder=session.recorder,
@@ -718,6 +750,7 @@ def _perform_act(
             click_point=planned.click_point,
             on_grant=state.grants.append,
             settle=session.deps.settle,
+            judged=judged,
         )
     except errors.ApprovalDeniedError as denied:
         session.undo_retarget(prev_target)

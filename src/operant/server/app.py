@@ -138,6 +138,9 @@ class SpaStaticFiles(fastapi.staticfiles.StaticFiles):
     async def get_response(
         self, path: str, scope: starlette.types.Scope
     ) -> starlette.responses.Response:
+        """
+        Serve the file, or the app's index page for a client-side route.
+        """
         try:
             response = await super().get_response(path, scope)
         except starlette.exceptions.HTTPException as err:
@@ -162,10 +165,10 @@ def create_app(
     """
     Build the operator FastAPI application from ``settings``.
 
-    :param settings: The loaded settings the app binds to.
-    :param context_factory: Overrides how run contexts are wired; tests
+    :param settings: the loaded settings the app binds to.
+    :param context_factory: overrides how run contexts are wired; tests
         inject a scripted factory so no real macOS session is driven.
-    :return: The configured FastAPI application.
+    :return: the configured FastAPI application.
     """
     token = _resolve_token(settings)
     factory = context_factory or context.RunContextFactory(settings)
@@ -174,6 +177,9 @@ def create_app(
     async def lifespan(
         app: fastapi.FastAPI,
     ) -> collections.abc.AsyncIterator[None]:
+        """
+        Build the app state on startup and release it on shutdown.
+        """
         state = _build_state(settings, asyncio.get_running_loop(), token, factory)
         deps.install(app, state)
         try:
@@ -186,6 +192,9 @@ def create_app(
 
     @app.get("/healthz")
     def healthz() -> common.HealthResponse:
+        """
+        Report that the server is up.
+        """
         health = common.HealthResponse()
         return health
 

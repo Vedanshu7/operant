@@ -28,7 +28,10 @@ RUN case " $OPERANT_EXTRAS " in *" privacy "*) \
     "https://github.com/explosion/spacy-models/releases/download/${SPACY_MODEL}-3.8.0/${SPACY_MODEL}-3.8.0-py3-none-any.whl";; \
     esac
 COPY --from=web /web/dist ./web/dist
+# OpenSSL's CPU probe in the cryptography wheel dies with an illegal instruction
+# under Docker on recent Apple chips; skipping it only drops hardware speedups.
 ENV PATH="/app/.venv/bin:${PATH}" \
+    OPENSSL_armcap=0 \
     OPERANT_SERVER__HOST=0.0.0.0 \
     OPERANT_SERVER__STATIC_DIR=/app/web/dist \
     OPERANT_PATHS__ROOT=/data
@@ -39,5 +42,5 @@ USER operant
 VOLUME ["/data"]
 EXPOSE 7080
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 \
-  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:7080/api/v1/health', timeout=3).status == 200 else 1)"
+  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:7080/healthz', timeout=3).status == 200 else 1)"
 CMD ["operant", "serve"]

@@ -415,14 +415,14 @@ BASE = policy.Policy.model_validate(json.loads(_BASE_FILE.read_text())["policy"]
     "target_text, expected",
     [
         # Whole words: a mutating word inside another word is not a match.
-        ("Postal code", "safe"),
-        ("Design", "safe"),
-        ("Address", "safe"),
+        ("Postal code", "unknown"),
+        ("Design", "unknown"),
+        ("Address", "unknown"),
         # Safe phrases blank out the mutating word they contain.
         ("Sign in", "safe"),
         ("Sort order", "safe"),
         ("Apply filters", "safe"),
-        ("Cancel", "safe"),
+        ("Cancel", "unknown"),
         # Verbs that change data and used to pass as safe.
         ("Save", "mutating"),
         ("Create invoice", "mutating"),
@@ -438,7 +438,8 @@ def test_the_base_policy_judges_controls_by_whole_words(
     target_text: str, expected: str
 ) -> None:
     click = actions.SurfaceAction(kind="click", target_text=target_text)
-    assert policy.classify_risk(BASE, click) == expected
+    control = screens.control(name=target_text)
+    assert policy.classify_risk(BASE, click, control=control) == expected
 
 
 def test_a_shortcut_chord_is_mutating() -> None:

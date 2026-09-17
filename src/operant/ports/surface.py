@@ -44,7 +44,7 @@ class Surface(Protocol):
         """
         Observe the bound window.
 
-        :return: The current screen digest.
+        :return: the current screen digest.
         """
         ...
 
@@ -54,10 +54,10 @@ class Surface(Protocol):
         """
         Execute one action through the policy guard.
 
-        :param action: The resolved action.
-        :param approval: Single-use nonce from a granted approval, when
+        :param action: the resolved action.
+        :param approval: single-use nonce from a granted approval, when
             the action was previously gated.
-        :return: Implementation-specific dispatch outcome; callers treat
+        :return: implementation-specific dispatch outcome; callers treat
             it as opaque evidence.
         """
         ...
@@ -66,7 +66,7 @@ class Surface(Protocol):
         """
         Write a PNG of the bound window to ``path``.
 
-        :return: Whether an image was produced.
+        :return: whether an image was produced.
         """
         ...
 
@@ -77,8 +77,8 @@ class Surface(Protocol):
         Rebind the session to another application window.
 
         :param app_name: OS application to bind.
-        :param window_title_pattern: Regex the window title must match.
-        :return: The previous ``(app_name, window_title_pattern)`` so
+        :param window_title_pattern: regex the window title must match.
+        :return: the previous ``(app_name, window_title_pattern)`` so
             the caller can retarget back.
         """
         ...
@@ -87,7 +87,7 @@ class Surface(Protocol):
         """
         Describe the control behind a digest handle for policy text.
 
-        :return: Name and label of the control, or ``""`` when unknown.
+        :return: name and label of the control, or ``""`` when unknown.
         """
         ...
 
@@ -97,7 +97,7 @@ class Surface(Protocol):
         """
         Start streaming the human's input actions during a hand-off.
 
-        :param on_action: Called with a one-line description per action.
+        :param on_action: called with a one-line description per action.
         """
         ...
 

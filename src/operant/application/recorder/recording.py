@@ -24,7 +24,7 @@ import operant.domain.models.graph as graph
 import operant.domain.models.targets as targets
 import operant.helpers.text as text
 
-_DEDUP_COVERAGE = 0.6
+_DEDUP_COVERAGE = odfinger.SAME_SCREEN_COVERAGE
 
 NodeBinding = tuple[str, str, str]
 """
@@ -45,26 +45,26 @@ class Recording:
     Merged into the app graph and turned into a path-query capability by
     ``operant.application.capabilities.commit_recording``.
 
-    :ivar capability_id: Id the capability will be saved under.
-    :ivar capability_name: Human-readable capability name.
-    :ivar goal: The natural-language goal that produced the run.
-    :ivar vendor_id: Application graph the recording belongs to.
+    :ivar capability_id: id the capability will be saved under.
+    :ivar capability_name: human-readable capability name.
+    :ivar goal: the natural-language goal that produced the run.
+    :ivar vendor_id: application graph the recording belongs to.
     :ivar app_name: OS application hosting the target.
-    :ivar window_title_pattern: Pattern binding the session to the window.
-    :ivar tenants: Tenant bindings carried onto the capability.
-    :ivar default_tenant: Tenant used when none is given.
-    :ivar inputs: Typed task inputs, including promoted sensitive literals.
-    :ivar outputs: Typed outputs the capability extracts.
-    :ivar nodes: Screen nodes synthesised from window titles.
-    :ivar edges: Recorded edges in execution order.
-    :ivar outcome_edges: Detectors for exceptional states.
-    :ivar entry_node: Node the run started on.
-    :ivar goal_node: Node the run ended on.
-    :ivar extract_at_node: Node whose screen extraction reads.
-    :ivar extract: Capability-scoped extraction specs.
-    :ivar policy_scope: Policy id and the action kinds the path needs.
-    :ivar provenance: Where the recording came from.
-    :ivar node_bindings: Which app each node belongs to; only populated when
+    :ivar window_title_pattern: pattern binding the session to the window.
+    :ivar tenants: tenant bindings carried onto the capability.
+    :ivar default_tenant: tenant used when none is given.
+    :ivar inputs: typed task inputs, including promoted sensitive literals.
+    :ivar outputs: typed outputs the capability extracts.
+    :ivar nodes: screen nodes synthesised from window titles.
+    :ivar edges: recorded edges in execution order.
+    :ivar outcome_edges: detectors for exceptional states.
+    :ivar entry_node: node the run started on.
+    :ivar goal_node: node the run ended on.
+    :ivar extract_at_node: node whose screen extraction reads.
+    :ivar extract: capability-scoped extraction specs.
+    :ivar policy_scope: policy id and the action kinds the path needs.
+    :ivar provenance: where the recording came from.
+    :ivar node_bindings: which app each node belongs to; only populated when
         the run crossed apps - segmentation splits on it.
     :ivar promoted: ``(edge id, input name, data class)`` for every sensitive
         literal turned into an input instead of persisted in the graph.
@@ -187,9 +187,9 @@ class RecordedStep:
     """
     One recorded edge with the context the builder needs.
 
-    :ivar edge: The edge as recorded.
-    :ivar from_title: Raw window title before the action.
-    :ivar control: The control the action targeted, when resolved.
+    :ivar edge: the edge as recorded.
+    :ivar from_title: raw window title before the action.
+    :ivar control: the control the action targeted, when resolved.
     """
 
     edge: graph.Edge
@@ -234,7 +234,7 @@ class Recorder:
         """
         Mark the entry screen.
         """
-        self._current_node = self._node_for(window_title, "entry screen", screen)
+        self._current_node = self._node_for(window_title, screen)
 
     def record(
         self,
@@ -247,19 +247,21 @@ class Recorder:
         post_title: str,
         click_point: Optional[Tuple[float, float]] = None,
         screen: Optional[digest.ScreenDigest] = None,
+        judged: Optional[str] = None,
     ) -> None:
         """
         Append one performed action as an edge.
 
-        :param action: The recorded edge action.
-        :param target_control: The control it targeted, when resolved.
-        :param description: What the action did.
-        :param risk:``safe`` or ``mutating``.
-        :param pre_title: Window title before the action.
-        :param post_title: Window title after the action.
-        :param click_point: Window-normalised point for vision clicks.
-        :param screen: The post-action digest; its control inventory
+        :param action: the recorded edge action.
+        :param target_control: the control it targeted, when resolved.
+        :param description: what the action did.
+        :param risk: ``safe``, ``mutating`` or ``unknown``.
+        :param pre_title: window title before the action.
+        :param post_title: window title after the action.
+        :param click_point: window-normalised point for vision clicks.
+        :param screen: the post-action digest; its control inventory
             becomes the destination node's content fingerprint.
+        :param judged: the model judge's verdict on an unknown step.
         """
         self._counter += 1
         same_screen = page_title_pattern(post_title) == page_title_pattern(
@@ -268,7 +270,7 @@ class Recorder:
         to_node = (
             self._current_node
             if same_screen
-            else self._node_for(post_title, description, screen)
+            else self._node_for(post_title, screen)
         )
         if target_control is not None:
             # A resolved control: build its ranked strategy stack.
@@ -289,6 +291,7 @@ class Recorder:
                 "target": target,
                 "wait": graph.Wait(kind="settle", timeout_ms=4000).model_dump(),
                 "risk": risk,
+                "judged": judged,
             }
         )
         self.recorded.append(
@@ -331,7 +334,6 @@ class Recorder:
     def _node_for(
         self,
         window_title: str,
-        description: str,
         screen: Optional[digest.ScreenDigest] = None,
     ) -> str:
         """
@@ -339,6 +341,7 @@ class Recorder:
         """
         pattern = page_title_pattern(window_title)
         fingerprint = odfinger.of(screen) if screen is not None else []
+        path = odfinger.url_path(screen.url) if screen is not None else ""
         for node in self.nodes.values():
             check = node.checks[0]
             if not (
@@ -359,9 +362,10 @@ class Recorder:
         node_id = slug if slug not in self.nodes else f"{slug}-{len(self.nodes)}"
         self.nodes[node_id] = graph.Node(
             id=node_id,
-            description=description,
+            description=window_title.rsplit(" - ", 1)[0].strip() or window_title,
             checks=[graph.TitleMatches(pattern=pattern)],
             fingerprint=fingerprint,
+            url_paths=[path] if path else [],
         )
         if self._binding is not None:
             self.node_bindings[node_id] = self._binding

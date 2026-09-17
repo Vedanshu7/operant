@@ -7,7 +7,10 @@
 
 services:
   operant:
-    build: .
+    build:
+      context: .
+      args:
+        OPERANT_EXTRAS: "privacy observability"
     container_name: operant-server
     ports:
       - "127.0.0.1:7080:7080"
@@ -25,6 +28,7 @@ services:
       - ./artifacts:/data/artifacts
       - ./evidence:/data/evidence
       - ./state:/data/state
+      - ./router.yml:/app/router.yml:ro
     depends_on:
       parabank-b:
         condition: service_started

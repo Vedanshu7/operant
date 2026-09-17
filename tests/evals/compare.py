@@ -45,10 +45,10 @@ def wilson(passed: int, total: int, z: float = 1.96) -> Tuple[float, float]:
     """
     Return the Wilson score interval for a pass rate.
 
-    :param passed: Passing trials.
-    :param total: All trials.
-    :param z: The normal quantile; 1.96 for 95%.
-    :return:``(low, high)`` as fractions; ``(0, 0)`` with no trials.
+    :param passed: passing trials.
+    :param total: all trials.
+    :param z: the normal quantile; 1.96 for 95%.
+    :return: ``(low, high)`` as fractions; ``(0, 0)`` with no trials.
     """
     if total == 0:
         return 0.0, 0.0
@@ -71,9 +71,9 @@ def pass_hat_k(rows: Sequence[Row], k: int) -> Optional[float]:
     contributes C(c, k) / C(n, k), the unbiased estimate; the result is
     their mean.
 
-    :param rows: Result rows of one mode.
-    :param k: Trials that must all pass.
-    :return: The mean estimate, or ``None`` when no pair has k trials.
+    :param rows: result rows of one mode.
+    :param k: trials that must all pass.
+    :return: the mean estimate, or ``None`` when no pair has k trials.
     """
     groups: Dict[Tuple[str, str], List[bool]] = collections.defaultdict(list)
     for row in rows:
@@ -99,10 +99,10 @@ def scorecard(rows: Sequence[Row], price: Pricer, *, k: int = 3) -> str:
     """
     Render the single-vs-multi markdown table for one set of rows.
 
-    :param rows: Result rows of both modes.
-    :param price: Dollar cost of one row.
-    :param k: Trials pass^k requires to all pass.
-    :return: A markdown table: one criterion per line, a column per
+    :param rows: result rows of both modes.
+    :param price: dollar cost of one row.
+    :param k: trials pass^k requires to all pass.
+    :return: a markdown table: one criterion per line, a column per
         mode.
     """
     by_mode = {mode: [r for r in rows if r["mode"] == mode] for mode in _MODES}
@@ -228,9 +228,9 @@ def role_table(rows: Sequence[Row], price: TokenPricer) -> str:
     """
     Render calls, tokens, cost and model time per agent role and mode.
 
-    :param rows: Result rows that carry per-role ``roles`` usage.
-    :param price: Dollar cost of a model's tokens.
-    :return: A markdown table, averaged per trial of each mode.
+    :param rows: result rows that carry per-role ``roles`` usage.
+    :param price: dollar cost of a model's tokens.
+    :return: a markdown table, averaged per trial of each mode.
     """
     lines = [
         "| Mode | Role | Model | Calls / trial | Tokens / trial (in / out) "
@@ -276,9 +276,9 @@ def live_table(records: Sequence[Row]) -> str:
     escalated one includes a person's time. Runs drive one screen at a
     time, so tasks per hour is 3600 over the mean run time.
 
-    :param records: Live run records with ``kind``, ``agents``,
+    :param records: live run records with ``kind``, ``agents``,
         ``status``, ``capability_id``, ``started_at`` and ``finished_at``.
-    :return: A markdown table per kind and mode, and a replay speed-up
+    :return: a markdown table per kind and mode, and a replay speed-up
         line per capability with both kinds.
     """
     timed: Dict[Tuple[str, str], List[float]] = collections.defaultdict(list)

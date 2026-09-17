@@ -45,9 +45,9 @@ class Resolution:
     """
     A target stack resolved to exactly one control.
 
-    :ivar control: The matched control.
-    :ivar strategy_index: Position of the strategy that matched.
-    :ivar strategy_kind: Kind of the strategy that matched.
+    :ivar control: the matched control.
+    :ivar strategy_index: position of the strategy that matched.
+    :ivar strategy_kind: kind of the strategy that matched.
     """
 
     control: digest.Control
@@ -65,13 +65,38 @@ class ResolutionFailure:
     """
     No strategy in the stack resolved to exactly one control.
 
-    :ivar error:``not_found`` when nothing matched, ``ambiguous`` when
+    :ivar error: ``not_found`` when nothing matched, ``ambiguous`` when
         some strategy matched more than one control.
-    :ivar tried:``(strategy kind, match count)`` per strategy, in order.
+    :ivar tried: ``(strategy kind, match count)`` per strategy, in order.
     """
 
     error: str
     tried: Tuple[Tuple[str, int], ...]
+
+
+def control_at(
+    screen: Optional[digest.ScreenDigest],
+    x: Optional[float],
+    y: Optional[float],
+) -> Optional[digest.Control]:
+    """
+    Return the smallest control under a window-normalised point.
+
+    :param screen: the screen, when one was observed.
+    :param x: point x, 0..1 of the window width.
+    :param y: point y, 0..1 of the window height.
+    :return: the control, or ``None`` when the point names none.
+    """
+    found: Optional[digest.Control] = None
+    if x is not None and y is not None and screen is not None:
+        under = [
+            c
+            for c in screen.controls
+            if c.box.x <= x <= c.box.x + c.box.w
+            and c.box.y <= y <= c.box.y + c.box.h
+        ]
+        found = min(under, key=lambda c: c.box.w * c.box.h, default=None)
+    return found
 
 
 def _match_role(
@@ -167,9 +192,9 @@ def resolve_target(
     A strategy matching zero or several controls falls through to the
     next, more structural one.
 
-    :param strategies: The ranked strategy stack.
-    :param screen: The digest to resolve against.
-    :return: A ``Resolution`` on success, else a ``ResolutionFailure``
+    :param strategies: the ranked strategy stack.
+    :param screen: the digest to resolve against.
+    :return: a ``Resolution`` on success, else a ``ResolutionFailure``
         that records what each strategy matched.
     """
     tried: List[Tuple[str, int]] = []

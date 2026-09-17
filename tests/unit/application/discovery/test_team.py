@@ -1,6 +1,8 @@
 """
-Multi-agent coordinator tests with a scripted model per role: plan,
-execute, verify, reject, replan, escalate - no live app, no real model.
+Multi-agent coordinator tests with a scripted model per role.
+
+Cover plan, execute, verify, reject, replan, and escalate, with no live
+app and no real model.
 """
 
 from __future__ import annotations
@@ -500,9 +502,9 @@ def test_a_single_agent_given_memory_sees_the_recalled_plan(
     first_turn = " ".join(harness.message_text(m) for m in single.llm.sent[0])
     assert "MEMORY (advisory" in first_turn
     assert "read the savings balance" in first_turn
-    # A single agent has no plan of its own to keep.
+    # A verified single-agent run reinforces the same goal's plan.
     [plan] = store.plans(store.vendors()[0])
-    assert plan.successes == 1
+    assert plan.successes == 2
 
 
 def test_an_injected_screen_is_fenced_flagged_and_logged_once(

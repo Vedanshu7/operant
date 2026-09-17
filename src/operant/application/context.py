@@ -43,15 +43,15 @@ class RunContext:
     """
     A wired run: evidence log, surface, broker, and approver.
 
-    :ivar run_id: The run's id and evidence directory name.
-    :ivar settings: The settings this run was built from.
-    :ivar redactor: Masks secrets before they are logged.
-    :ivar log: The evidence sink.
-    :ivar surface: The actuation surface (local or driver-backed).
-    :ivar health_table: Returns per-tool health rows.
-    :ivar broker: Control broker for human hand-offs.
-    :ivar approver: Who answers approval questions.
-    :ivar approval_cache: Remember-for-run answers, owned by this run.
+    :ivar run_id: the run's id and evidence directory name.
+    :ivar settings: the settings this run was built from.
+    :ivar redactor: masks secrets before they are logged.
+    :ivar log: the evidence sink.
+    :ivar surface: the actuation surface (local or driver-backed).
+    :ivar health_table: returns per-tool health rows.
+    :ivar broker: control broker for human hand-offs.
+    :ivar approver: who answers approval questions.
+    :ivar approval_cache: remember-for-run answers, owned by this run.
     """
 
     run_id: str
@@ -133,12 +133,12 @@ class RunContextFactory:
         """
         Wire a run context for ``profile``.
 
-        :param kind: Run kind (``discovery`` / ``replay`` / ``drive``).
-        :param profile: The app profile the run executes under.
-        :param approver: Overrides the default approver (the server
+        :param kind: run kind (``discovery`` / ``replay`` / ``drive``).
+        :param profile: the app profile the run executes under.
+        :param approver: overrides the default approver (the server
             injects a UI-backed one); ``None`` uses deny-by-default.
-        :param run_identifier: Override the generated run id.
-        :return: The wired context.
+        :param run_identifier: override the generated run id.
+        :return: the wired context.
         """
         import operant.adapters.http.factory as factory
 
@@ -196,9 +196,9 @@ def parse_inputs(pairs: List[str]) -> Dict[str, str]:
     """
     Parse ``key=value`` CLI inputs into a mapping.
 
-    :param pairs: The ``key=value`` strings given on the command line.
-    :return: The parsed inputs keyed by name.
-    :raises ValueError: If a pair has no ``=``.
+    :param pairs: the ``key=value`` strings given on the command line.
+    :return: the parsed inputs keyed by name.
+    :raises ValueError: if a pair has no ``=``.
     """
     parsed: Dict[str, str] = {}
     for pair in pairs:

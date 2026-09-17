@@ -53,10 +53,10 @@ def signature(
     and never the model's wording, so what is learned for one account's
     link applies to the next.
 
-    :param action: The action being dispatched.
-    :param app: The owning application; the screen's app when empty.
-    :param screen: The screen the action runs on, when known.
-    :return: The signature string; it starts with ``::`` when the app is
+    :param action: the action being dispatched.
+    :param app: the owning application; the screen's app when empty.
+    :param screen: the screen the action runs on, when known.
+    :return: the signature string; it starts with ``::`` when the app is
         unknown, and such signatures are never learned.
     """
     title = screen.window_title if screen is not None else ""
@@ -115,10 +115,10 @@ class ToolLearner:
         """
         Count one outcome of ``tool`` on ``sig``.
 
-        :param sig: The situation signature.
-        :param tool: The tool that ran.
-        :param ok: Whether it worked.
-        :return:``True`` if this changed which tool leads (worth
+        :param sig: the situation signature.
+        :param tool: the tool that ran.
+        :param ok: whether it worked.
+        :return: ``True`` if this changed which tool leads (worth
             logging).
         """
         if sig.startswith(_SEP):
@@ -153,7 +153,7 @@ class ToolLearner:
         """
         Delete every signature learned on ``app``.
 
-        :return: How many were removed.
+        :return: how many were removed.
         """
         doomed = [sig for sig in self._counts if belongs_to(sig, app)]
         for sig in doomed:

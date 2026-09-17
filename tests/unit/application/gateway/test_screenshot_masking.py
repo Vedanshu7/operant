@@ -1,6 +1,7 @@
 """
-Screenshots black out sensitive fields before they reach the model or the
-evidence directory.
+Black out sensitive fields in screenshots.
+
+This happens before they reach the model or the evidence directory.
 """
 
 import dataclasses

@@ -33,9 +33,9 @@ class LlmClient(Protocol):
         """
         Run one completion with tool calling required.
 
-        :param messages: The conversation so far, system prompt first.
-        :param tools: Functions the model may call.
-        :return: The assistant turn.
+        :param messages: the conversation so far, system prompt first.
+        :param tools: functions the model may call.
+        :return: the assistant turn.
         """
         ...
 
@@ -55,8 +55,8 @@ class TokenCounter(Protocol):
         """
         Count the tokens ``messages`` would cost as a prompt.
 
-        :param messages: The messages of one call.
-        :return: The token count.
+        :param messages: the messages of one call.
+        :return: the token count.
         """
         ...
 
@@ -64,6 +64,6 @@ class TokenCounter(Protocol):
         """
         Return the model's input-token limit, when known.
 
-        :return: The limit, or ``None`` when the model is unknown.
+        :return: the limit, or ``None`` when the model is unknown.
         """
         ...

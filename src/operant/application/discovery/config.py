@@ -27,27 +27,29 @@ class DiscoveryConfig:
     """
     Everything one discovery run needs.
 
-    :ivar goal: The natural-language goal.
-    :ivar capability_id: Id the resulting capability is saved under.
-    :ivar capability_name: Human-readable capability name.
-    :ivar inputs: Optional pre-seeded task inputs; the agent declares
+    :ivar goal: the natural-language goal.
+    :ivar capability_id: id the resulting capability is saved under.
+    :ivar capability_name: human-readable capability name.
+    :ivar inputs: optional pre-seeded task inputs; the agent declares
         the rest itself.
-    :ivar profile: The app profile, or the discovery base in bootstrap
+    :ivar profile: the app profile, or the discovery base in bootstrap
         mode.
-    :ivar tenant: Tenant binding to run against.
-    :ivar bootstrap:``True`` when no vendor is pre-seeded - the model
+    :ivar tenant: tenant binding to run against.
+    :ivar bootstrap: ``True`` when no vendor is pre-seeded - the model
         decides the entry and the vendor is derived from it.
-    :ivar max_turns: Turn budget before the run fails.
-    :ivar screenshots: Whether to send screenshots to the model.
-    :ivar clarifier: Answers the agent's clarifying question; ``None``
+    :ivar max_turns: turn budget before the run fails.
+    :ivar screenshots: whether to send screenshots to the model.
+    :ivar clarifier: answers the agent's clarifying question; ``None``
         means no channel (the agent resolves values itself or gives up).
-    :ivar approver: Answers approval requests; ``None`` routes to the
+    :ivar approver: answers approval requests; ``None`` routes to the
         operator console via the broker.
-    :ivar known_graph: The app's current graph, when one exists, so the
+    :ivar known_graph: the app's current graph, when one exists, so the
         agent can be told which mapped state the live screen matches and
         skip steps already recorded (empty for a first/bootstrap run).
-    :ivar agents:``"single"`` or ``"multi"`` (planner, executor, panel).
-    :ivar prompt_overrides: Per-role system prompts replacing the
+    :ivar seed_goal_node: the goal node of the capability this run
+        rediscovers, so the route hint aims at it.
+    :ivar agents: ``"single"`` or ``"multi"`` (planner, executor, panel).
+    :ivar prompt_overrides: per-role system prompts replacing the
         defaults for this run (``executor``, ``planner``, ``verifier``...).
     """
 
@@ -64,6 +66,7 @@ class DiscoveryConfig:
     approver: Optional[hitl.Approver] = None
     credential_requester: Optional[hitl.CredentialRequester] = None
     known_graph: Optional[dmgraph.AppGraph] = None
+    seed_goal_node: Optional[str] = None
     agents: str = "single"
     prompt_overrides: Dict[str, str] = dataclasses.field(default_factory=dict)
 
@@ -78,11 +81,11 @@ class DiscoveryResult:
     """
     A successful discovery run.
 
-    :ivar recording: What was recorded; the caller commits it.
-    :ivar profile: The effective profile - derived in bootstrap mode,
+    :ivar recording: what was recorded; the caller commits it.
+    :ivar profile: the effective profile - derived in bootstrap mode,
         widened by grants in profile mode. Persisting it is what makes
         the recording replayable.
-    :ivar grants: Scope grants a human made during the run.
+    :ivar grants: scope grants a human made during the run.
     """
 
     recording: recdng.Recording
@@ -100,8 +103,8 @@ class DiscoveryFailure:
     """
     A discovery run that did not produce a recording.
 
-    :ivar reason: Human-readable explanation.
-    :ivar failure_class: Machine-readable class of the failure.
+    :ivar reason: human-readable explanation.
+    :ivar failure_class: machine-readable class of the failure.
     """
 
     reason: str

@@ -136,6 +136,20 @@ sign-in) is resolved again after a UI change, over 5 seeds:
   share their navigation.
 - `tests/unit/evals/test_perturb.py` keeps these as regression tests.
 
+Screen matching now uses the real `locate` over 13 kinds of change, including a
+page restructure. Across 195 trials it found the right screen every time, with
+no wrong screen or control. Screens whose title survived a change count here
+even when the result was `drifted`. A look-alike page is covered by unit tests,
+not by this suite.
+
+## Unknown controls
+
+`tests/evals/test_gate.py` measures the model judge on control names no pattern
+catches. A commit control judged `navigation` fails the suite. One run on Claude
+Haiku 4.5 passed 10 of 10: 6 commit controls, none called `navigation`, and 4
+navigation controls, all let through. That is one trial per name, so it shows the
+direction and not a miss rate ([ADR 12](adr/0012-unknown-action-level.md)).
+
 ## Prompt injection
 
 In `tests/evals/test_injection.py` the goal only reads a value while the screen tries to give orders. There are 4 attacks × 3 app

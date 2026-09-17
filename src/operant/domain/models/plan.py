@@ -28,12 +28,12 @@ class ScreenCheck(pydantic.BaseModel):
     """
     One success criterion code can check on the screen, without a model.
 
-    :ivar kind:``text_present`` (the screen's text, a dialog or a
+    :ivar kind: ``text_present`` (the screen's text, a dialog or a
         control shows ``value``), ``control_present`` (a control is
         named or labelled ``value``), or ``output_matches`` (the
         extracted ``output`` matches the regex ``value``).
-    :ivar value: The text, control name, or regex.
-    :ivar output: The output name, for ``output_matches``.
+    :ivar value: the text, control name, or regex.
+    :ivar output: the output name, for ``output_matches``.
     """
 
     kind: Literal["text_present", "control_present", "output_matches"]
@@ -50,12 +50,12 @@ class Subgoal(pydantic.BaseModel):
     """
     One checkable step of the goal.
 
-    :ivar id: Short stable id, e.g. ``s1``.
-    :ivar description: What the executor should achieve.
-    :ivar success_criteria: What the screen shows when it is achieved.
-    :ivar expected_outputs: Output names this subgoal must extract.
-    :ivar checks: Criteria code checks on the screen before any model.
-    :ivar checks_cover_criteria: Whether ``checks`` say all the success
+    :ivar id: short stable id, e.g. ``s1``.
+    :ivar description: what the executor should achieve.
+    :ivar success_criteria: what the screen shows when it is achieved.
+    :ivar expected_outputs: output names this subgoal must extract.
+    :ivar checks: criteria code checks on the screen before any model.
+    :ivar checks_cover_criteria: whether ``checks`` say all the success
         criteria say; then no model verifier is asked.
     """
 
@@ -76,9 +76,9 @@ class Plan(pydantic.BaseModel):
     """
     The planner's decomposition of the goal.
 
-    :ivar subgoals: Ordered subgoals; at least one.
-    :ivar required_inputs: Names of task inputs the goal implies.
-    :ivar credential_names: Names of credentials needed; never values.
+    :ivar subgoals: ordered subgoals; at least one.
+    :ivar required_inputs: names of task inputs the goal implies.
+    :ivar credential_names: names of credentials needed; never values.
     """
 
     subgoals: List[Subgoal] = pydantic.Field(min_length=1)
@@ -114,8 +114,8 @@ def single_step(goal: str) -> Plan:
     """
     Build the fallback plan: the whole goal as one subgoal.
 
-    :param goal: The natural-language goal.
-    :return: A one-subgoal plan.
+    :param goal: the natural-language goal.
+    :return: a one-subgoal plan.
     """
     plan = Plan(
         subgoals=[
@@ -138,9 +138,9 @@ class Verdict(pydantic.BaseModel):
     """
     A verifier's decision on one subgoal.
 
-    :ivar passed: Whether the subgoal is achieved.
-    :ivar reason: Why, in one or two sentences.
-    :ivar reviewer: Which panel member decided.
+    :ivar passed: whether the subgoal is achieved.
+    :ivar reason: why, in one or two sentences.
+    :ivar reviewer: which panel member decided.
     """
 
     passed: bool

@@ -44,8 +44,8 @@ class PerformBody(pydantic.BaseModel):
     """
     One action for the gateway to perform.
 
-    :ivar action: The action, in wire form.
-    :ivar approval: The nonce of a human approval, when retrying.
+    :ivar action: the action, in wire form.
+    :ivar approval: the nonce of a human approval, when retrying.
     """
 
     action: Dict[str, Any]
@@ -61,8 +61,8 @@ class RetargetBody(pydantic.BaseModel):
     """
     The window to rebind the session to.
 
-    :ivar app_name: Application to bind.
-    :ivar window_title_pattern: Window title regex.
+    :ivar app_name: application to bind.
+    :ivar window_title_pattern: window title regex.
     """
 
     app_name: str
@@ -79,10 +79,10 @@ class DriverDeps:
     """
     What the driver app is wired with.
 
-    :ivar surface: The guarded macOS gateway surface.
-    :ivar registry: Tool registry, for the health table.
-    :ivar redactor: Masks secret values in the daemon's own logs.
-    :ivar token: Bearer token every request must present; ``None``
+    :ivar surface: the guarded macOS gateway surface.
+    :ivar registry: tool registry, for the health table.
+    :ivar redactor: masks secret values in the daemon's own logs.
+    :ivar token: bearer token every request must present; ``None``
         disables.
     """
 
@@ -117,6 +117,9 @@ def _register_health(router: fastapi.APIRouter, deps: DriverDeps) -> None:
 
     @router.get("/health")
     def health() -> Dict[str, Any]:
+        """
+        Report each tool's health.
+        """
         tools = []
         for tool in deps.registry.all():
             report = tool.health()
@@ -139,6 +142,9 @@ def _register_actions(router: fastapi.APIRouter, deps: DriverDeps) -> None:
 
     @router.post("/observe")
     def observe() -> Dict[str, Any]:
+        """
+        Return a digest of the current screen.
+        """
         with deps.lock:
             screen = deps.surface.snapshot()
         return {"digest": wire.digest_to_dict(screen)}
@@ -147,6 +153,9 @@ def _register_actions(router: fastapi.APIRouter, deps: DriverDeps) -> None:
     def perform(
         body: PerformBody,
     ) -> Union[response.JSONResponse, Dict[str, Any]]:
+        """
+        Perform an action on the surface.
+        """
         action = wire.action_from_dict(body.action)
         _register_secret(deps, action)
         with deps.lock:
@@ -169,6 +178,9 @@ def _register_actions(router: fastapi.APIRouter, deps: DriverDeps) -> None:
 
     @router.get("/screenshot", response_model=None)
     def screenshot() -> Union[response.FileResponse, response.JSONResponse]:
+        """
+        Return a screenshot of the bound window.
+        """
         path = pathlib.Path(tempfile.mkdtemp()) / "shot.png"
         with deps.lock:
             try:
@@ -236,6 +248,9 @@ def _register_capture(
 
     @router.post("/capture/start")
     def capture_start() -> Dict[str, Any]:
+        """
+        Start buffering what the human does.
+        """
         capture["buffer"] = []
         capture["active"] = True
         deps.surface.start_human_capture(capture["buffer"].append)
@@ -243,12 +258,18 @@ def _register_capture(
 
     @router.post("/capture/stop")
     def capture_stop() -> Dict[str, Any]:
+        """
+        Stop buffering what the human does.
+        """
         deps.surface.stop_human_capture()
         capture["active"] = False
         return {"ok": True}
 
     @router.get("/capture/actions")
     def capture_actions() -> Dict[str, Any]:
+        """
+        Return the buffered human actions.
+        """
         return {"actions": list(capture["buffer"])}
 
 
@@ -259,6 +280,9 @@ def _register_control(router: fastapi.APIRouter, deps: DriverDeps) -> None:
 
     @router.post("/retarget")
     def retarget(body: RetargetBody) -> Dict[str, Any]:
+        """
+        Bind the surface to another app or window.
+        """
         with deps.lock:
             previous = deps.surface.retarget(
                 body.app_name, body.window_title_pattern
@@ -267,6 +291,9 @@ def _register_control(router: fastapi.APIRouter, deps: DriverDeps) -> None:
 
     @router.post("/policy/grant")
     def policy_grant(grant: approval.ScopeGrant) -> Dict[str, Any]:
+        """
+        Grant a policy scope.
+        """
         with deps.lock:
             deps.surface.grant_scope(grant)
         _LOG.info(
@@ -279,6 +306,9 @@ def _register_control(router: fastapi.APIRouter, deps: DriverDeps) -> None:
 
     @router.post("/inject-fault")
     def inject_fault() -> Dict[str, Any]:
+        """
+        Inject a session-expiry fault.
+        """
         with deps.lock:
             deps.surface.inject_session_expiry()
         return {"ok": True}
@@ -316,8 +346,10 @@ def serve_driver(
     # Build the redactor before anything can log a secret.
     redactor = build_daemon_redactor(profile, settings)
 
-    # Log every gateway event with secret values redacted.
     def on_event(event: events.GatewayEvent) -> None:
+        """
+        Log a gateway event with secret values redacted.
+        """
         _LOG.info(
             "%s tool=%s action=%s %s",
             event.type,
@@ -326,11 +358,13 @@ def serve_driver(
             redactor.redact(event.summary),
         )
 
-    # Log each policy decision with its reason redacted.
     def on_decision(
         decision: approval.PolicyDecision,
         action: actions.SurfaceAction,
     ) -> None:
+        """
+        Log a policy decision with its reason redacted.
+        """
         _LOG.info(
             "policy %s %s (%s): %s",
             decision.verdict,

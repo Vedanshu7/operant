@@ -1,0 +1,91 @@
+{
+  "schema_version": "2.4",
+  "id": "goalnative",
+  "name": "goalnative",
+  "description": "On the local ParaBank at http://localhost:8081/parabank log in, open the activity page of account 12900, and read its current balance and its Account Type. Do not change anything.",
+  "version": 5,
+  "status": "draft",
+  "vendor_id": "parabank",
+  "graph_version": 8,
+  "tenants": {
+    "tenant-a": {
+      "base_url": "http://localhost:8080/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    },
+    "tenant-b": {
+      "base_url": "http://localhost:8081/parabank",
+      "entry_path": "/index.htm",
+      "secret_refs": {
+        "username": "env:PARABANK_USERNAME",
+        "password": "env:PARABANK_PASSWORD"
+      }
+    }
+  },
+  "default_tenant": "tenant-b",
+  "inputs": {
+    "accountId": {
+      "type": "string",
+      "description": "task input \"accountId\" (from discovery goal)",
+      "required": true,
+      "sensitive": true,
+      "data_class": "financial"
+    }
+  },
+  "outputs": {
+    "current_balance": {
+      "type": "string",
+      "description": "extracted current_balance",
+      "data_class": "financial"
+    },
+    "account_type": {
+      "type": "string",
+      "description": "extracted account_type",
+      "data_class": "none"
+    }
+  },
+  "start_node": "parabank-welcome-online-banking",
+  "goal_node": "parabank-account-activity",
+  "extract_at_node": "parabank-account-activity",
+  "extract": [
+    {
+      "output": "current_balance",
+      "pattern": "Balance:\\s*(\\$[\\d,]+\\.\\d{2})"
+    },
+    {
+      "output": "account_type",
+      "pattern": "Account Type:\\s*(\\w+)"
+    }
+  ],
+  "compiled_path": [
+    "edge-1",
+    "edge-2",
+    "edge-3",
+    "edge-4",
+    "edge-5"
+  ],
+  "policy_scope": {
+    "policy_id": "parabank",
+    "required_action_kinds": [
+      "click",
+      "fill",
+      "launch"
+    ],
+    "touches_mutating_edges": false
+  },
+  "provenance": {
+    "discovery_run_id": "discovery-20261101-043158-540d",
+    "model": "anthropic/claude-haiku-4-5",
+    "recorded_at": "2026-11-01T04:32:27.587275+00:00",
+    "goal": "On the local ParaBank at http://localhost:8081/parabank log in, open the activity page of account 12900, and read its current balance and its Account Type. Do not change anything."
+  },
+  "accessibility": {
+    "steps": 4,
+    "coordinate_steps": 0,
+    "unnamed_steps": 0
+  },
+  "stability": null
+}

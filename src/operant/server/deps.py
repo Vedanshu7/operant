@@ -41,18 +41,18 @@ class ServerState:
     """
     Everything the API routes share for the life of the process.
 
-    :ivar settings: Loaded settings.
-    :ivar database: Open run database at schema head.
-    :ivar runs: Run, HITL, and stability repository.
-    :ivar secret_refs: Secret-reference metadata repository.
-    :ivar artifacts: Capability repository.
-    :ivar graphs: Graph repository.
-    :ivar profiles: Profile repository.
-    :ivar secret_store: Configured secret store (presence checks only).
-    :ivar manager: The run manager driving worker threads.
-    :ivar hub: The event hub SSE subscribers read from.
-    :ivar lease: The driver lease runs queue on.
-    :ivar token: Bearer token required on every route.
+    :ivar settings: loaded settings.
+    :ivar database: open run database at schema head.
+    :ivar runs: run, HITL, and stability repository.
+    :ivar secret_refs: secret-reference metadata repository.
+    :ivar artifacts: capability repository.
+    :ivar graphs: graph repository.
+    :ivar profiles: profile repository.
+    :ivar secret_store: configured secret store (presence checks only).
+    :ivar manager: the run manager driving worker threads.
+    :ivar hub: the event hub SSE subscribers read from.
+    :ivar lease: the driver lease runs queue on.
+    :ivar token: bearer token required on every route.
     """
 
     settings: issettin.OperantSettings

@@ -75,7 +75,7 @@ class NoToolAvailableError(SurfaceError):
     """
     No healthy tool serves the requested action kind.
 
-    :ivar kind: The action kind no tool could serve.
+    :ivar kind: the action kind no tool could serve.
     """
 
     def __init__(self, kind: str, message: str) -> None:
@@ -92,8 +92,8 @@ class AllToolsFailedError(SurfaceError):
     """
     Every tool in the fallback chain failed for the action.
 
-    :ivar kind: The action kind every tool failed to serve.
-    :ivar attempts: One entry per tool tried, in chain order.
+    :ivar kind: the action kind every tool failed to serve.
+    :ivar attempts: one entry per tool tried, in chain order.
     """
 
     def __init__(
@@ -125,7 +125,7 @@ class PolicyViolationError(PolicyError):
     """
     The policy denied the action outright.
 
-    :ivar decision: The policy decision that denied the action.
+    :ivar decision: the policy decision that denied the action.
     """
 
     def __init__(self, decision: approval.PolicyDecision) -> None:
@@ -142,10 +142,10 @@ class ApprovalRequiredError(PolicyError):
     """
     The action needs a human decision before it can run.
 
-    :ivar request: What the human is being asked.
-    :ivar nonce: Single-use token that authorises the retry once
+    :ivar request: what the human is being asked.
+    :ivar nonce: single-use token that authorises the retry once
         approved.
-    :ivar action: The action that triggered the request.
+    :ivar action: the action that triggered the request.
     """
 
     def __init__(
@@ -169,8 +169,8 @@ class ApprovalDeniedError(PolicyError):
     """
     A human (or a timeout) said no.
 
-    :ivar request: The question that was asked.
-    :ivar decision: The recorded answer.
+    :ivar request: the question that was asked.
+    :ivar decision: the recorded answer.
     """
 
     def __init__(
@@ -203,8 +203,8 @@ class SecretNotFoundError(SecretError):
     """
     A referenced secret has no value in the configured store.
 
-    :ivar name: The reference name the caller asked for.
-    :ivar available: Reference names the tenant declares.
+    :ivar name: the reference name the caller asked for.
+    :ivar available: reference names the tenant declares.
     """
 
     def __init__(self, name: str, available: List[str]) -> None:
@@ -269,6 +269,17 @@ class VersionConflictError(RepositoryError):
 
 
 # #############################################################################
+# RepinRefusedError
+# #############################################################################
+
+
+class RepinRefusedError(RepositoryError):
+    """
+    A capability's path does not exist on the requested graph version.
+    """
+
+
+# #############################################################################
 # ReplayError
 # #############################################################################
 
@@ -321,7 +332,7 @@ class LlmError(DiscoveryError):
     """
     The model call failed.
 
-    :ivar retryable: Whether a retry could reasonably succeed.
+    :ivar retryable: whether a retry could reasonably succeed.
     """
 
     def __init__(self, message: str, *, retryable: bool) -> None:

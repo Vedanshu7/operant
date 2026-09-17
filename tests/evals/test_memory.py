@@ -1,8 +1,10 @@
 """
-Behavioral evals for agent memory, in each mode from OPERANT_EVAL_MODES (a
-single agent reads memory when the memory mode is ``all``): a recalled plan
-should not cost turns, stale memory must lose to the live screen, and memory
-must keep no values.
+Behavioral evals for agent memory.
+
+They run in each mode from OPERANT_EVAL_MODES (a single agent reads
+memory when the memory mode is ``all``): a recalled plan should not cost
+turns, stale memory must lose to the live screen, and memory must keep
+no values.
 
 Skipped unless OPERANT_RUN_LLM_EVALS=1; see tests/evals/conftest.py.
 """
@@ -17,12 +19,14 @@ import pytest
 
 import operant.application.memory as apmemory
 import operant.domain.models.plan as mdplan
+import operant.helpers.logging as logging
 import operant.infra.db.engine as engine
 import operant.infra.repositories.memory as rmmemory
 import tests.evals.catalog as catalog
 import tests.evals.harness as harness
 import tests.evals.scenes as scenes
 
+_LOG = logging.get_logger(__name__)
 _TRIALS = 3
 
 
@@ -86,9 +90,14 @@ def test_recalled_plan_does_not_cost_turns(
         ]
         turns[label] = statistics.mean(len(run.llm.turns) for run in runs)
         passed = sum(1 for run in runs if run.succeeded)
-        print(
-            f"\nMEMORY {mode} {skin.name} {label}: "
-            f"{turns[label]:.1f} turns, {passed}/{_TRIALS} completed"
+        _LOG.info(
+            "memory %s %s %s: %.1f turns, %d/%d completed",
+            mode,
+            skin.name,
+            label,
+            turns[label],
+            passed,
+            _TRIALS,
         )
     assert turns["with"] <= turns["without"], turns
 

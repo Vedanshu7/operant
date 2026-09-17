@@ -1,6 +1,8 @@
 """
-Prompt-injection defence: which screen text counts as an instruction to the
-agent, and how screen text is fenced.
+Prompt-injection defence.
+
+Cover which screen text counts as an instruction to the agent, and how
+screen text is fenced.
 """
 
 import pytest

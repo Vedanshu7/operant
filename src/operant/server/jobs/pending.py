@@ -24,7 +24,7 @@ class PendingAnswer[T]:
     The worker thread calls ``wait``; the HTTP route calls ``set``. Only
     the first ``set`` takes effect, and none after the wait timed out.
 
-    :ivar id: The question id this answer is registered under.
+    :ivar id: the question id this answer is registered under.
     """
 
     def __init__(
@@ -43,7 +43,7 @@ class PendingAnswer[T]:
         """
         Deliver ``value`` and wake the waiter.
 
-        :return: Whether the value was taken; ``False`` after an earlier
+        :return: whether the value was taken; ``False`` after an earlier
             answer or after the wait timed out.
         """
         with self._lock:
@@ -57,7 +57,7 @@ class PendingAnswer[T]:
         """
         Block until the answer arrives or the timeout lapses.
 
-        :return: The delivered value, or ``None`` on timeout.
+        :return: the delivered value, or ``None`` on timeout.
         """
         self._event.wait(timeout_s)
         with self._lock:

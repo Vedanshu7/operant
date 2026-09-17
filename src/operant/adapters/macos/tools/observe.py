@@ -99,6 +99,7 @@ class Xa11yDigestObserver:
             window_title=window.name or "",
             text=" ".join(walker.texts)[:_MAX_SCREEN_TEXT],
             controls=tuple(walker.controls),
+            url=self.session.page_url(window.name or ""),
         )
         result = tools.ToolResult(status="ok", verified=True, digest=screen)
         return result
@@ -126,6 +127,9 @@ def _content_root(window: xa11y.Element) -> xa11y.Element:
     """
 
     def find(element: xa11y.Element, depth: int) -> Optional[xa11y.Element]:
+        """
+        Find the web area in the accessibility tree.
+        """
         if element.role == "web_area":
             return element
         if depth > 8:
@@ -180,11 +184,9 @@ class _Walker:
         if role in TEXT_ROLES:
             # Text node: record its text.
             self._record_text(element)
-        elif role in INTERACTIVE_ROLES and self._record_control(
-            element, role, path
-        ):
-            # Interactive node recorded: do not descend into it.
-            return
+        elif role in INTERACTIVE_ROLES:
+            # Interactive node: record it; its children still hold text.
+            self._record_control(element, role, path)
         self._walk_children(element, path, depth)
 
     @staticmethod
@@ -226,7 +228,7 @@ class _Walker:
 
     def _record_control(
         self, element: xa11y.Element, role: str, path: str
-    ) -> bool:
+    ) -> None:
         """
         Record an interactive control unless it is a geometric duplicate.
         """
@@ -238,8 +240,7 @@ class _Walker:
             round(bounds.x if bounds else 0),
             round(bounds.y if bounds else 0),
         )
-        # A duplicate (same role, name, pixel bounds) is skipped; walking
-        # its children continues either way.
+        # A duplicate (same role, name, pixel bounds) is skipped.
         if bounds is None or key not in self._seen:
             self._seen.add(key)
             ref = f"c{len(self.session.refs)}"
@@ -250,7 +251,7 @@ class _Walker:
                     ref=ref,
                     role="password_field" if secure else role,
                     name=text,
-                    label=self._last_text[:80],
+                    label=self._take_label(),
                     path=path,
                     box=self._box(bounds),
                     value=self._shown_value(secure, value),
@@ -265,7 +266,17 @@ class _Walker:
                 # A text area's content is on-screen text: extraction and
                 # effect verification must be able to see it.
                 self.texts.append(str(value)[:1000])
-        return False
+
+    def _take_label(self) -> str:
+        """
+        Return the pending anchor text and clear it.
+
+        Text anchors the one control that follows it, so a button after
+        a labelled field does not inherit that field's label.
+        """
+        label = self._last_text[:80]
+        self._last_text = ""
+        return label
 
     def _box(self, bounds: object) -> digest.Box:
         """

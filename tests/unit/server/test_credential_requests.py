@@ -1,6 +1,8 @@
 """
-Credential requests over the operator UI: an open request is visible to a
-client that missed the live event, and never carries a value.
+Credential requests over the operator UI.
+
+An open request is visible to a client that missed the live event, and
+never carries a value.
 """
 
 from __future__ import annotations

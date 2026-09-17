@@ -25,7 +25,7 @@ def _load(path: pathlib.Path) -> Dict[str, object]:
 
 
 def test_schema_version_is_pinned() -> None:
-    assert artifact.SCHEMA_VERSION == "2.3"
+    assert artifact.SCHEMA_VERSION == "2.4"
     assert graph.SCHEMA_VERSION == artifact.SCHEMA_VERSION
 
 

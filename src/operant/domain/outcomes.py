@@ -33,9 +33,9 @@ def evaluate_condition(
     """
     Report whether a condition holds on the digest.
 
-    :param cond: A title, text, or element-visible condition.
-    :param screen: The digest to test against.
-    :return:``True`` when the condition holds.
+    :param cond: a title, text, or element-visible condition.
+    :param screen: the digest to test against.
+    :return: ``True`` when the condition holds.
     """
     if cond.kind == "titleMatches":
         # Title condition: match the pattern against the window title.
@@ -65,9 +65,9 @@ def on_node(
     """
     Report whether every check of a node holds on the digest.
 
-    :param node_checks: The node's conditions.
-    :param screen: The digest to test against.
-    :return:``True`` when all checks hold.
+    :param node_checks: the node's conditions.
+    :param screen: the digest to test against.
+    :return: ``True`` when all checks hold.
     """
     holds = all(evaluate_condition(c, screen) for c in node_checks)
     return holds
@@ -83,10 +83,10 @@ def match_outcome_edges(
 
     Node-scoped outcome edges rank before global (``*``) ones.
 
-    :param outcome_edges: Every outcome edge in play.
-    :param at_node: The node the run is at.
-    :param screen: The digest to test against.
-    :return: The first matching edge, or ``None``.
+    :param outcome_edges: every outcome edge in play.
+    :param at_node: the node the run is at.
+    :param screen: the digest to test against.
+    :return: the first matching edge, or ``None``.
     """
     scoped = [e for e in outcome_edges if e.at == at_node]
     global_ = [e for e in outcome_edges if e.at == "*"]
@@ -102,9 +102,9 @@ def extract_one(pattern: str, text: str) -> Optional[str]:
     """
     Apply the single extraction rule shared by every reader.
 
-    :param pattern: Regex searched case-insensitively.
-    :param text: The text to search.
-    :return: Group 1 (or the whole match), stripped; ``None`` when
+    :param pattern: regex searched case-insensitively.
+    :param text: the text to search.
+    :return: group 1 (or the whole match), stripped; ``None`` when
         absent.
     """
     m = re.search(pattern, text, re.IGNORECASE)
@@ -128,10 +128,10 @@ def unread_sibling(pattern: str, text: str, value: str) -> Optional[str]:
     none does (no match, or the same match as before), it only works for
     the discovery's record, e.g. because that record is the first row.
 
-    :param pattern: The extraction regex, containing ``value``.
-    :param text: The screen text it was written against.
-    :param value: The input value inside the pattern.
-    :return: A sibling to cite to the model, or ``None`` when the
+    :param pattern: the extraction regex, containing ``value``.
+    :param text: the screen text it was written against.
+    :param value: the input value inside the pattern.
+    :return: a sibling to cite to the model, or ``None`` when the
         pattern generalizes or no sibling is visible.
     """
     original = re.search(pattern, text, re.IGNORECASE)
@@ -188,10 +188,10 @@ def failed_checks(
     """
     Evaluate a subgoal's typed success checks; return what failed.
 
-    :param checks: The planner's checks.
-    :param screen: The current screen, if a window is bound.
-    :param outputs: Values extracted so far.
-    :return: One line per failed check; empty when all hold.
+    :param checks: the planner's checks.
+    :param screen: the current screen, if a window is bound.
+    :param outputs: values extracted so far.
+    :return: one line per failed check; empty when all hold.
     """
     shown = ""
     names: List[str] = []
@@ -222,9 +222,9 @@ def run_extraction(
     """
     Read every declared output from the digest text.
 
-    :param specs: Output name and pattern per output.
-    :param screen: The digest to read from.
-    :return:``(outputs found, names of outputs not found)``.
+    :param specs: output name and pattern per output.
+    :param screen: the digest to read from.
+    :return: ``(outputs found, names of outputs not found)``.
     """
     outputs: Dict[str, str] = {}
     missing: List[str] = []

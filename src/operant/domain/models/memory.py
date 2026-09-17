@@ -39,16 +39,16 @@ class PlanMemory:
     """
     A plan that worked for a goal on one app.
 
-    :ivar id: Storage id.
-    :ivar vendor_id: The app the plan belongs to.
-    :ivar goal_key: The normalised goal.
-    :ivar goal_text: The goal as written (scrubbed).
-    :ivar plan_json: The plan (names only, never values).
-    :ivar successes: Runs it led to a verified finish.
-    :ivar failures: Runs that recalled it and still failed.
+    :ivar id: storage id.
+    :ivar vendor_id: the app the plan belongs to.
+    :ivar goal_key: the normalised goal.
+    :ivar goal_text: the goal as written (scrubbed).
+    :ivar plan_json: the plan (names only, never values).
+    :ivar successes: runs it led to a verified finish.
+    :ivar failures: runs that recalled it and still failed.
     :ivar last_used_at: ISO time it last led to a verified finish;
         recalling it does not count, so a plan that keeps failing ages.
-    :ivar graph_version: The app graph version it was learned on.
+    :ivar graph_version: the app graph version it was learned on.
     """
 
     id: int
@@ -72,19 +72,19 @@ class Lesson:
     """
     A mistake to avoid on one app.
 
-    :ivar id: Storage id.
-    :ivar vendor_id: The app the lesson belongs to.
-    :ivar goal_key: The normalised goal it was learned on.
-    :ivar lesson: What went wrong (scrubbed).
-    :ivar source:``verifier`` or ``human``.
-    :ivar reinforcements: How often the same lesson recurred.
+    :ivar id: storage id.
+    :ivar vendor_id: the app the lesson belongs to.
+    :ivar goal_key: the normalised goal it was learned on.
+    :ivar lesson: what went wrong (scrubbed).
+    :ivar source: ``verifier`` or ``human``.
+    :ivar reinforcements: how often the same lesson recurred.
     :ivar last_used_at: ISO time it last recurred; recalling it does not
         count.
-    :ivar subgoal_key: The normalised subgoal it is about (``""`` for a
+    :ivar subgoal_key: the normalised subgoal it is about (``""`` for a
         person's note).
-    :ivar failure_kind: One of ``FAILURE_KINDS`` (``""`` for a person's
+    :ivar failure_kind: one of ``FAILURE_KINDS`` (``""`` for a person's
         note).
-    :ivar graph_version: The app graph version it was learned on.
+    :ivar graph_version: the app graph version it was learned on.
     """
 
     id: int
@@ -101,11 +101,13 @@ class Lesson:
 
 def goal_key(goal: str) -> str:
     """
-    Normalise a goal: lower case, numbers and amounts as ``<n>``, stop words
-    dropped.
+    Normalise a goal for matching.
 
-    :param goal: The goal as written.
-    :return: The key used to match similar goals.
+    Lower-case it, replace numbers and amounts with ``<n>``, and drop
+    stop words.
+
+    :param goal: the goal as written.
+    :return: the key used to match similar goals.
     """
     lowered = _NUMBER_RE.sub(" <n> ", goal.lower())
     words = [w for w in _WORD_RE.findall(lowered) if w not in _STOP_WORDS]
@@ -117,8 +119,8 @@ def similarity(left: str, right: str) -> float:
     """
     Jaccard overlap of two goal keys' word sets.
 
-    :param left: A goal key.
-    :param right: Another goal key.
+    :param left: a goal key.
+    :param right: another goal key.
     :return: 0.0 (disjoint) to 1.0 (same words).
     """
     a: FrozenSet[str] = frozenset(left.split())
@@ -130,11 +132,12 @@ def similarity(left: str, right: str) -> float:
 
 def mask_numbers(text: str) -> str:
     """
-    Replace numbers and amounts with ``<n>`` so stored text keeps no account
-    numbers, amounts, or ids.
+    Replace numbers and amounts with ``<n>``.
 
-    :param text: Text about to be stored.
-    :return: The text with every number masked.
+    Stored text then keeps no account numbers, amounts, or ids.
+
+    :param text: text about to be stored.
+    :return: the text with every number masked.
     """
     masked = _NUMBER_RE.sub("<n>", text)
     return masked
@@ -179,9 +182,9 @@ class Rejection:
     """
     A subgoal the verifier panel rejected, as memory keeps it.
 
-    :ivar subgoal: The planner's subgoal description.
-    :ivar kind: One of ``FAILURE_KINDS``.
-    :ivar count: How often it was rejected in the run.
+    :ivar subgoal: the planner's subgoal description.
+    :ivar kind: one of ``FAILURE_KINDS``.
+    :ivar count: how often it was rejected in the run.
     """
 
     subgoal: str
@@ -193,10 +196,10 @@ def failure_kind(reviewer: str, reason: str) -> str:
     """
     Map a panel rejection to a failure-kind code.
 
-    :param reviewer: The panel member that rejected (``verifier``,
+    :param reviewer: the panel member that rejected (``verifier``,
         ``safety``, ``leak``).
-    :param reason: Its stated reason; only used to tell kinds apart.
-    :return: One of ``FAILURE_KINDS``.
+    :param reason: its stated reason; only used to tell kinds apart.
+    :return: one of ``FAILURE_KINDS``.
     """
     lowered = reason.lower()
     if reviewer == "leak":
@@ -216,10 +219,10 @@ def lesson_text(subgoal: str, kind: str, worked: str) -> str:
     """
     Render a lesson in the one shape memory stores.
 
-    :param subgoal: The planner's subgoal description.
-    :param kind: A failure-kind code.
-    :param worked: What got past it, or ``""`` when nothing did.
-    :return:``On "<subgoal>": <kind>. What worked: <worked>.``
+    :param subgoal: the planner's subgoal description.
+    :param kind: a failure-kind code.
+    :param worked: what got past it, or ``""`` when nothing did.
+    :return: ``On "<subgoal>": <kind>. What worked: <worked>.``
     """
     text = f'On "{subgoal}": {kind}. What worked: {worked or "unresolved"}.'
     return text
@@ -229,8 +232,8 @@ def memory_safe(text: str) -> str:
     """
     Drop the lines of a free-text note that read as instructions or links.
 
-    :param text: A person's note, already redacted and scrubbed.
-    :return: The remaining lines.
+    :param text: a person's note, already redacted and scrubbed.
+    :return: the remaining lines.
     """
     kept = [
         line for line in text.splitlines() if not _INSTRUCTION_RE.search(line)
@@ -250,13 +253,13 @@ def recall_score(
     """
     Score a lesson for recall: relevance, recency, and how often it held.
 
-    :param relevance: Goal similarity, 0 to 1.
-    :param age_s: Seconds since the lesson was last reinforced.
-    :param reinforcements: How often it recurred.
-    :param human: Whether a person wrote it.
-    :param current_version: Whether it was learned on the app graph
+    :param relevance: goal similarity, 0 to 1.
+    :param age_s: seconds since the lesson was last reinforced.
+    :param reinforcements: how often it recurred.
+    :param human: whether a person wrote it.
+    :param current_version: whether it was learned on the app graph
         version in use now.
-    :return: A non-negative score; higher recalls first.
+    :return: a non-negative score; higher recalls first.
     """
     recency = 0.5 ** (max(age_s, 0.0) / _HALF_LIFE_S)
     score = relevance * recency * (1 + reinforcements)

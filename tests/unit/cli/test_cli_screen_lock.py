@@ -1,6 +1,8 @@
 """
-A CLI run takes the screen lock before it builds a run, so it waits for a run
-in another process instead of driving the same screen.
+A CLI run takes the screen lock before it builds a run.
+
+It waits for a run in another process instead of driving the same
+screen.
 """
 
 import pathlib

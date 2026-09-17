@@ -33,9 +33,9 @@ class BaseEvent(pydantic.BaseModel):
     """
     Fields every event carries.
 
-    :ivar type: Event name; the discriminator.
-    :ivar summary: One-line human summary.
-    :ivar seq: Stamped by the run log at write time; present when re-
+    :ivar type: event name; the discriminator.
+    :ivar summary: one-line human summary.
+    :ivar seq: stamped by the run log at write time; present when re-
         validating logged lines.
     :ivar at: ISO timestamp stamped by the run log at write time.
     """
@@ -59,9 +59,9 @@ class RunMeta(BaseEvent):
     Its presence tells the audit this log was written through the typed
     schema; logs without it are legacy and are reported, not validated.
 
-    :ivar type: Always ``run_meta``.
-    :ivar run_id: Id of the run.
-    :ivar schema_version: Event schema version the log was written with.
+    :ivar type: always ``run_meta``.
+    :ivar run_id: id of the run.
+    :ivar schema_version: event schema version the log was written with.
     """
 
     type: Literal["run_meta"] = "run_meta"
@@ -78,8 +78,8 @@ class RunStatusChanged(BaseEvent):
     """
     The run moved to a new lifecycle status.
 
-    :ivar type: Always ``run_status``.
-    :ivar status: The new status.
+    :ivar type: always ``run_status``.
+    :ivar status: the new status.
     """
 
     type: Literal["run_status"] = "run_status"
@@ -95,13 +95,13 @@ class GatewayAction(BaseEvent):
     """
     The gateway dispatched an action to a tool.
 
-    :ivar type: Always ``gateway_action``.
-    :ivar action: Action kind.
-    :ivar tool: Tool that served it.
-    :ivar status: Dispatch outcome.
-    :ivar reason: Why the outcome was chosen.
-    :ivar verified: Whether the effect was verified on screen.
-    :ivar target: Text describing the target.
+    :ivar type: always ``gateway_action``.
+    :ivar action: action kind.
+    :ivar tool: tool that served it.
+    :ivar status: dispatch outcome.
+    :ivar reason: why the outcome was chosen.
+    :ivar verified: whether the effect was verified on screen.
+    :ivar target: text describing the target.
     """
 
     type: Literal["gateway_action"] = "gateway_action"
@@ -122,10 +122,10 @@ class GatewaySkip(BaseEvent):
     """
     The gateway skipped a tool for an action.
 
-    :ivar type: Always ``gateway_skip``.
-    :ivar action: Action kind.
-    :ivar tool: Tool that was skipped.
-    :ivar reason: Why it was skipped.
+    :ivar type: always ``gateway_skip``.
+    :ivar action: action kind.
+    :ivar tool: tool that was skipped.
+    :ivar reason: why it was skipped.
     """
 
     type: Literal["gateway_skip"] = "gateway_skip"
@@ -143,11 +143,11 @@ class GatewayLearned(BaseEvent):
     """
     The gateway learned a tool preference for an action signature.
 
-    :ivar type: Always ``gateway_learned``.
-    :ivar action: Action kind.
-    :ivar tool: Tool now preferred.
-    :ivar signature: Action signature the preference keys on.
-    :ivar reason: Why it was learned.
+    :ivar type: always ``gateway_learned``.
+    :ivar action: action kind.
+    :ivar tool: tool now preferred.
+    :ivar signature: action signature the preference keys on.
+    :ivar reason: why it was learned.
     """
 
     type: Literal["gateway_learned"] = "gateway_learned"
@@ -171,14 +171,14 @@ class PolicyCheck(BaseEvent):
     """
     The policy evaluated an action.
 
-    :ivar type: Always ``policy_check``.
-    :ivar allowed: Whether the action may proceed.
-    :ivar risk: Risk level assigned.
-    :ivar reason: Why the verdict was reached.
-    :ivar action: Action kind.
-    :ivar target: Text describing the target.
-    :ivar verdict: Verdict name.
-    :ivar approval_kind: Approval needed, if any.
+    :ivar type: always ``policy_check``.
+    :ivar allowed: whether the action may proceed.
+    :ivar risk: risk level assigned.
+    :ivar reason: why the verdict was reached.
+    :ivar action: action kind.
+    :ivar target: text describing the target.
+    :ivar verdict: verdict name.
+    :ivar approval_kind: approval needed, if any.
     """
 
     type: Literal["policy_check"] = "policy_check"
@@ -200,8 +200,8 @@ class PolicyBlocked(BaseEvent):
     """
     The policy denied an action outright.
 
-    :ivar type: Always ``policy_blocked``.
-    :ivar reason: Why it was denied.
+    :ivar type: always ``policy_blocked``.
+    :ivar reason: why it was denied.
     """
 
     type: Literal["policy_blocked"] = "policy_blocked"
@@ -217,11 +217,11 @@ class ScopeGranted(BaseEvent):
     """
     A human widened the policy scope for this run.
 
-    :ivar type: Always ``scope_granted``.
-    :ivar kind: Scope kind (app, domain, ...).
-    :ivar pattern: Pattern that was granted.
-    :ivar value: Value that triggered the grant.
-    :ivar reason: Why it was granted.
+    :ivar type: always ``scope_granted``.
+    :ivar kind: scope kind (app, domain, ...).
+    :ivar pattern: pattern that was granted.
+    :ivar value: value that triggered the grant.
+    :ivar reason: why it was granted.
     """
 
     type: Literal["scope_granted"] = "scope_granted"
@@ -244,10 +244,10 @@ class ScopeDenied(BaseEvent):
     registered so logs written before the unified approval channel still
     validate.
 
-    :ivar type: Always ``scope_denied``.
-    :ivar kind: Scope kind.
-    :ivar value: Value that was denied.
-    :ivar reason: Why it was denied.
+    :ivar type: always ``scope_denied``.
+    :ivar kind: scope kind.
+    :ivar value: value that was denied.
+    :ivar reason: why it was denied.
     """
 
     type: Literal["scope_denied"] = "scope_denied"
@@ -265,12 +265,12 @@ class ApprovalRequested(BaseEvent):
     """
     A human was asked to approve something.
 
-    :ivar type: Always ``approval_requested``.
-    :ivar kind: Approval kind.
-    :ivar question: What the human was asked.
-    :ivar fingerprint: Stable hash used to remember the answer.
-    :ivar step: Edge id the request belongs to.
-    :ivar details: Extra context shown to the human.
+    :ivar type: always ``approval_requested``.
+    :ivar kind: approval kind.
+    :ivar question: what the human was asked.
+    :ivar fingerprint: stable hash used to remember the answer.
+    :ivar step: edge id the request belongs to.
+    :ivar details: extra context shown to the human.
     """
 
     type: Literal["approval_requested"] = "approval_requested"
@@ -290,13 +290,13 @@ class ApprovalResolved(BaseEvent):
     """
     An approval request was answered.
 
-    :ivar type: Always ``approval_resolved``.
-    :ivar kind: Approval kind.
-    :ivar approved: The answer.
-    :ivar by: Channel that answered.
-    :ivar remembered: Whether the answer was cached for the run.
-    :ivar fingerprint: Stable hash of the request.
-    :ivar note: Free-text note from the answerer.
+    :ivar type: always ``approval_resolved``.
+    :ivar kind: approval kind.
+    :ivar approved: the answer.
+    :ivar by: channel that answered.
+    :ivar remembered: whether the answer was cached for the run.
+    :ivar fingerprint: stable hash of the request.
+    :ivar note: free-text note from the answerer.
     """
 
     type: Literal["approval_resolved"] = "approval_resolved"
@@ -319,10 +319,10 @@ class SensitiveValueClassified(BaseEvent):
     """
     A value was assigned a sensitivity class.
 
-    :ivar type: Always ``sensitive_value_classified``.
-    :ivar name: Input or output name.
-    :ivar data_class: Assigned class.
-    :ivar source:``declared``, ``detector``, or ``secret_ref``.
+    :ivar type: always ``sensitive_value_classified``.
+    :ivar name: input or output name.
+    :ivar data_class: assigned class.
+    :ivar source: ``declared``, ``detector``, or ``secret_ref``.
     """
 
     type: Literal["sensitive_value_classified"] = "sensitive_value_classified"
@@ -340,10 +340,10 @@ class SensitiveLiteralPromoted(BaseEvent):
     """
     A sensitive literal was promoted to a parameter.
 
-    :ivar type: Always ``sensitive_literal_promoted``.
-    :ivar edge: Edge whose literal was promoted.
-    :ivar param: Parameter name it became.
-    :ivar data_class: Sensitivity class that triggered promotion.
+    :ivar type: always ``sensitive_literal_promoted``.
+    :ivar edge: edge whose literal was promoted.
+    :ivar param: parameter name it became.
+    :ivar data_class: sensitivity class that triggered promotion.
     """
 
     type: Literal["sensitive_literal_promoted"] = "sensitive_literal_promoted"
@@ -361,10 +361,10 @@ class ControlTransition(BaseEvent):
     """
     Control moved between the system and a human.
 
-    :ivar type: Always ``control_transition``.
-    :ivar from_state: Previous state; serialised as ``from``.
-    :ivar to_state: New state; serialised as ``to``.
-    :ivar detail: Why control moved.
+    :ivar type: always ``control_transition``.
+    :ivar from_state: previous state; serialised as ``from``.
+    :ivar to_state: new state; serialised as ``to``.
+    :ivar detail: why control moved.
     """
 
     type: Literal["control_transition"] = "control_transition"
@@ -382,10 +382,10 @@ class EscalationRaised(BaseEvent):
     """
     The run asked for a human.
 
-    :ivar type: Always ``escalation_raised``.
-    :ivar edge: Edge at which it happened.
-    :ivar reason: Why a human is needed.
-    :ivar screenshot: Screenshot file captured at escalation.
+    :ivar type: always ``escalation_raised``.
+    :ivar edge: edge at which it happened.
+    :ivar reason: why a human is needed.
+    :ivar screenshot: screenshot file captured at escalation.
     """
 
     type: Literal["escalation_raised"] = "escalation_raised"
@@ -403,10 +403,10 @@ class EscalationResolved(BaseEvent):
     """
     A human resolved an escalation.
 
-    :ivar type: Always ``escalation_resolved``.
-    :ivar resolution: How it was resolved.
-    :ivar note: Free-text note from the human.
-    :ivar human_actions: Actions the human reported taking.
+    :ivar type: always ``escalation_resolved``.
+    :ivar resolution: how it was resolved.
+    :ivar note: free-text note from the human.
+    :ivar human_actions: actions the human reported taking.
     """
 
     type: Literal["escalation_resolved"] = "escalation_resolved"
@@ -424,8 +424,8 @@ class SurfaceError(BaseEvent):
     """
     The surface failed to observe or act.
 
-    :ivar type: Always ``surface_error``.
-    :ivar error: Error text.
+    :ivar type: always ``surface_error``.
+    :ivar error: error text.
     """
 
     type: Literal["surface_error"] = "surface_error"
@@ -441,11 +441,11 @@ class DiscoveryStarted(BaseEvent):
     """
     A discovery run began.
 
-    :ivar type: Always ``discovery_started``.
-    :ivar goal: Natural-language goal.
-    :ivar inputs: Task inputs supplied up front.
-    :ivar model: Model driving discovery.
-    :ivar trace_id: The run's trace in the observability backend.
+    :ivar type: always ``discovery_started``.
+    :ivar goal: natural-language goal.
+    :ivar inputs: task inputs supplied up front.
+    :ivar model: model driving discovery.
+    :ivar trace_id: the run's trace in the observability backend.
     """
 
     type: Literal["discovery_started"] = "discovery_started"
@@ -464,11 +464,11 @@ class AgentAction(BaseEvent):
     """
     The discovery agent chose an action.
 
-    :ivar type: Always ``agent_action``.
-    :ivar turn: Turn number.
-    :ivar action: Action kind.
-    :ivar intent: The agent's stated intent.
-    :ivar target: Text describing the target.
+    :ivar type: always ``agent_action``.
+    :ivar turn: turn number.
+    :ivar action: action kind.
+    :ivar intent: the agent's stated intent.
+    :ivar target: text describing the target.
     """
 
     type: Literal["agent_action"] = "agent_action"
@@ -487,10 +487,10 @@ class InputDeclared(BaseEvent):
     """
     The agent declared a task input.
 
-    :ivar type: Always ``input_declared``.
-    :ivar name: Input name.
-    :ivar value: Value used during discovery.
-    :ivar value_type: Declared value type.
+    :ivar type: always ``input_declared``.
+    :ivar name: input name.
+    :ivar value: value used during discovery.
+    :ivar value_type: declared value type.
     """
 
     type: Literal["input_declared"] = "input_declared"
@@ -508,9 +508,9 @@ class Clarify(BaseEvent):
     """
     The agent asked the operator a question.
 
-    :ivar type: Always ``clarify``.
-    :ivar question: The question asked.
-    :ivar answered: Whether an answer arrived.
+    :ivar type: always ``clarify``.
+    :ivar question: the question asked.
+    :ivar answered: whether an answer arrived.
     """
 
     type: Literal["clarify"] = "clarify"
@@ -527,9 +527,9 @@ class ClarificationAnswered(BaseEvent):
     """
     The operator responded to a clarifying question.
 
-    :ivar type: Always ``clarification_answered``.
-    :ivar question: The question that was asked.
-    :ivar answered: Whether an answer was given (vs. dismissed).
+    :ivar type: always ``clarification_answered``.
+    :ivar question: the question that was asked.
+    :ivar answered: whether an answer was given (vs. dismissed).
     """
 
     type: Literal["clarification_answered"] = "clarification_answered"
@@ -546,10 +546,10 @@ class ExtractionRecorded(BaseEvent):
     """
     The agent recorded an output extraction.
 
-    :ivar type: Always ``extraction_recorded``.
-    :ivar name: Output name.
-    :ivar pattern: Regex recorded for replay.
-    :ivar value: Value it matched during discovery.
+    :ivar type: always ``extraction_recorded``.
+    :ivar name: output name.
+    :ivar pattern: regex recorded for replay.
+    :ivar value: value it matched during discovery.
     """
 
     type: Literal["extraction_recorded"] = "extraction_recorded"
@@ -567,10 +567,10 @@ class GoalComplete(BaseEvent):
     """
     The agent declared the goal reached.
 
-    :ivar type: Always ``goal_complete``.
-    :ivar outputs: Outputs extracted.
-    :ivar inputs: Inputs declared.
-    :ivar turns: Turns taken.
+    :ivar type: always ``goal_complete``.
+    :ivar outputs: outputs extracted.
+    :ivar inputs: inputs declared.
+    :ivar turns: turns taken.
     """
 
     type: Literal["goal_complete"] = "goal_complete"
@@ -588,8 +588,8 @@ class AgentGaveUp(BaseEvent):
     """
     The agent stopped without reaching the goal.
 
-    :ivar type: Always ``agent_gave_up``.
-    :ivar reason: Why it stopped.
+    :ivar type: always ``agent_gave_up``.
+    :ivar reason: why it stopped.
     """
 
     type: Literal["agent_gave_up"] = "agent_gave_up"
@@ -605,10 +605,10 @@ class ArtifactSaved(BaseEvent):
     """
     A capability artifact was written.
 
-    :ivar type: Always ``artifact_saved``.
-    :ivar id: Capability id.
-    :ivar version: Artifact version.
-    :ivar graph_version: Graph version it pins.
+    :ivar type: always ``artifact_saved``.
+    :ivar id: capability id.
+    :ivar version: artifact version.
+    :ivar graph_version: graph version it pins.
     """
 
     type: Literal["artifact_saved"] = "artifact_saved"
@@ -626,13 +626,13 @@ class ReplayStarted(BaseEvent):
     """
     A replay began.
 
-    :ivar type: Always ``replay_started``.
-    :ivar capability: Capability id.
-    :ivar version: Artifact version.
-    :ivar graph_version: Graph version in use.
-    :ivar tenant: Tenant name.
-    :ivar params: Input values (redacted where sensitive).
-    :ivar path: Compiled edge path, if any.
+    :ivar type: always ``replay_started``.
+    :ivar capability: capability id.
+    :ivar version: artifact version.
+    :ivar graph_version: graph version in use.
+    :ivar tenant: tenant name.
+    :ivar params: input values (redacted where sensitive).
+    :ivar path: compiled edge path, if any.
     """
 
     type: Literal["replay_started"] = "replay_started"
@@ -653,14 +653,81 @@ class ReplayFinished(BaseEvent):
     """
     A replay ended.
 
-    :ivar type: Always ``replay_finished``.
-    :ivar status: Result status.
-    :ivar outputs: Outputs extracted, on success.
+    :ivar type: always ``replay_finished``.
+    :ivar status: result status.
+    :ivar outputs: outputs extracted, on success.
     """
 
     type: Literal["replay_finished"] = "replay_finished"
     status: str
     outputs: Optional[Dict[str, str]] = None
+
+
+# #############################################################################
+# NodeArrived
+# #############################################################################
+
+
+class NodeArrived(BaseEvent):
+    """
+    A replay verifiably reached a node; raw material for ``graph learn``.
+
+    :ivar type: always ``node_arrived``.
+    :ivar node: the node reached.
+    :ivar vendor_id: the app.
+    :ivar graph_version: the graph version the run used.
+    :ivar fingerprint: the screen's value-free signatures.
+    :ivar url_path: the normalised address, when known.
+    """
+
+    type: Literal["node_arrived"] = "node_arrived"
+    node: str
+    vendor_id: str
+    graph_version: int
+    fingerprint: List[str]
+    url_path: str = ""
+
+
+# #############################################################################
+# ScreenDrifted
+# #############################################################################
+
+
+class ScreenDrifted(BaseEvent):
+    """
+    A verified arrival no longer looks the way the node was recorded.
+
+    :ivar type: always ``screen_drifted``.
+    :ivar node: the node reached.
+    :ivar views_lost: ``text`` and/or ``structure``.
+    :ivar url_disagrees: the address is not one recorded for the node.
+    """
+
+    type: Literal["screen_drifted"] = "screen_drifted"
+    node: str
+    views_lost: List[str]
+    url_disagrees: bool = False
+
+
+# #############################################################################
+# ControlJudged
+# #############################################################################
+
+
+class ControlJudged(BaseEvent):
+    """
+    The model judge classified a control no policy pattern names.
+
+    :ivar type: always ``control_judged``.
+    :ivar role: the control's role.
+    :ivar name: the control's name.
+    :ivar verdict: ``navigation``, ``commit`` or ``unsure``.
+    """
+
+    type: Literal["control_judged"] = "control_judged"
+    role: str
+    name: str
+    verdict: str
 
 
 # #############################################################################
@@ -675,14 +742,16 @@ class Localized(BaseEvent):
     Emitted by replay when it localizes after a launch, and by discovery
     when the live screen matches a state already mapped for the app.
 
-    :ivar type: Always ``localized``.
-    :ivar node: Node id matched, if any.
-    :ivar window: Window title observed.
+    :ivar type: always ``localized``.
+    :ivar node: node id matched, if any.
+    :ivar window: window title observed.
+    :ivar kind: how sure the match is; see ``localize.Localization``.
     """
 
     type: Literal["localized"] = "localized"
     node: Optional[str] = None
     window: str = ""
+    kind: str = ""
 
 
 # #############################################################################
@@ -694,12 +763,12 @@ class ContextCompacted(BaseEvent):
     """
     A model call had to send less history than usual to fit its budget.
 
-    :ivar type: Always ``context_compacted``.
-    :ivar turn: Discovery turn the call belongs to.
-    :ivar tokens: Tokens of the window that was sent.
-    :ivar limit: The token budget it had to fit.
-    :ivar kept_full_turns: Turns sent with their full screen digest.
-    :ivar dropped_images: Older screenshots left out.
+    :ivar type: always ``context_compacted``.
+    :ivar turn: discovery turn the call belongs to.
+    :ivar tokens: tokens of the window that was sent.
+    :ivar limit: the token budget it had to fit.
+    :ivar kept_full_turns: turns sent with their full screen digest.
+    :ivar dropped_images: older screenshots left out.
     """
 
     type: Literal["context_compacted"] = "context_compacted"
@@ -719,9 +788,9 @@ class PlanProposed(BaseEvent):
     """
     The planner split the goal into subgoals (multi-agent discovery).
 
-    :ivar type: Always ``plan_proposed``.
-    :ivar subgoals:``{id, description, success_criteria}`` per subgoal.
-    :ivar credential_names: Credentials the plan expects, by name.
+    :ivar type: always ``plan_proposed``.
+    :ivar subgoals: ``{id, description, success_criteria}`` per subgoal.
+    :ivar credential_names: credentials the plan expects, by name.
     :ivar attempt: 0 for the first plan, then one per replan.
     """
 
@@ -740,9 +809,9 @@ class SubgoalStarted(BaseEvent):
     """
     The executor moved on to a subgoal.
 
-    :ivar type: Always ``subgoal_started``.
-    :ivar subgoal: The subgoal id.
-    :ivar description: What the subgoal asks for.
+    :ivar type: always ``subgoal_started``.
+    :ivar subgoal: the subgoal id.
+    :ivar description: what the subgoal asks for.
     """
 
     type: Literal["subgoal_started"] = "subgoal_started"
@@ -759,14 +828,14 @@ class VerifierVerdict(BaseEvent):
     """
     A verifier-panel member judged a subgoal.
 
-    :ivar type: Always ``verifier_verdict``.
-    :ivar subgoal: The subgoal id.
-    :ivar passed: Whether it judged the subgoal achieved.
-    :ivar reason: Its one-sentence reason.
-    :ivar reviewer: Which panel member decided.
-    :ivar claim:``subgoal`` (``subgoal_done``) or ``goal``
+    :ivar type: always ``verifier_verdict``.
+    :ivar subgoal: the subgoal id.
+    :ivar passed: whether it judged the subgoal achieved.
+    :ivar reason: its one-sentence reason.
+    :ivar reviewer: which panel member decided.
+    :ivar claim: ``subgoal`` (``subgoal_done``) or ``goal``
         (``goal_complete``).
-    :ivar window: The window title the verdict was made on.
+    :ivar window: the window title the verdict was made on.
     """
 
     type: Literal["verifier_verdict"] = "verifier_verdict"
@@ -787,9 +856,9 @@ class Replanned(BaseEvent):
     """
     The coordinator asked the planner for a new plan.
 
-    :ivar type: Always ``replanned``.
-    :ivar reason: What triggered it (rejections, give-up, stall).
-    :ivar attempt: Which replan this is, from 1.
+    :ivar type: always ``replanned``.
+    :ivar reason: what triggered it (rejections, give-up, stall).
+    :ivar attempt: which replan this is, from 1.
     """
 
     type: Literal["replanned"] = "replanned"
@@ -806,11 +875,11 @@ class CompileReview(BaseEvent):
     """
     An advisory review of the saved recording (never blocks the save).
 
-    :ivar type: Always ``compile_review``.
-    :ivar target: The edge id, or ``schema`` for the input/output
+    :ivar type: always ``compile_review``.
+    :ivar target: the edge id, or ``schema`` for the input/output
         review.
-    :ivar verdict:``ok`` or ``concern``.
-    :ivar note: The reviewer's note.
+    :ivar verdict: ``ok`` or ``concern``.
+    :ivar note: the reviewer's note.
     """
 
     type: Literal["compile_review"] = "compile_review"
@@ -828,9 +897,9 @@ class InjectionSuspected(BaseEvent):
     """
     Screen content addressed the agent or gave it instructions.
 
-    :ivar type: Always ``injection_suspected``.
-    :ivar snippets: The suspicious text, shortened.
-    :ivar window: The window it appeared in.
+    :ivar type: always ``injection_suspected``.
+    :ivar snippets: the suspicious text, shortened.
+    :ivar window: the window it appeared in.
     """
 
     type: Literal["injection_suspected"] = "injection_suspected"
@@ -847,9 +916,9 @@ class MemoryRecalled(BaseEvent):
     """
     Cross-run memory was offered to the agents as advisory hints.
 
-    :ivar type: Always ``memory_recalled``.
-    :ivar plans: Past plans recalled for the planner.
-    :ivar lessons: Lessons recalled for the planner and executor.
+    :ivar type: always ``memory_recalled``.
+    :ivar plans: past plans recalled for the planner.
+    :ivar lessons: lessons recalled for the planner and executor.
     """
 
     type: Literal["memory_recalled"] = "memory_recalled"
@@ -866,10 +935,10 @@ class PathPlanned(BaseEvent):
     """
     Replay planned a path at run time.
 
-    :ivar type: Always ``path_planned``.
-    :ivar path: Ordered edge ids.
-    :ivar start: Start node id.
-    :ivar goal: Goal node id.
+    :ivar type: always ``path_planned``.
+    :ivar path: ordered edge ids.
+    :ivar start: start node id.
+    :ivar goal: goal node id.
     """
 
     type: Literal["path_planned"] = "path_planned"
@@ -887,8 +956,8 @@ class PathCompiledCache(BaseEvent):
     """
     Replay used the compiled path from the artifact.
 
-    :ivar type: Always ``path_compiled_cache``.
-    :ivar path: Ordered edge ids.
+    :ivar type: always ``path_compiled_cache``.
+    :ivar path: ordered edge ids.
     """
 
     type: Literal["path_compiled_cache"] = "path_compiled_cache"
@@ -904,10 +973,10 @@ class TargetResolved(BaseEvent):
     """
     A target stack resolved to a control.
 
-    :ivar type: Always ``target_resolved``.
-    :ivar edge: Edge id.
-    :ivar strategy: Strategy kind that matched.
-    :ivar index: Position of the strategy in the stack.
+    :ivar type: always ``target_resolved``.
+    :ivar edge: edge id.
+    :ivar strategy: strategy kind that matched.
+    :ivar index: position of the strategy in the stack.
     """
 
     type: Literal["target_resolved"] = "target_resolved"
@@ -925,9 +994,9 @@ class ActionPerformed(BaseEvent):
     """
     An edge's action ran on the surface.
 
-    :ivar type: Always ``action_performed``.
-    :ivar edge: Edge id.
-    :ivar kind: Action kind.
+    :ivar type: always ``action_performed``.
+    :ivar edge: edge id.
+    :ivar kind: action kind.
     """
 
     type: Literal["action_performed"] = "action_performed"
@@ -944,10 +1013,10 @@ class OutputsExtracted(BaseEvent):
     """
     Declared outputs were read from the screen.
 
-    :ivar type: Always ``outputs_extracted``.
-    :ivar node: Node they were read at.
-    :ivar outputs: Values found.
-    :ivar missing: Output names no pattern matched.
+    :ivar type: always ``outputs_extracted``.
+    :ivar node: node they were read at.
+    :ivar outputs: values found.
+    :ivar missing: output names no pattern matched.
     """
 
     type: Literal["outputs_extracted"] = "outputs_extracted"
@@ -965,10 +1034,10 @@ class LocatorFailed(BaseEvent):
     """
     No strategy in a target stack resolved.
 
-    :ivar type: Always ``locator_failed``.
-    :ivar edge: Edge id.
-    :ivar tried: Strategies attempted.
-    :ivar screenshot: Screenshot file captured on failure.
+    :ivar type: always ``locator_failed``.
+    :ivar edge: edge id.
+    :ivar tried: strategies attempted.
+    :ivar screenshot: screenshot file captured on failure.
     """
 
     type: Literal["locator_failed"] = "locator_failed"
@@ -986,10 +1055,10 @@ class NodeAssertFailed(BaseEvent):
     """
     The destination node's checks did not hold after an edge.
 
-    :ivar type: Always ``node_assert_failed``.
-    :ivar edge: Edge id.
-    :ivar node: Node whose checks failed.
-    :ivar screenshot: Screenshot file captured on failure.
+    :ivar type: always ``node_assert_failed``.
+    :ivar edge: edge id.
+    :ivar node: node whose checks failed.
+    :ivar screenshot: screenshot file captured on failure.
     """
 
     type: Literal["node_assert_failed"] = "node_assert_failed"
@@ -1007,10 +1076,10 @@ class OutcomeEdgeMatched(BaseEvent):
     """
     An outcome edge's condition held.
 
-    :ivar type: Always ``outcome_edge_matched``.
-    :ivar edge: Edge being replayed.
-    :ivar outcome_edge: Outcome edge that matched.
-    :ivar handle: Handler type.
+    :ivar type: always ``outcome_edge_matched``.
+    :ivar edge: edge being replayed.
+    :ivar outcome_edge: outcome edge that matched.
+    :ivar handle: handler type.
     """
 
     type: Literal["outcome_edge_matched"] = "outcome_edge_matched"
@@ -1028,9 +1097,9 @@ class InterruptFired(BaseEvent):
     """
     A binding edge triggered cross-graph composition.
 
-    :ivar type: Always ``interrupt_fired``.
-    :ivar binding: Outcome edge id.
-    :ivar graph: Graph invoked.
+    :ivar type: always ``interrupt_fired``.
+    :ivar binding: outcome edge id.
+    :ivar graph: graph invoked.
     """
 
     type: Literal["interrupt_fired"] = "interrupt_fired"
@@ -1047,12 +1116,12 @@ class InvokeGraph(BaseEvent):
     """
     Replay invoked another application graph.
 
-    :ivar type: Always ``invoke_graph``.
-    :ivar edge: Invoking edge id.
-    :ivar graph: Graph invoked.
-    :ivar binding: App name the session was retargeted to.
-    :ivar version: Graph version used.
-    :ivar target: Target node inside the callee.
+    :ivar type: always ``invoke_graph``.
+    :ivar edge: invoking edge id.
+    :ivar graph: graph invoked.
+    :ivar binding: app name the session was retargeted to.
+    :ivar version: graph version used.
+    :ivar target: target node inside the callee.
     """
 
     type: Literal["invoke_graph"] = "invoke_graph"
@@ -1072,8 +1141,8 @@ class Retarget(BaseEvent):
     """
     The live session was retargeted to another application.
 
-    :ivar type: Always ``retarget``.
-    :ivar to: Application name.
+    :ivar type: always ``retarget``.
+    :ivar to: application name.
     """
 
     type: Literal["retarget"] = "retarget"
@@ -1089,8 +1158,8 @@ class RetargetBack(BaseEvent):
     """
     The live session returned to the calling application.
 
-    :ivar type: Always ``retarget_back``.
-    :ivar to: Application name.
+    :ivar type: always ``retarget_back``.
+    :ivar to: application name.
     """
 
     type: Literal["retarget_back"] = "retarget_back"
@@ -1106,8 +1175,8 @@ class RecoveryRelogin(BaseEvent):
     """
     The reLogin recovery ran.
 
-    :ivar type: Always ``recovery_relogin``.
-    :ivar edge: Edge that triggered it.
+    :ivar type: always ``recovery_relogin``.
+    :ivar edge: edge that triggered it.
     """
 
     type: Literal["recovery_relogin"] = "recovery_relogin"
@@ -1123,9 +1192,9 @@ class FaultInjected(BaseEvent):
     """
     A test fault was injected into replay.
 
-    :ivar type: Always ``fault_injected``.
-    :ivar edge: Edge the fault applies to.
-    :ivar fault: Fault name.
+    :ivar type: always ``fault_injected``.
+    :ivar edge: edge the fault applies to.
+    :ivar fault: fault name.
     """
 
     type: Literal["fault_injected"] = "fault_injected"
@@ -1142,9 +1211,9 @@ class ScreenshotSaved(BaseEvent):
     """
     A screenshot was written to evidence.
 
-    :ivar type: Always ``screenshot_saved``.
-    :ivar file: File name inside the evidence directory.
-    :ivar label: What the screenshot shows.
+    :ivar type: always ``screenshot_saved``.
+    :ivar file: file name inside the evidence directory.
+    :ivar label: what the screenshot shows.
     """
 
     type: Literal["screenshot_saved"] = "screenshot_saved"
@@ -1161,9 +1230,9 @@ class ScreenshotFailed(BaseEvent):
     """
     A screenshot could not be taken.
 
-    :ivar type: Always ``screenshot_failed``.
-    :ivar label: What the screenshot would have shown.
-    :ivar error: Error text.
+    :ivar type: always ``screenshot_failed``.
+    :ivar label: what the screenshot would have shown.
+    :ivar error: error text.
     """
 
     type: Literal["screenshot_failed"] = "screenshot_failed"
@@ -1180,10 +1249,10 @@ class CaptureStarted(BaseEvent):
     """
     Full UI-activity capture started.
 
-    :ivar type: Always ``capture_started``.
-    :ivar dir: Capture directory.
-    :ivar ok: Whether capture started.
-    :ivar video: Whether screen video is recorded.
+    :ivar type: always ``capture_started``.
+    :ivar dir: capture directory.
+    :ivar ok: whether capture started.
+    :ivar video: whether screen video is recorded.
     """
 
     type: Literal["capture_started"] = "capture_started"
@@ -1201,10 +1270,10 @@ class CaptureSaved(BaseEvent):
     """
     Full UI-activity capture finished.
 
-    :ivar type: Always ``capture_saved``.
-    :ivar dir: Capture directory.
-    :ivar actions: Input actions captured.
-    :ivar video: Video file, or whether one was produced.
+    :ivar type: always ``capture_saved``.
+    :ivar dir: capture directory.
+    :ivar actions: input actions captured.
+    :ivar video: video file, or whether one was produced.
     """
 
     type: Literal["capture_saved"] = "capture_saved"
@@ -1306,6 +1375,9 @@ EventUnion = Annotated[
         ReplayStarted,
         ReplayFinished,
         Localized,
+        ControlJudged,
+        NodeArrived,
+        ScreenDrifted,
         ContextCompacted,
         PlanProposed,
         SubgoalStarted,

@@ -23,6 +23,7 @@ from typing import Dict, List, Optional, Tuple
 import operant.application.gateway.dispatcher as dispat
 import operant.domain.approval as daapprov
 import operant.domain.errors as errors
+import operant.domain.locate as locate
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
 import operant.domain.models.tools as tools
@@ -44,7 +45,7 @@ class GuardedGateway:
     """
     Wrap a dispatcher with the policy gate and scope grants.
 
-    :ivar grants: Human-approved scope widenings for this session;
+    :ivar grants: human-approved scope widenings for this session;
         enforcement stays here, never in the caller.
     """
 
@@ -135,7 +136,19 @@ class GuardedGateway:
             action = dataclasses.replace(
                 action, target_text=self.target_text_for(action.ref)
             )
-        decision = self._evaluate(action)
+        hit = (
+            None
+            if action.ref
+            else locate.control_at(self._last_digest, action.x, action.y)
+        )
+        if hit is not None:
+            # A point click: the control decides. The model's words stay
+            # only as the description of a generic or unnamed control.
+            action = dataclasses.replace(
+                action,
+                target_text=f"{hit.name} | {hit.label} | {action.target_text}",
+            )
+        decision = self._evaluate(action, hit)
         if decision.verdict == "needs_approval":
             decision = self._gate(action, decision, approval)
         self._on_decision(decision, action)
@@ -144,7 +157,11 @@ class GuardedGateway:
         outcome = self._dispatcher.dispatch(action, ctx)
         return outcome
 
-    def _evaluate(self, action: actions.SurfaceAction) -> daapprov.PolicyDecision:
+    def _evaluate(
+        self,
+        action: actions.SurfaceAction,
+        hit: Optional[digest.Control] = None,
+    ) -> daapprov.PolicyDecision:
         """
         Evaluate the action against policy for the current app.
         """
@@ -158,7 +175,7 @@ class GuardedGateway:
             action,
             grants=self.grants,
             digest=self._last_digest,
-            control=self.control_for(action.ref),
+            control=hit or self.control_for(action.ref),
             app=app,
         )
         return decision

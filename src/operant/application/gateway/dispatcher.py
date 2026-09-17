@@ -49,9 +49,9 @@ class DispatchOutcome:
     """
     The result of dispatching an action.
 
-    :ivar tool: The tool that served the action.
-    :ivar attempts: Every attempt made, in order.
-    :ivar digest: Observation for observer actions.
+    :ivar tool: the tool that served the action.
+    :ivar attempts: every attempt made, in order.
+    :ivar digest: observation for observer actions.
     """
 
     tool: str
@@ -75,12 +75,12 @@ class Dispatcher:
     """
     Run an action through its chain with fallback, verify, and learning.
 
-    :ivar registry: Where tools are resolved.
-    :ivar config: The chain configuration.
-    :ivar on_event: Called with each journaled event.
-    :ivar verifiers: Per-action-kind effect verifiers.
-    :ivar learner: Reorders chains and records winners; optional.
-    :ivar signature_of: Builds the learn signature from action and
+    :ivar registry: where tools are resolved.
+    :ivar config: the chain configuration.
+    :ivar on_event: called with each journaled event.
+    :ivar verifiers: per-action-kind effect verifiers.
+    :ivar learner: reorders chains and records winners; optional.
+    :ivar signature_of: builds the learn signature from action and
         digest.
     """
 

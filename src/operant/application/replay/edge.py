@@ -16,6 +16,7 @@ import operant.application.replay.edge as reedge
 
 from __future__ import annotations
 
+import dataclasses
 import time
 from typing import List, Optional
 
@@ -26,7 +27,10 @@ import operant.application.replay.outcomes as outcomes
 import operant.application.replay.values as values
 import operant.domain.errors as errors
 import operant.domain.events as events
+import operant.domain.fingerprint as odfinger
+import operant.domain.graph.drift as ogdrift
 import operant.domain.graph.localize as localize
+import operant.domain.graph.review as review
 import operant.domain.locate as locate
 import operant.domain.models.actions as maaction
 import operant.domain.models.digest as digest
@@ -63,6 +67,7 @@ class EdgeExecutor:
         self._factory = actions.ActionFactory()
         self._budget = outcomes.Budget(left=ctx.opts.recovery_budget)
         self._submitted_mutation = False
+        self._control: Optional[digest.Control] = None
 
     def execute(self) -> None:
         """
@@ -279,6 +284,7 @@ class EdgeExecutor:
         """
         ctx, edge = self._ctx, self._edge
         ctx.log.emit(_resolved_event(edge, resolution))
+        self._control = resolution.control
         ref = resolution.control.ref
         kind = edge.action.kind
         action: maaction.SurfaceAction
@@ -372,6 +378,7 @@ class EdgeExecutor:
         Log the locator failure with a screenshot.
         """
         ctx, edge = self._ctx, self._edge
+        self._note_outcome(passed=False)
         shot = ctx.log.screenshot(ctx.surface, f"locator-failed-{edge.id}")
         ctx.log.emit(_locator_failed_event(edge, resolution, shot))
 
@@ -398,23 +405,49 @@ class EdgeExecutor:
         Perform the action through the approval gate, classifying errors.
         """
         ctx, edge = self._ctx, self._edge
+        reviewable = edge.risk == "unknown"
+        key = review.review_key(edge, self._control)
+        known = (
+            reviewable
+            and ctx.opts.edge_records is not None
+            and ctx.opts.edge_records.is_approved(
+                ctx.graph.vendor_id, ctx.graph.graph_version, key
+            )
+        )
         try:
             gated = approval.perform_gated(
                 ctx.surface,
-                action,
+                dataclasses.replace(
+                    action, gate_unknown=reviewable and not known
+                ),
                 approver=ctx.approver,
                 log=ctx.log,
                 run_id=ctx.log.run_id,
             )
             ctx.deadline += gated.waited_s
             self._submitted_mutation = edge.risk == "mutating" or any(
-                request.kind == "mutating" for request, _ in gated.decisions
+                request.kind in {"mutating", "unknown"}
+                for request, _ in gated.decisions
             )
+            if ctx.opts.edge_records is not None and any(
+                request.kind == "unknown" and decision.approved
+                for request, decision in gated.decisions
+            ):
+                # A person said yes during the run: later replays need not ask.
+                ctx.opts.edge_records.approve(
+                    ctx.graph.vendor_id,
+                    ctx.graph.graph_version,
+                    [key],
+                    by=ctx.log.run_id,
+                )
         except errors.ApprovalDeniedError as denied:
+            unreviewed = denied.request.kind == "unknown" and (
+                denied.decision.by in {"denied-by-default", "timeout"}
+            )
             raise outcomes.fail(
                 ctx,
                 edge,
-                "approval_denied",
+                "unreviewed_step" if unreviewed else "approval_denied",
                 f"human approval for {denied.request.kind}: "
                 f"{denied.request.summary}",
                 f"{denied.decision.by}: "
@@ -454,9 +487,61 @@ class EdgeExecutor:
             max(edge.wait.timeout_ms, ctx.opts.settle_ms) / 1000,
         )
         if not arrived:
+            self._note_outcome(passed=False)
             self._handle_missed_arrival(screen)
         else:
+            self._note_outcome(passed=True)
+            self._note_arrival(screen)
             self._capture_extract_node(edge.to_node, screen)
+
+    def _note_outcome(self, *, passed: bool) -> None:
+        """
+        Count this edge's outcome, so rediscovery can retire a broken one.
+        """
+        ctx, edge = self._ctx, self._edge
+        if ctx.opts.edge_records is not None:
+            ctx.opts.edge_records.record_outcome(
+                ctx.graph.vendor_id,
+                ctx.graph.graph_version,
+                edge.id,
+                passed=passed,
+            )
+
+    def _note_arrival(self, screen: digest.ScreenDigest) -> None:
+        """
+        Report a verified arrival once per node, and any drift it shows.
+
+        A launch is left out: its checks are often only a title, which a
+        look-alike page can share.
+        """
+        ctx, edge = self._ctx, self._edge
+        node = ctx.graph.node(edge.to_node)
+        if edge.action.kind == "launch" or node.id in ctx.arrived:
+            return
+        ctx.arrived.add(node.id)
+        path = odfinger.url_path(screen.url)
+        ctx.log.emit(
+            events.NodeArrived(
+                node=node.id,
+                vendor_id=ctx.graph.vendor_id,
+                graph_version=ctx.graph.graph_version,
+                fingerprint=odfinger.of(screen),
+                url_path=path,
+                summary=f"arrived at {node.id}",
+            )
+        )
+        lost = ogdrift.lost_views(node, screen)
+        wrong_url = bool(path and node.url_paths and path not in node.url_paths)
+        if lost or wrong_url:
+            ctx.drifted.add(node.id)
+            ctx.log.emit(
+                events.ScreenDrifted(
+                    node=node.id,
+                    views_lost=lost,
+                    url_disagrees=wrong_url,
+                    summary=f"{node.id} changed: lost {lost or 'its address'}",
+                )
+            )
 
     def _handle_missed_arrival(self, screen: digest.ScreenDigest) -> None:
         """
@@ -468,7 +553,8 @@ class EdgeExecutor:
         ):
             return
         if edge.action.kind == "launch" and (
-            localize.locate(screen, ctx.graph, ctx.opts.params) is not None
+            localize.locate(screen, ctx.graph, ctx.opts.params).node_id
+            is not None
         ):
             # A live session can send the entry URL to any page it knows
             # (e.g. straight past a login): the caller re-localizes from it.

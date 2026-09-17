@@ -97,17 +97,22 @@ def test_localize_matches_by_checks(localize: types.ModuleType) -> None:
         nodes=[node("login", "Welcome"), node("overview", "Accounts Overview")],
     )
     assert (
-        localize.locate(digest("ParaBank | Accounts Overview - Chrome"), g)
+        localize.locate(
+            digest("ParaBank | Accounts Overview - Chrome"), g
+        ).node_id
         == "overview"
     )
-    assert localize.locate(digest("ParaBank | Welcome - Chrome"), g) == "login"
+    assert (
+        localize.locate(digest("ParaBank | Welcome - Chrome"), g).node_id
+        == "login"
+    )
 
 
 def test_localize_returns_none_when_no_node_matches(
     localize: types.ModuleType,
 ) -> None:
     g = mggraph.AppGraph(vendor_id="v", nodes=[node("login", "Welcome")])
-    assert localize.locate(digest("Totally Different Page"), g) is None
+    assert localize.locate(digest("Totally Different Page"), g).kind == "unknown"
 
 
 def test_localize_prefers_most_specific_node(
@@ -122,7 +127,7 @@ def test_localize_prefers_most_specific_node(
     g = mggraph.AppGraph(vendor_id="v", nodes=[generic, specific])
     # Both match, but the 2-check node wins.
     assert (
-        localize.locate(digest("ParaBank | Account Activity - Chrome"), g)
+        localize.locate(digest("ParaBank | Account Activity - Chrome"), g).node_id
         == "detail"
     )
 
@@ -249,7 +254,8 @@ def test_merge_backfills_fingerprint_onto_older_shared_node() -> None:
     graph, changed, node_remap, _ = merge.merge_recording(
         base, "parabank", fp_nodes, [edge("l2", "login2", "overview2")], []
     )
-    assert changed is True  # backfill is a graph change -> new version
+    # A backfill is a graph change, so it gets a new version.
+    assert changed is True
     assert node_remap["login2"] == "login"
     login = next(n for n in graph.nodes if n.id == "login")
     assert login.fingerprint == ["button|log in||form>button"]

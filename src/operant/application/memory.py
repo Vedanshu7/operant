@@ -51,8 +51,8 @@ class Recalled:
     """
     What memory offers the agents for one goal.
 
-    :ivar plans: The best past plans for similar goals.
-    :ivar lessons: The most relevant lessons from this app.
+    :ivar plans: the best past plans for similar goals.
+    :ivar lessons: the most relevant lessons from this app.
     """
 
     plans: Tuple[mdmemory.PlanMemory, ...] = ()
@@ -100,11 +100,11 @@ class AgentMemory:
 
         Reads only: recalling an item is not evidence that it works.
 
-        :param vendor_id: The app; recall never crosses apps.
-        :param goal: The goal being planned.
-        :param graph_version: The app graph version in use; items learned
+        :param vendor_id: the app; recall never crosses apps.
+        :param goal: the goal being planned.
+        :param graph_version: the app graph version in use; items learned
             on another version rank lower.
-        :return: Ranked plans and relevant lessons.
+        :return: ranked plans and relevant lessons.
         """
         key = mdmemory.goal_key(goal)
         plans = [
@@ -148,11 +148,11 @@ class AgentMemory:
         """
         Remember a plan whose run finished verified.
 
-        :param vendor_id: The app.
-        :param goal: The goal it achieved.
-        :param plan: The plan (names only by construction).
-        :param safe: The run's redact-then-scrub function.
-        :param graph_version: The app graph version it ran on.
+        :param vendor_id: the app.
+        :param goal: the goal it achieved.
+        :param plan: the plan (names only by construction).
+        :param safe: the run's redact-then-scrub function.
+        :param graph_version: the app graph version it ran on.
         """
         self._store.save_plan(
             vendor_id,
@@ -161,6 +161,42 @@ class AgentMemory:
             mdmemory.mask_numbers(safe(plan.model_dump_json())),
             graph_version=graph_version,
         )
+
+    def record_steps(
+        self,
+        vendor_id: str,
+        goal: str,
+        steps: collections.abc.Sequence[str],
+        *,
+        safe: collections.abc.Callable[[str], str],
+        graph_version: int = 0,
+    ) -> None:
+        """
+        Remember the steps of a single-agent run that reached its goal.
+
+        A single agent has no planner, so its plan is the steps it took.
+        Step text is written by the model from the screen, so it is
+        cleaned like any other free text.
+
+        :param vendor_id: the app.
+        :param goal: the goal it achieved.
+        :param steps: what each recorded step did, in order.
+        :param safe: the run's redact-then-scrub function.
+        :param graph_version: the app graph version it ran on.
+        """
+        cleaned = [text for text in (_clean(s, safe) for s in steps) if text]
+        if cleaned:
+            subgoals = [
+                mdplan.Subgoal(id=f"s{i}", description=text, success_criteria="")
+                for i, text in enumerate(cleaned, start=1)
+            ]
+            self.record_plan(
+                vendor_id,
+                goal,
+                mdplan.Plan(subgoals=subgoals),
+                safe=safe,
+                graph_version=graph_version,
+            )
 
     def record_failure(
         self, plans: collections.abc.Sequence[mdmemory.PlanMemory]
@@ -184,13 +220,13 @@ class AgentMemory:
         """
         Remember a subgoal the panel kept rejecting, and what got past it.
 
-        :param vendor_id: The app.
-        :param goal: The goal it happened on.
-        :param rejection: The subgoal and the kind of failure.
-        :param worked: What got the subgoal verified; ``""`` when the
+        :param vendor_id: the app.
+        :param goal: the goal it happened on.
+        :param rejection: the subgoal and the kind of failure.
+        :param worked: what got the subgoal verified; ``""`` when the
             run failed on it.
-        :param safe: The run's redact-then-scrub function.
-        :param graph_version: The app graph version it ran on.
+        :param safe: the run's redact-then-scrub function.
+        :param graph_version: the app graph version it ran on.
         """
         subgoal = _clean(rejection.subgoal, safe)
         self._store.save_lesson(
@@ -216,12 +252,12 @@ class AgentMemory:
         """
         Remember what a person said when they helped a stuck run.
 
-        :param vendor_id: The app.
-        :param goal: The goal it happened on.
-        :param subgoal: The subgoal the run was stuck on.
-        :param note: The person's note.
-        :param safe: The run's redact-then-scrub function.
-        :param graph_version: The app graph version it ran on.
+        :param vendor_id: the app.
+        :param goal: the goal it happened on.
+        :param subgoal: the subgoal the run was stuck on.
+        :param note: the person's note.
+        :param safe: the run's redact-then-scrub function.
+        :param graph_version: the app graph version it ran on.
         """
         cleaned = _clean(note, safe)
         if cleaned:
@@ -257,7 +293,7 @@ class AgentMemory:
         """
         Delete an app's plans, lessons, or both.
 
-        :return:``(plans removed, lessons removed)``.
+        :return: ``(plans removed, lessons removed)``.
         """
         plan_ids = (
             [p.id for p in self._store.plans(vendor_id)]
@@ -276,7 +312,7 @@ class AgentMemory:
         """
         Delete an app's failing or stale plans and long-unreinforced lessons.
 
-        :return:``(plans removed, lessons removed)``.
+        :return: ``(plans removed, lessons removed)``.
         """
         plan_ids = [p.id for p in self._store.plans(vendor_id) if not _usable(p)]
         lesson_ids = [
@@ -304,11 +340,11 @@ def summary(
     Plans and lessons are keyed by vendor id; learned tools and remedies
     by the OS app that ran the action, so a filter matches either.
 
-    :param memory: Plans and lessons.
-    :param learned: The tool learner's counts by signature.
-    :param remedies: Remedies by ``situation||error`` key.
-    :param app: Only this vendor or OS app, when given.
-    :return:``{"plans", "lessons", "tools", "remedies"}`` lists.
+    :param memory: plans and lessons.
+    :param learned: the tool learner's counts by signature.
+    :param remedies: remedies by ``situation||error`` key.
+    :param app: only this vendor or OS app, when given.
+    :return: ``{"plans", "lessons", "tools", "remedies"}`` lists.
     """
     vendors = [v for v in memory.vendors() if app is None or v == app]
     view: Dict[str, Any] = {
@@ -383,9 +419,7 @@ def _age(iso: str) -> float:
         then = datetime.datetime.fromisoformat(iso)
         if then.tzinfo is None:
             then = then.replace(tzinfo=datetime.timezone.utc)
-        age = (
-            datetime.datetime.now(datetime.timezone.utc) - then
-        ).total_seconds()
+        age = (time.utc_now() - then).total_seconds()
     except ValueError:
         age = float("inf")
     return age

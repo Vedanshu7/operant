@@ -48,8 +48,8 @@ class Database:
     """
     An open database with a session factory.
 
-    :ivar engine: The SQLAlchemy engine.
-    :ivar url: The URL the engine was created from.
+    :ivar engine: the SQLAlchemy engine.
+    :ivar url: the URL the engine was created from.
     """
 
     engine: sqlalchemy.Engine
@@ -117,6 +117,9 @@ def _enable_foreign_keys(engine: sqlalchemy.Engine) -> None:
 
     @sqlalchemy.event.listens_for(engine, "connect")
     def _on_connect(connection: object, _record: object) -> None:
+        """
+        Set the SQLite pragmas on each new connection.
+        """
         cursor = connection.cursor()  # type: ignore[attr-defined]
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.execute("PRAGMA journal_mode=WAL")

@@ -75,10 +75,10 @@ def traced_prompt(
     """
     Render a call's messages as role/content pairs safe to trace.
 
-    :param messages: The messages sent to the model.
-    :param redact: Masks the run's known secret and sensitive values.
-    :param scrubber: Masks personal data, when one is configured.
-    :return: One ``{"role", "content"}`` dict per message.
+    :param messages: the messages sent to the model.
+    :param redact: masks the run's known secret and sensitive values.
+    :param scrubber: masks personal data, when one is configured.
+    :return: one ``{"role", "content"}`` dict per message.
     """
     rendered: List[Dict[str, str]] = []
     for message in messages:
@@ -106,8 +106,8 @@ def turn_output(turn: llm.LlmTurn) -> str:
     """
     Render a model turn's tool calls (and any text) as traced output.
 
-    :param turn: The model's answer.
-    :return: The answer as one string.
+    :param turn: the model's answer.
+    :return: the answer as one string.
     """
     calls = [f"{call.name}({call.arguments})" for call in turn.tool_calls]
     output = "\n".join(chunk for chunk in (turn.content, *calls) if chunk)

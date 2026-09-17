@@ -28,9 +28,9 @@ def system_prompt(session: loop.DiscoverySession, role: str) -> str:
     """
     Return the role's system prompt, honoring a per-run override.
 
-    :param session: The discovery session.
-    :param role: The role name, e.g. ``planner``.
-    :return: The prompt text.
+    :param session: the discovery session.
+    :param role: the role name, e.g. ``planner``.
+    :return: the prompt text.
     """
     text = session.cfg.prompt_overrides.get(role, daprompt.PROMPTS[role])
     return text
@@ -47,14 +47,14 @@ def ask(
     """
     Ask ``role`` once and return the arguments of its tool call.
 
-    :param session: The discovery session (for the model and tracing).
-    :param role: Which role answers.
-    :param text: The user message.
-    :param turn: The executor turn this call belongs to.
-    :param traced_text: What to trace instead of ``text``, when ``text``
+    :param session: the discovery session (for the model and tracing).
+    :param role: which role answers.
+    :param text: the user message.
+    :param turn: the executor turn this call belongs to.
+    :param traced_text: what to trace instead of ``text``, when ``text``
         itself is not safe to leave the process (the extract helper
         reads the raw screen, like the executor).
-    :return: The parsed tool arguments, or ``None`` when the model
+    :return: the parsed tool arguments, or ``None`` when the model
         failed or answered without the expected tool.
     """
     tools = daprompt.TOOLS[role]

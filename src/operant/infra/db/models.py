@@ -347,6 +347,9 @@ class StabilitySampleRow(Base):
     at: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
         sqlalchemy.String(40), nullable=False
     )
+    closed: sqlalchemy.orm.Mapped[bool] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Boolean, nullable=False, default=False, server_default="0"
+    )
 
 
 # #############################################################################
@@ -536,4 +539,68 @@ class LessonRow(Base):
     )
     graph_version: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
         sqlalchemy.Integer, nullable=False, default=0, server_default="0"
+    )
+
+
+# #############################################################################
+# EdgeApprovalRow
+# #############################################################################
+
+
+class EdgeApprovalRow(Base):
+    """
+    A person's review of one unknown step on one graph version.
+    """
+
+    __tablename__ = "edge_approvals"
+
+    vendor_id: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(128), primary_key=True
+    )
+    graph_version: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, primary_key=True
+    )
+    edge_id: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(128), primary_key=True
+    )
+    role: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(64), primary_key=True
+    )
+    name: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(128), primary_key=True
+    )
+    approved_by: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(128), nullable=False
+    )
+    approved_at: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(40), nullable=False
+    )
+
+
+# #############################################################################
+# EdgeOutcomeRow
+# #############################################################################
+
+
+class EdgeOutcomeRow(Base):
+    """
+    How often one edge worked on one graph version.
+    """
+
+    __tablename__ = "edge_outcomes"
+
+    vendor_id: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(128), primary_key=True
+    )
+    graph_version: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, primary_key=True
+    )
+    edge_id: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.String(128), primary_key=True
+    )
+    passes: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, nullable=False, default=0
+    )
+    failures: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.Integer, nullable=False, default=0
     )

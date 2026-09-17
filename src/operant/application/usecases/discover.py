@@ -30,6 +30,7 @@ import operant.infra.db.engine as engine
 import operant.infra.db.migrate as migrate
 import operant.infra.repositories.memory as rmmemory
 import operant.infra.repositories.remediations as rgremed
+import operant.infra.repositories.runs as rrruns
 import operant.infra.settings as issettin
 import operant.ports.hitl as hitl
 import operant.ports.llm as plllm
@@ -48,18 +49,21 @@ class DiscoverRequest:
     """
     One discovery invocation.
 
-    :ivar goal: The natural-language goal.
-    :ivar capability_id: Id to save the capability under.
-    :ivar name: Human-readable name; defaults to the id.
-    :ivar profile_id: App profile to use; ``None`` selects bootstrap
+    :ivar goal: the natural-language goal.
+    :ivar capability_id: id to save the capability under.
+    :ivar name: human-readable name; defaults to the id.
+    :ivar profile_id: app profile to use; ``None`` selects bootstrap
         mode.
-    :ivar tenant: Tenant to run against.
-    :ivar inputs: Optional pre-seeded task inputs.
-    :ivar screenshots: Whether to send the model screenshots.
-    :ivar max_turns: Override the turn budget; ``None`` uses the
+    :ivar tenant: tenant to run against.
+    :ivar inputs: optional pre-seeded task inputs.
+    :ivar screenshots: whether to send the model screenshots.
+    :ivar max_turns: override the turn budget; ``None`` uses the
         configured default.
-    :ivar agents: Override ``single``/``multi``; ``None`` uses the
+    :ivar agents: override ``single``/``multi``; ``None`` uses the
         configured default.
+    :ivar seed_capability: a capability to rediscover: the run starts
+        from its pinned graph and goal, and may retire edges that keep
+        failing.
     """
 
     goal: str
@@ -71,6 +75,7 @@ class DiscoverRequest:
     screenshots: bool = True
     max_turns: Optional[int] = None
     agents: Optional[str] = None
+    seed_capability: Optional[str] = None
 
 
 # #############################################################################
@@ -83,9 +88,9 @@ class DiscoverOutcome:
     """
     A committed discovery.
 
-    :ivar capability: The saved capability.
-    :ivar graph: The graph version it pins.
-    :ivar profile_path: Where the effective profile was written.
+    :ivar capability: the saved capability.
+    :ivar graph: the graph version it pins.
+    :ivar profile_path: where the effective profile was written.
     """
 
     capability: artifact.CapabilityArtifact
@@ -103,14 +108,14 @@ class ModelWiring:
     """
     The models a discovery run talks to, and where their calls are traced.
 
-    :ivar llm: The executor's client.
-    :ivar model_name: The executor's model id, for provenance.
-    :ivar token_counter: Counts prompt tokens for the executor's model;
+    :ivar llm: the executor's client.
+    :ivar model_name: the executor's model id, for provenance.
+    :ivar token_counter: counts prompt tokens for the executor's model;
         an estimate is used when ``None``.
-    :ivar tracer: Where model calls are traced; none when ``None``.
-    :ivar scrubber: Masks personal data in traced text.
-    :ivar role_llms: Clients for the multi-agent roles, by role name.
-    :ivar role_models: Model ids for those roles, for tracing.
+    :ivar tracer: where model calls are traced; none when ``None``.
+    :ivar scrubber: masks personal data in traced text.
+    :ivar role_llms: clients for the multi-agent roles, by role name.
+    :ivar role_models: model ids for those roles, for tracing.
     """
 
     llm: plllm.LlmClient
@@ -145,28 +150,32 @@ def execute_discovery(
     """
     Run discovery, commit the recording, and persist the profile.
 
-    :param request: What to discover.
-    :param factory: Builds the run context.
-    :param artifacts: Capability storage.
-    :param graphs: Graph storage.
-    :param profiles: Profile storage (also the discovery base).
-    :param models: The models the run talks to.
-    :param secret_store: Where secret references resolve.
-    :param clarifier: Answers the agent's clarifying question, if any.
-    :param approver: Answers approvals.
-    :param credential_requester: Asks a person for a credential.
-    :param run_identifier: Fixes the run id and evidence directory; the
+    :param request: what to discover.
+    :param factory: builds the run context.
+    :param artifacts: capability storage.
+    :param graphs: graph storage.
+    :param profiles: profile storage (also the discovery base).
+    :param models: the models the run talks to.
+    :param secret_store: where secret references resolve.
+    :param clarifier: answers the agent's clarifying question, if any.
+    :param approver: answers approvals.
+    :param credential_requester: asks a person for a credential.
+    :param run_identifier: fixes the run id and evidence directory; the
         server passes the id it tracks the run under.
-    :param should_stop: Polled between turns; true cancels the run.
-    :param on_context: Called with the wired context before the run
+    :param should_stop: polled between turns; true cancels the run.
+    :param on_context: called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
-    :return: A committed outcome, or a typed failure.
+    :return: a committed outcome, or a typed failure.
     """
-    base = (
-        profiles.get(request.profile_id)
-        if request.profile_id
-        else profiles.discovery_base()
+    seed = (
+        artifacts.get(request.seed_capability)
+        if request.seed_capability
+        else None
     )
+    profile_id = request.profile_id or (
+        seed.policy_scope.policy_id if seed is not None else None
+    )
+    base = profiles.get(profile_id) if profile_id else profiles.discovery_base()
     tenant = request.tenant or base.default_tenant
     context = factory.build(
         "discovery", base, approver=approver, run_identifier=run_identifier
@@ -181,17 +190,14 @@ def execute_discovery(
             inputs=dict(request.inputs or {}),
             profile=base,
             tenant=tenant,
-            bootstrap=request.profile_id is None,
+            bootstrap=profile_id is None,
             max_turns=request.max_turns or context.settings.discovery.max_turns,
             screenshots=request.screenshots,
             clarifier=clarifier,
             approver=context.approver,
             credential_requester=credential_requester,
-            known_graph=(
-                graphs.get(base.vendor_id)
-                if request.profile_id and graphs.exists(base.vendor_id)
-                else None
-            ),
+            known_graph=_known_graph(graphs, seed, base.vendor_id, profile_id),
+            seed_goal_node=seed.goal_node if seed is not None else None,
             agents=request.agents or context.settings.discovery.agents,
         )
         deps = loop.DiscoveryDeps(
@@ -232,7 +238,16 @@ def execute_discovery(
         outcome = result
     else:
         outcome = _commit(
-            result, artifacts, graphs, profiles, bootstrap=cfg.bootstrap
+            result,
+            artifacts,
+            graphs,
+            profiles,
+            bootstrap=cfg.bootstrap,
+            retire=(
+                _begin_rediscovery(context.settings, seed)
+                if seed is not None
+                else frozenset()
+            ),
         )
     return outcome
 
@@ -251,6 +266,54 @@ def _team_budget(config_: issettin.DiscoverySettings) -> dsteam.TeamBudget:
         compile_review=config_.compile_review,
     )
     return budget
+
+
+def _known_graph(
+    graphs: prepos.GraphRepository,
+    seed: Optional[artifact.CapabilityArtifact],
+    vendor_id: str,
+    profile_id: Optional[str],
+) -> Optional[dmgraph.AppGraph]:
+    """
+    Pick the graph a run recognises screens against.
+
+    The newest graph knows the most. A rediscovery falls back to the
+    capability's pinned graph only when the newest has lost its goal.
+    """
+    if seed is not None:
+        newest = graphs.get(seed.vendor_id)
+        known = {node.id for node in newest.nodes}
+        return (
+            newest
+            if seed.goal_node in known
+            else graphs.get(seed.vendor_id, seed.graph_version)
+        )
+    if profile_id and graphs.exists(vendor_id):
+        return graphs.get(vendor_id)
+    return None
+
+
+def _begin_rediscovery(
+    settings: issettin.OperantSettings, seed: artifact.CapabilityArtifact
+) -> collections.abc.Set[str]:
+    """
+    Start a rebuilt capability's track record, and find edges it may retire.
+
+    Replays of the old path say nothing about the new one.
+
+    :param settings: where the database lives.
+    :param seed: the capability being rebuilt.
+    :return: the edges that keep failing.
+    """
+    database = engine.Database.open(settings.paths.db_path)
+    try:
+        migrate.upgrade(database)
+        runs = rrruns.SqlRunRepository(database)
+        runs.close_samples(seed.id)
+        failing = runs.edge_records.failing(seed.vendor_id)
+    finally:
+        database.close()
+    return failing
 
 
 def _memory(
@@ -275,6 +338,7 @@ def _commit(
     profiles: prepos.ProfileRepository,
     *,
     bootstrap: bool,
+    retire: collections.abc.Set[str] = frozenset(),
 ) -> DiscoverOutcome:
     """
     Commit the discovery result, rebranding a colliding bootstrap run.
@@ -291,7 +355,7 @@ def _commit(
         recording = _rebrand_recording(recording, document.vendor_id, generic)
         document = _rebrand_profile(document, generic)
     capability, merged = capab.commit_recording(
-        recording, graph_store=graphs, artifact_store=artifacts
+        recording, graph_store=graphs, artifact_store=artifacts, retire=retire
     )
     profile_path = profiles.save(document)
     outcome = DiscoverOutcome(

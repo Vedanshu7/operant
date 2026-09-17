@@ -108,7 +108,7 @@ class RemediationMemory:
         """
         Delete every remedy recorded on ``app``.
 
-        :return: How many were removed.
+        :return: how many were removed.
         """
         doomed = [k for k in self._remedies if gllearne.belongs_to(k, app)]
         for key in doomed:

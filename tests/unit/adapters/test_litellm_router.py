@@ -1,7 +1,8 @@
 """
-Router-config tests: roles map to model groups, missing groups fall back
-to the executor, and a bad file is a config error - all offline, via
-litellm's mock responses.
+Router-config tests, offline via litellm's mock responses.
+
+Roles map to model groups, missing groups fall back to the executor, and
+a bad file is a config error.
 """
 
 from __future__ import annotations
@@ -85,6 +86,7 @@ def test_without_a_router_roles_use_the_per_role_models() -> None:
         "extract": "m-review",
         "critic": "m-review",
         "schema": "m-review",
+        "gate": "m-review",
     }
 
 

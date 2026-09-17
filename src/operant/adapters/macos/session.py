@@ -45,8 +45,8 @@ PERSON_ACTIVE = (
     "rather than act under them"
 )
 _CF_UTF8 = 0x08000100
-# kCGEventSourceStateHIDSystemState counts physical input only, never the
-# events this process posts; kCGAnyInputEventType is every input type.
+# `kCGEventSourceStateHIDSystemState` counts physical input only, never the
+# events this process posts; `kCGAnyInputEventType` is every input type.
 _HID_SYSTEM_STATE = 1
 _ANY_INPUT_EVENT = 0xFFFFFFFF
 # A person counts as done once the mouse and keyboard rest this long.
@@ -58,6 +58,15 @@ _WINDOW_POLL_S = 0.4
 _RAISE_SETTLE_S = 0.4
 _WINDOW_TIMEOUT_S = 5.0
 _SNAPSHOT_TIMEOUT_S = 3.0
+_URL_TIMEOUT_S = 1.0
+# Timeouts in a row before a slow app stops being asked for its address.
+_URL_MAX_TIMEOUTS = 3
+# AppleScript's error when macOS has not granted Automation.
+_NOT_AUTHORIZED = "-1743"
+# Browsers that answer AppleScript for their address; others report none.
+_TAB_URL_APPS = frozenset(
+    {"google chrome", "chromium", "arc", "brave browser", "microsoft edge"}
+)
 # Bringing the app forward: polls of the frontmost app, and the helpers'
 # own time limit.
 _FOREGROUND_TRIES = 10
@@ -80,12 +89,12 @@ class WindowSession:
     """
     Bind to one app window and serves the tools acting on it.
 
-    :ivar app_name: Application currently bound.
-    :ivar window_title_pattern: Pattern the bound window's title must
+    :ivar app_name: application currently bound.
+    :ivar window_title_pattern: pattern the bound window's title must
         match.
-    :ivar fault_injection: How to knock over the app's backend, when
+    :ivar fault_injection: how to knock over the app's backend, when
         configured.
-    :ivar refs: Ephemeral control handles from the last observation.
+    :ivar refs: ephemeral control handles from the last observation.
     """
 
     def __init__(
@@ -102,6 +111,8 @@ class WindowSession:
         self._pid: Optional[int] = None
         self._capture_stop: Optional[threading.Event] = None
         self._capture_thread: Optional[threading.Thread] = None
+        self._url_refused = False
+        self._url_timeouts = 0
 
     def bind_pid(self, pid: int) -> None:
         """
@@ -120,11 +131,11 @@ class WindowSession:
         """
         Point the session at a different application window.
 
-        :param app_name: The app to bind next.
-        :param window_title_pattern: Its window title pattern.
-        :return: The previous ``(app_name, pattern)`` so the caller can
+        :param app_name: the app to bind next.
+        :param window_title_pattern: its window title pattern.
+        :return: the previous ``(app_name, pattern)`` so the caller can
             restore it after a nested graph completes.
-        :raises errors.DriverError: If ``app_name`` is empty.
+        :raises errors.DriverError: if ``app_name`` is empty.
         """
         if not app_name:
             raise errors.DriverError("Retarget needs a non-empty app name")
@@ -132,6 +143,8 @@ class WindowSession:
         self.app_name = app_name
         self.window_title_pattern = window_title_pattern
         self._app = None
+        self._url_refused = False
+        self._url_timeouts = 0
         self._pid = None
         self.refs.clear()
         return previous
@@ -146,7 +159,7 @@ class WindowSession:
         whatever window is in front (in bootstrap discovery, the
         operator console itself) and mistake it for the target.
 
-        :raises RuntimeError: If no target has been launched or bound.
+        :raises RuntimeError: if no target has been launched or bound.
         """
         if self._app is None:
             if self._pid is not None:
@@ -166,7 +179,7 @@ class WindowSession:
         """
         Resolve the bound window, re-selecting a backgrounded tab.
 
-        :raises TimeoutError: If no matching window appears in time.
+        :raises TimeoutError: if no matching window appears in time.
         """
         if screen_locked():
             # Nothing is reachable; searching would only walk a hollow tree.
@@ -196,7 +209,7 @@ class WindowSession:
         close, so another app's tab (a cross-app capability may switch
         back to it) is left alone.
 
-        :return: How many tabs were closed.
+        :return: how many tabs were closed.
         """
         pattern = re.compile(self.window_title_pattern, re.IGNORECASE)
         closed = 0
@@ -221,11 +234,49 @@ class WindowSession:
             self._app = None
         return closed
 
+    def page_url(self, window_title: str) -> Optional[str]:
+        """
+        Return the address of the bound window, when the app reports one.
+
+        macOS exposes no address through the accessibility tree that
+        ``xa11y`` reads, so a browser is asked with AppleScript. AppleScript
+        finds an app by name, and that can be the person's own browser
+        rather than Operant's, so the window is matched by title. A page
+        sets its own title, so the title is passed as an argument and never
+        becomes part of the script.
+
+        :param window_title: the bound window's accessibility title.
+        :return: the address; ``None`` without an answer.
+        """
+        lines = _url_script(self.app_name)
+        if lines is None or self._url_refused:
+            return None
+        page = window_title.split(f" - {self.app_name}", 1)[0]
+        command = ["osascript"]
+        for line in lines:
+            command += ["-e", line]
+        try:
+            done = subprocess.run(
+                [*command, "--", page],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=_URL_TIMEOUT_S,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            self._url_timeouts += 1
+            self._url_refused = self._url_timeouts >= _URL_MAX_TIMEOUTS
+            return None
+        self._url_timeouts = 0
+        self._url_refused = _NOT_AUTHORIZED in done.stderr
+        url = done.stdout.strip() if done.returncode == 0 else ""
+        return url or None
+
     def element_for(self, ref: str) -> xa11y.Element:
         """
         Return the element behind a control ref from the last observe.
 
-        :raises errors.DriverError: If the ref is stale or unknown.
+        :raises errors.DriverError: if the ref is stale or unknown.
         """
         element = self.refs.get(ref)
         if element is None:
@@ -242,7 +293,7 @@ class WindowSession:
         pointing or types into what they are typing in, so the run waits
         until the input rests.
 
-        :raises errors.DriverError: With ``PERSON_ACTIVE`` if the person
+        :raises errors.DriverError: with ``PERSON_ACTIVE`` if the person
             is still active after the wait.
         """
         deadline = time.monotonic() + _PERSON_WAIT_S
@@ -274,7 +325,7 @@ class WindowSession:
         picks (usually the user's), and a name-only check would still
         pass while input landed in the wrong window.
 
-        :raises errors.DriverError: If the app never reaches the
+        :raises errors.DriverError: if the app never reaches the
             foreground.
         """
         if not self._foreground_target():
@@ -288,11 +339,11 @@ class WindowSession:
         image - the caller logs it; a silent gap here once left every
         discovery run blind without a trace.
 
-        :return:``True`` when an image landed at ``path``.
-        :raises RuntimeError: With both failure reasons when capture
+        :return: ``True`` when an image landed at ``path``.
+        :raises RuntimeError: with both failure reasons when capture
             failed.
         """
-        # xa11y.screenshot grabs the pixels under the window's bounds, so
+        # `xa11y.screenshot` grabs the pixels under the window's bounds, so
         # the bound window must be ON TOP or an occluding window (the
         # user's own Chrome, same app name) is captured instead. This is
         # true for every run - generic or profile, browser or native -
@@ -343,8 +394,8 @@ class WindowSession:
 
         A real infrastructure event, used by the session-expiry demo.
 
-        :raises RuntimeError: If fault injection is not configured.
-        :raises TimeoutError: If the backend never comes back healthy.
+        :raises RuntimeError: if fault injection is not configured.
+        :raises TimeoutError: if the backend never comes back healthy.
         """
         fault = self.fault_injection
         if fault is None:
@@ -486,6 +537,31 @@ class WindowSession:
             raise errors.DriverError(
                 f"xa11y: {primary}; mss fallback: {fallback}"
             ) from fallback
+
+
+def _url_script(app_name: str) -> Optional[Tuple[str, ...]]:
+    """
+    Return the AppleScript lines that read a titled window's address, if any.
+
+    The app name is one of this module's known browsers, never page
+    text.
+    """
+    name = app_name.lower()
+    target: Optional[str] = None
+    if name in _TAB_URL_APPS:
+        # Chromium family: the address belongs to the window's active tab.
+        target = "URL of active tab of (first window whose title is page)"
+    elif name == "safari":
+        # Safari: the address belongs to the document.
+        target = "URL of (first document whose name is page)"
+    if target is None:
+        return None
+    return (
+        "on run argv",
+        "set page to item 1 of argv",
+        f'tell application "{app_name}" to return {target}',
+        "end run",
+    )
 
 
 def screen_locked() -> bool:

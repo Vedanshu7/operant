@@ -29,19 +29,29 @@ import operant.helpers.logging as logging
 import operant.infra.settings as issettin
 
 _COMMAND_MODULES: Final[Tuple[str, ...]] = (
+    # Check the environment, permissions and tools.
     "doctor",
+    # Start the operator web server (API and UI).
     "serve",
+    # Start the macOS driver daemon that performs the actions.
     "serve_driver",
+    # Run the LLM on a goal and save a capability.
     "discover",
+    # Replay a saved capability with no LLM.
     "replay",
+    # List, approve, invoke and canary capabilities.
     "catalog",
+    # Check invariants over artifacts, graphs and evidence.
     "audit",
+    # Inspect the versioned app graphs.
     "graph",
+    # Prune stored run evidence.
     "evidence",
+    # List or forget what runs taught the agents.
     "memory",
-    "drive",
-    "capture",
+    # Bring data and the database up to the current layout.
     "migrate",
+    # Start or stop the Docker containers.
     "up",
 )
 
@@ -82,15 +92,10 @@ def version() -> None:
 
 def _register_commands() -> None:
     """
-    Import each available command module and register it on ``app``.
+    Import each command module and register it on ``app``.
     """
     for name in _COMMAND_MODULES:
-        try:
-            module = importlib.import_module(f"operant.cli.commands.{name}")
-        except ModuleNotFoundError as missing:
-            if missing.name != f"operant.cli.commands.{name}":
-                raise
-            continue
+        module = importlib.import_module(f"operant.cli.commands.{name}")
         module.register(app)
 
 
@@ -98,7 +103,6 @@ def main() -> None:
     """
     Console-script entry point.
     """
-    _register_commands()
     app()
 
 

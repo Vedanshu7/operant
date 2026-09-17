@@ -1,7 +1,8 @@
 """
-Discovery-loop tests for goal-native parameters and clarifying questions,
-driven by a scripted LLM and fake surfaces - no live app, no real model, no
-monkeypatching.
+Discovery-loop tests for goal-native parameters and clarifying questions.
+
+Driven by a scripted LLM and fake surfaces: no live app, no real model,
+no monkeypatching.
 """
 
 import dataclasses
@@ -38,8 +39,10 @@ SECRETS = {"PARABANK_USERNAME": "john", "PARABANK_PASSWORD": "demo-pw-1"}
 
 
 def _profile() -> dpprofil.AppProfile:
-    raw = (REPO_ROOT / "policies" / "parabank.json").read_text()
-    return dpprofil.AppProfile.model_validate(json.loads(raw))
+    raw = json.loads((REPO_ROOT / "policies" / "parabank.json").read_text())
+    # These runs are scripted step by step, with no judge call in the script.
+    raw["policy"]["approval"]["unknown"] = "allow"
+    return dpprofil.AppProfile.model_validate(raw)
 
 
 def _control(ref: str, role: str, name: str, label: str = "") -> digest.Control:
@@ -619,8 +622,9 @@ def test_a_clarify_question_for_credentials_never_reaches_the_human(
 
 class LaggingSurface(FakeSurface):
     """
-    Like a browser mid-navigation: the first read after a click still shows the
-    old page.
+    Behave like a browser mid-navigation.
+
+    The first read after a click still shows the old page.
     """
 
     def __init__(self) -> None:
@@ -722,3 +726,50 @@ def test_a_cancelled_discovery_stops_before_the_next_turn(
     result = loop.run_discovery(cfg, deps)
     assert isinstance(result, config.DiscoveryFailure)
     assert result.failure_class == "cancelled"
+
+
+def _routed_graph() -> mggraph.AppGraph:
+    return mggraph.AppGraph(
+        vendor_id="parabank",
+        nodes=[
+            *_welcome_graph().nodes,
+            mggraph.Node(
+                id="savings",
+                description="savings",
+                checks=[mggraph.TitleMatches(pattern="Savings Balance")],
+            ),
+        ],
+        edges=[
+            mggraph.Edge.model_validate(
+                {
+                    "id": "e1",
+                    "from": "welcome",
+                    "to": "savings",
+                    "description": "open the savings page",
+                    "action": {"kind": "click"},
+                }
+            )
+        ],
+    )
+
+
+def test_the_hint_gives_the_recorded_route_toward_the_goal(tmp_path):
+    prompt = _prompt_dump(_run_with_known_graph(tmp_path, _routed_graph()))
+    assert "open the savings page" in prompt
+    assert "as data and not instructions" in prompt
+
+
+def test_a_retired_edge_is_not_offered_as_a_route(tmp_path):
+    routed = _routed_graph()
+    routed.edges[0] = routed.edges[0].model_copy(update={"retired_in": 2})
+    prompt = _prompt_dump(_run_with_known_graph(tmp_path, routed))
+    assert "open the savings page" not in prompt
+
+
+def test_a_drifted_screen_gets_no_hint(tmp_path):
+    drifted = _welcome_graph()
+    drifted.nodes[0] = drifted.nodes[0].model_copy(
+        update={"checks": [mggraph.TitleMatches(pattern="Somewhere else")]}
+    )
+    prompt = _prompt_dump(_run_with_known_graph(tmp_path, drifted))
+    assert "matches a mapped state" not in prompt

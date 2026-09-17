@@ -119,9 +119,9 @@ class FileArtifactRepository:
         The previous flat file, if any, counts toward the version number
         so a migrated artifact continues from where it left off.
 
-        :param artifact: The artifact to store; ``version`` is
+        :param artifact: the artifact to store; ``version`` is
             overwritten.
-        :return: The stored artifact with its version set.
+        :return: the stored artifact with its version set.
         """
         legacy_version = 0
         legacy = self._legacy_path(artifact.id)

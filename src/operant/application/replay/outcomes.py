@@ -44,7 +44,7 @@ class Budget:
     """
     The recover/escalate allowance left for one edge execution.
 
-    :ivar left: Remaining outcome-edge recoveries before the run hard-
+    :ivar left: remaining outcome-edge recoveries before the run hard-
         fails.
     """
 
@@ -57,10 +57,10 @@ def poll_node(
     """
     Poll until the node's checks hold or the timeout lapses.
 
-    :param ctx: The active replay context.
-    :param node_id: Node whose checks must hold.
-    :param timeout_s: How long to poll before giving up.
-    :return:``(arrived, last screen digest)``.
+    :param ctx: the active replay context.
+    :param node_id: node whose checks must hold.
+    :param timeout_s: how long to poll before giving up.
+    :return: ``(arrived, last screen digest)``.
     """
     node = ctx.graph.node(node_id)
     checks = [
@@ -88,13 +88,13 @@ def fail(
     """
     Build a classified failure and the ``Finished`` that ends the run.
 
-    :param ctx: The active replay context.
-    :param edge: The edge that failed, or ``None`` for a run-level
+    :param ctx: the active replay context.
+    :param edge: the edge that failed, or ``None`` for a run-level
         failure.
-    :param failure_class: Closed failure vocabulary entry.
-    :param expected: What replay expected.
-    :param observed: What replay observed instead.
-    :return: A ``Finished`` carrying the ``FailureResult``; raise it.
+    :param failure_class: closed failure vocabulary entry.
+    :param expected: what replay expected.
+    :param observed: what replay observed instead.
+    :return: a ``Finished`` carrying the ``FailureResult``; raise it.
     """
     at_edge = edge.id if edge else "run"
     shot = ctx.log.screenshot(ctx.surface, f"failure-{at_edge}")
@@ -141,10 +141,10 @@ def escalate(
     On a hand-back the run continues and the real intervention id is
     recorded for the escalated result; on abandonment the run ends.
 
-    :param ctx: The active replay context.
-    :param edge: The edge in trouble, or ``None`` for a run-level
+    :param ctx: the active replay context.
+    :param edge: the edge in trouble, or ``None`` for a run-level
         escalation.
-    :param reason: Why a human is needed.
+    :param reason: why a human is needed.
     """
     at = edge.id if edge else "run"
     shot = ctx.log.screenshot(ctx.surface, f"escalation-{at}")
@@ -198,7 +198,7 @@ def scan_interrupts(ctx: context.ReplayContext) -> None:
     Each binding fires at most once per run; a terminal nested result
     bubbles via ``Finished``.
 
-    :param ctx: The active replay context.
+    :param ctx: the active replay context.
     """
     bindings = [
         o
@@ -245,17 +245,17 @@ def consult_outcome_edges(
     """
     Apply the first outcome edge matching at ``node_id``, if any.
 
-    :param ctx: The active replay context.
-    :param edge: The edge being executed.
-    :param screen: The digest to test detectors against.
-    :param node_id: The node the run is considered at.
-    :param retry: Re-runs the blocked edge from the resumed state.
-    :param budget: The recovery allowance for this edge.
-    :param run_edge: Runs one safe prefix edge (used by re-login
+    :param ctx: the active replay context.
+    :param edge: the edge being executed.
+    :param screen: the digest to test detectors against.
+    :param node_id: the node the run is considered at.
+    :param retry: re-runs the blocked edge from the resumed state.
+    :param budget: the recovery allowance for this edge.
+    :param run_edge: runs one safe prefix edge (used by re-login
         recovery).
-    :param allow_recovery: Whether recovery is permitted on this
+    :param allow_recovery: whether recovery is permitted on this
         attempt.
-    :return:``True`` when an outcome edge was matched and handled.
+    :return: ``True`` when an outcome edge was matched and handled.
     """
     matched = outcomes.match_outcome_edges(
         ctx.graph.outcome_edges, node_id, screen
@@ -278,12 +278,12 @@ def handle_outcome_edge(
     """
     Apply a matched outcome edge; returns to continue, raises to end.
 
-    :param ctx: The active replay context.
-    :param edge: The edge being executed.
-    :param matched: The outcome edge whose condition held.
-    :param retry: Re-runs the blocked edge from the resumed state.
-    :param budget: The recovery allowance for this edge.
-    :param run_edge: Runs one safe prefix edge (used by re-login
+    :param ctx: the active replay context.
+    :param edge: the edge being executed.
+    :param matched: the outcome edge whose condition held.
+    :param retry: re-runs the blocked edge from the resumed state.
+    :param budget: the recovery allowance for this edge.
+    :param run_edge: runs one safe prefix edge (used by re-login
         recovery).
     """
     handle = matched.handle
@@ -423,6 +423,6 @@ def _handle_recover(
     for prior in ctx.path:
         if prior.id == edge.id:
             break
-        if prior.risk == "safe":
+        if prior.risk != "mutating":
             run_edge(prior)
     retry()

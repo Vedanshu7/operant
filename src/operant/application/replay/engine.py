@@ -33,6 +33,7 @@ import operant.domain.events as events
 import operant.domain.fingerprint as odfinger
 import operant.domain.graph.localize as localize
 import operant.domain.graph.pathfind as pathfind
+import operant.domain.locate as locate
 import operant.domain.models.artifact as artifact
 import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
@@ -69,20 +70,20 @@ def replay_path(
     """
     Execute a chosen edge path and reports a typed result.
 
-    :param capability: The capability being replayed.
-    :param app_graph: The graph version it pins.
-    :param path: The compiled edge path to run.
-    :param surface: The actuation surface.
-    :param broker: Control broker for hand-offs.
-    :param log: Evidence sink.
-    :param redactor: Masks sensitive values in evidence.
-    :param opts: Inputs, tenant, and timing.
-    :param invoke_graph: Cross-graph composition hook.
-    :param depth: Composition depth of this run.
-    :param approver: Who answers approvals; denies all when ``None``.
-    :param secret_store: Where secret references resolve; env by
+    :param capability: the capability being replayed.
+    :param app_graph: the graph version it pins.
+    :param path: the compiled edge path to run.
+    :param surface: the actuation surface.
+    :param broker: control broker for hand-offs.
+    :param log: evidence sink.
+    :param redactor: masks sensitive values in evidence.
+    :param opts: inputs, tenant, and timing.
+    :param invoke_graph: cross-graph composition hook.
+    :param depth: composition depth of this run.
+    :param approver: who answers approvals; denies all when ``None``.
+    :param secret_store: where secret references resolve; env by
         default.
-    :return: A success, business-outcome, escalated, or failure result.
+    :return: a success, business-outcome, escalated, or failure result.
     """
     precondition = _check_inputs(capability, opts, log, redactor)
     if precondition is not None:
@@ -128,6 +129,9 @@ def _run(
     """
 
     def run_edge(edge: graph.Edge, *, allow_recovery: bool = True) -> None:
+        """
+        Execute one edge, stopping if the operator cancelled.
+        """
         if ctx.opts.should_stop():
             # The operator cancelled: stop before acting on the screen.
             raise context.Finished(
@@ -178,20 +182,27 @@ def _resume_from_launch(
         run_edge(path[0])
         remaining = path[1:]
         screen = ctx.surface.snapshot()
-        current = localize.locate(screen, ctx.graph, ctx.opts.params)
+        found_at = localize.locate(
+            screen, ctx.graph, ctx.opts.params, expected=path[0].to_node
+        )
+        current = found_at.node_id
         ctx.log.emit(
             events.Localized(
                 node=current,
                 window=screen.window_title,
-                summary=f"post-launch localized at node {current!r}",
+                kind=found_at.kind,
+                summary=(
+                    f"post-launch localized at node {current!r} ({found_at.kind})"
+                ),
             )
         )
         if current is None or current == path[0].to_node:
-            # Logged out or at the recorded start: run the rest as-is.
-            resumed = remaining
+            # At the start, or unsure: run the rest, unless it cannot begin.
+            resumed = _skip_ahead(ctx, screen, remaining) or remaining
         elif current == ctx.capability.goal_node:
             # Content matches the goal: resolve whether nav remains.
-            resumed = _at_or_toward_goal(ctx, screen)
+            plan = _at_or_toward_goal(ctx, screen)
+            resumed = remaining if plan is None else plan
         else:
             # Somewhere past the start: replan a route to the goal.
             found = pathfind.shortest_path(
@@ -205,6 +216,9 @@ def _resume_from_launch(
                 # its own checks fail), first click the link that reaches
                 # it, then replay the replanned edges.
                 hop = _arrival_hop(ctx, screen, current)
+                if found_at.kind == "drifted" and hop is None:
+                    # It only looks like that node, with no way across.
+                    return remaining
                 found = ([hop] if hop is not None else []) + found
                 ctx.log.emit(
                     events.PathPlanned(
@@ -226,9 +240,81 @@ _CLICKABLE = frozenset({"button", "link", "menu_item", "menuitem"})
 _UNESCAPE = re.compile(r"\\(.)")
 
 
+def _can_begin(
+    ctx: context.ReplayContext, screen: digest.ScreenDigest, edge: graph.Edge
+) -> bool:
+    """
+    Report whether the control an edge acts on is on the screen.
+    """
+    if edge.target is None:
+        return True
+    strategies = params.substitute_strategies(
+        edge.target.strategies, ctx.opts.params
+    )
+    return isinstance(
+        locate.resolve_target(strategies, screen), locate.Resolution
+    )
+
+
+def _names_only(
+    ctx: context.ReplayContext, hop: graph.Edge, node: graph.Node
+) -> bool:
+    """
+    Report whether a link's name belongs to this node's title alone.
+
+    An app's name sits in every page title, so its logo link says
+    nothing about where it leads.
+    """
+    name = odfinger.normalize(hop.description)
+    others = (n for n in ctx.graph.nodes if n.id != node.id)
+    return not any(name in _goal_title(other) for other in others)
+
+
+def _skip_ahead(
+    ctx: context.ReplayContext,
+    screen: digest.ScreenDigest,
+    remaining: List[graph.Edge],
+) -> Optional[List[graph.Edge]]:
+    """
+    Replan when the screen cannot be where the recorded path continues.
+
+    Two states can look alike down to their fingerprints, such as a home
+    page before and after login. What tells them apart is whether the
+    next step's control is there. If not, the run is already further
+    along, so click the live link to the furthest step of the path that
+    the screen names.
+
+    :param ctx: the active replay context.
+    :param screen: the screen after the launch.
+    :param remaining: the recorded edges after the launch.
+    :return: the new plan; ``None`` when the path can begin, or when
+        nothing on screen leads further along it.
+    """
+    if not remaining or _can_begin(ctx, screen, remaining[0]):
+        return None
+    for index in range(len(remaining) - 1, -1, -1):
+        node = ctx.graph.node(remaining[index].to_node)
+        hop = _affordance_toward(ctx, screen, node)
+        if hop is not None and _names_only(ctx, hop, node):
+            plan = [hop, *remaining[index + 1 :]]
+            ctx.log.emit(
+                events.PathPlanned(
+                    path=[edge.id for edge in plan],
+                    start=node.id,
+                    goal=ctx.capability.goal_node,
+                    summary=(
+                        f"the next step is not on screen; skipping ahead via "
+                        f'"{hop.description}"'
+                    ),
+                )
+            )
+            return plan
+    return None
+
+
 def _at_or_toward_goal(
     ctx: context.ReplayContext, screen: digest.ScreenDigest
-) -> List[graph.Edge]:
+) -> Optional[List[graph.Edge]]:
     """
     Resolve a content match against the goal node into a plan.
 
@@ -238,12 +324,13 @@ def _at_or_toward_goal(
     we are truly there and nothing remains; otherwise we are adjacent -
     on a look-alike that carries a live link named after the goal - so we
     click that link to actually arrive, then the goal assertion runs.
+    ``None`` when nothing on screen leads there.
     """
     goal_node = ctx.graph.node(ctx.capability.goal_node)
     checks = [
         params.substitute_condition(c, ctx.opts.params) for c in goal_node.checks
     ]
-    plan: List[graph.Edge]
+    plan: Optional[List[graph.Edge]]
     if dooutcom.on_node(checks, screen):
         # Goal checks hold: we are truly there, nothing remains.
         plan = []
@@ -251,8 +338,8 @@ def _at_or_toward_goal(
         # A look-alike adjacent to the goal: find a link toward it.
         nav = _affordance_toward(ctx, screen, goal_node)
         if nav is None:
-            # Nothing names the goal: treat as already arrived.
-            plan = []
+            # Nothing names the goal: the page only looks like it.
+            plan = None
         else:
             # Found the link: plan a single click onto it.
             ctx.log.emit(
@@ -377,7 +464,9 @@ def _finish(ctx: context.ReplayContext) -> results.ReplayResult:
         )
     )
     result = results.SuccessResult(
-        outputs=ctx.outputs, evidence_dir=str(ctx.log.dir)
+        outputs=ctx.outputs,
+        evidence_dir=str(ctx.log.dir),
+        drifted=sorted(ctx.drifted),
     )
     return result
 
@@ -399,7 +488,7 @@ def _extract_declared(
         raise outcomes.fail(
             ctx,
             None,
-            "node_assert_failed",
+            "extraction_missing",
             f"screen at extract_at_node {capability.extract_at_node}",
             "extraction node was never reached on this path",
         )
@@ -426,7 +515,7 @@ def _extract_declared(
         raise outcomes.fail(
             ctx,
             None,
-            "node_assert_failed",
+            "extraction_missing",
             f"extractable outputs: {missing}",
             "declared outputs not present at the extraction node",
         )

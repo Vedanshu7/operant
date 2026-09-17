@@ -29,7 +29,7 @@ class FileProfileRepository:
     """
     Implements ``operant.ports.repositories.ProfileRepository`` on disk.
 
-    :ivar root: The policies directory.
+    :ivar root: the policies directory.
     """
 
     def __init__(self, root: pathlib.Path, discovery_base: pathlib.Path) -> None:

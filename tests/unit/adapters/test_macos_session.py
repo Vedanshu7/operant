@@ -1,10 +1,12 @@
 """
-Browser-tab housekeeping in the macOS window session, with fake a11y
-elements - no browser needed.
+Browser-tab housekeeping in the macOS window session.
+
+Use fake a11y elements, so no browser is needed.
 """
 
 from __future__ import annotations
 
+import types
 from typing import List, Optional
 
 import pytest
@@ -154,3 +156,91 @@ def test_a_person_who_keeps_working_stops_the_run(
 
 def test_person_input_time_is_read_from_the_os() -> None:
     assert amsessio.seconds_since_person_input() >= 0
+
+
+@pytest.mark.parametrize(
+    "app, expected",
+    [
+        ("Google Chrome", "URL of active tab of (first window"),
+        ("Safari", "URL of (first document"),
+        ("Firefox", None),
+        ("Notes", None),
+    ],
+)
+def test_only_browsers_that_answer_are_asked_for_their_address(
+    app: str, expected: Optional[str]
+) -> None:
+    script = amsessio._url_script(app)
+    if expected is None:
+        assert script is None
+    else:
+        assert script is not None and expected in " ".join(script)
+
+
+def _osascript(monkeypatch, **reply: object) -> List[List[str]]:
+    calls: List[List[str]] = []
+
+    def run(command: List[str], **kwargs: object) -> object:
+        calls.append(command)
+        fields = {"returncode": 0, "stdout": "", "stderr": "", **reply}
+        return types.SimpleNamespace(**fields)
+
+    monkeypatch.setattr(amsessio.subprocess, "run", run)
+    return calls
+
+
+def test_a_hostile_title_stays_an_argument(monkeypatch) -> None:
+    calls = _osascript(monkeypatch, stdout="https://a.test/page\n")
+    hostile = 'x" & (do shell script "rm") & " - Google Chrome'
+    session = amsessio.WindowSession("Google Chrome", "Bank")
+    assert session.page_url(hostile) == "https://a.test/page"
+    assert calls[0][-2:] == ["--", 'x" & (do shell script "rm") & "']
+    assert "do shell script" not in " ".join(calls[0][:-1])
+
+
+def test_the_app_suffix_and_profile_name_are_removed(monkeypatch) -> None:
+    calls = _osascript(monkeypatch)
+    session = amsessio.WindowSession("Google Chrome", "Bank")
+    session.page_url("Bank - Home - Google Chrome - Work")
+    assert calls[0][-1] == "Bank - Home"
+
+
+def test_a_refused_address_is_not_asked_for_again(monkeypatch) -> None:
+    calls = _osascript(monkeypatch, returncode=1, stderr="Not authorized (-1743)")
+    session = amsessio.WindowSession("Google Chrome", "Bank")
+    assert session.page_url("Bank") is None
+    assert session.page_url("Bank") is None
+    assert len(calls) == 1
+
+
+def test_a_missing_window_is_asked_again(monkeypatch) -> None:
+    calls = _osascript(
+        monkeypatch, returncode=1, stderr="Can't get window (-1728)"
+    )
+    session = amsessio.WindowSession("Google Chrome", "Bank")
+    assert session.page_url("Bank") is None
+    assert session.page_url("Bank") is None
+    assert len(calls) == 2
+
+
+def test_a_slow_app_stops_being_asked(monkeypatch) -> None:
+    calls: List[object] = []
+
+    def slow(*args: object, **kwargs: object) -> object:
+        calls.append(args)
+        raise amsessio.subprocess.TimeoutExpired("osascript", 1.0)
+
+    monkeypatch.setattr(amsessio.subprocess, "run", slow)
+    session = amsessio.WindowSession("Google Chrome", "Bank")
+    for _ in range(5):
+        assert session.page_url("Bank") is None
+    assert len(calls) == amsessio._URL_MAX_TIMEOUTS
+
+
+def test_retargeting_asks_again(monkeypatch) -> None:
+    calls = _osascript(monkeypatch, returncode=1, stderr="(-1743)")
+    session = amsessio.WindowSession("Google Chrome", "Bank")
+    session.page_url("Bank")
+    session.retarget("Safari", "Bank")
+    session.page_url("Bank")
+    assert len(calls) == 2

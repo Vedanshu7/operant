@@ -23,17 +23,16 @@ import operant.domain.models.artifact as artifact
 @dataclasses.dataclass(frozen=True)
 class StabilityGate:
     """
-    Minimum evidence before a capability can be approved, and when it loses
-    that approval.
+    The evidence a capability needs to gain and keep approval.
 
     Judged over the most recent replays only: a lifetime count kept a
     capability with many old successes approved through a run of
     failures after the application's UI changed.
 
-    :ivar min_runs: Replays required before approval is possible.
-    :ivar min_success_rate: Required ratio of successful replays.
-    :ivar window: How many recent replays the gate judges.
-    :ivar max_consecutive_failures: Failed replays in a row that
+    :ivar min_runs: replays required before approval is possible.
+    :ivar min_success_rate: required ratio of successful replays.
+    :ivar window: how many recent replays the gate judges.
+    :ivar max_consecutive_failures: failed replays in a row that
         degrade an approved capability.
     """
 
@@ -46,8 +45,8 @@ class StabilityGate:
         """
         Report whether the track record should revoke an approval.
 
-        :param stability: The recent track record.
-        :return:``True`` after too many failed replays in a row.
+        :param stability: the recent track record.
+        :return: ``True`` after too many failed replays in a row.
         """
         degraded = stability.consecutive_failures >= self.max_consecutive_failures
         return degraded
@@ -56,10 +55,10 @@ class StabilityGate:
         """
         Report whether the recorded replays satisfy the gate.
 
-        :param runs: Total replays recorded.
-        :param successes: Replays that ended in success or a business
+        :param runs: total replays recorded.
+        :param successes: replays that ended in success or a business
             outcome.
-        :return:``True`` when both thresholds are met.
+        :return: ``True`` when both thresholds are met.
         """
         if runs < self.min_runs:
             ok = False

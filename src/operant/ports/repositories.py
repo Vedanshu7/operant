@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import collections.abc
 import pathlib
-from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Optional, Protocol, Tuple, runtime_checkable
 
 import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as graph
@@ -69,7 +69,7 @@ class ArtifactRepository(Protocol):
         """
         Store ``document`` as the next version of its id.
 
-        :return: The stored artifact with ``version`` assigned.
+        :return: the stored artifact with ``version`` assigned.
         """
         ...
 
@@ -119,7 +119,7 @@ class GraphRepository(Protocol):
         """
         Store ``document`` as the next version of its vendor.
 
-        :return: The stored graph with ``graph_version`` and timestamps
+        :return: the stored graph with ``graph_version`` and timestamps
             set.
         """
         ...
@@ -133,8 +133,7 @@ class GraphRepository(Protocol):
 @runtime_checkable
 class ProfileRepository(Protocol):
     """
-    Application profiles, and the deny-by-default profile discovery starts
-    from.
+    Store application profiles and the deny-by-default discovery profile.
     """
 
     def exists(self, profile_id: str) -> bool:
@@ -267,7 +266,15 @@ class RunRepository(Protocol):
         """
         Add one replay to a capability's track record.
 
-        :return: The updated track record.
+        :return: the updated track record.
+        """
+        ...
+
+    def close_samples(self, capability_id: str) -> None:
+        """
+        Stop counting a capability's replays so far.
+
+        Used when it moves to another graph: they ran on something else.
         """
         ...
 
@@ -277,14 +284,62 @@ class RunRepository(Protocol):
         """
         Return the capability's recent track record (zeroes when none).
 
-        :param capability_id: The capability to report on.
-        :param window: How many of the most recent replays to count.
+        :param capability_id: the capability to report on.
+        :param window: how many of the most recent replays to count.
         """
         ...
 
     def audit(self, entry: runs.AuditEntry) -> None:
         """
         Append one line to the governance audit trail.
+        """
+        ...
+
+
+# #############################################################################
+# EdgeRecordRepository
+# #############################################################################
+
+
+@runtime_checkable
+class EdgeRecordRepository(Protocol):
+    """
+    What is known about a graph version's edges: people's reviews of its
+    unknown steps, and how often each edge worked.
+    """
+
+    def is_approved(
+        self, vendor_id: str, graph_version: int, key: Tuple[str, str, str]
+    ) -> bool:
+        """
+        Report whether a person reviewed this step on this graph version.
+        """
+        ...
+
+    def approve(
+        self,
+        vendor_id: str,
+        graph_version: int,
+        keys: collections.abc.Sequence[Tuple[str, str, str]],
+        *,
+        by: str,
+    ) -> None:
+        """
+        Record that a person reviewed these steps.
+        """
+        ...
+
+    def record_outcome(
+        self, vendor_id: str, graph_version: int, edge_id: str, *, passed: bool
+    ) -> None:
+        """
+        Count one run of an edge.
+        """
+        ...
+
+    def failing(self, vendor_id: str) -> collections.abc.Set[str]:
+        """
+        Return edges that failed at least twice on a version and never passed.
         """
         ...
 

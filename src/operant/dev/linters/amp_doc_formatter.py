@@ -220,6 +220,19 @@ class _DocFormatter(liaction.Action):
                 updated_lines.append(line)
         hio.to_file(file_name, "\n".join(updated_lines))
 
+    @staticmethod
+    def _restore_field_spaces(file_name: str) -> None:
+        """
+        Restore the space that docformatter drops before a backticked value.
+
+        :param file_name: file to process
+        """
+        contents = hio.from_file(file_name)
+        pattern = r"^(\s*:(?:param [*\w]+|return|ivar \w+|raises? [\w.]+):)(?=\S)"
+        updated = re.sub(pattern, r"\1 ", contents, flags=re.MULTILINE)
+        if updated != contents:
+            hio.to_file(file_name, updated)
+
     def _execute(self, file_name: str, pedantic: int) -> List[str]:
         """
         Run docformatter on file.
@@ -247,6 +260,7 @@ class _DocFormatter(liaction.Action):
         cmd = f"{self._executable} {opts} {file_name}"
         output: List[str] = []
         _, output = liutils.tee(cmd, self._executable, abort_on_error=False)
+        self._restore_field_spaces(file_name)
         # Restore ignored docstrings and code.
         self._restore_ignored_docstrings(file_name, _ignored_docstrings)
         if _removed_code:

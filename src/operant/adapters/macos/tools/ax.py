@@ -54,7 +54,7 @@ class AxActionTool:
         self, action: actions.SurfaceAction, ctx: tools.ExecutionContext
     ) -> tools.ToolResult:
         """
-        Press or fills the resolved target element.
+        Press or fill the resolved target element.
         """
         element: xa11y.Element = ctx.target
         if element is None:
@@ -128,7 +128,7 @@ class AxSelectTool:
             option = action.option or ""
             try:
                 if self._set_value(element, option):
-                    # Direct set_value took.
+                    # The direct `set_value` took.
                     result = tools.ToolResult(status="ok", verified=False)
                 else:
                     # Otherwise open the popup and pick the option.
@@ -184,8 +184,10 @@ class AxSelectTool:
         want = option.strip().lower()
         contains: List[Optional[xa11y.Element]] = [None]
 
-        # Depth-first search for the matching option element.
         def walk(element: xa11y.Element, depth: int) -> Optional[xa11y.Element]:
+            """
+            Search depth-first for the matching option element.
+            """
             if depth > 14:
                 return None
             if element.role in self._OPTION_ROLES:

@@ -131,7 +131,7 @@ class AppleScriptKeysTool:
         self, action: actions.SurfaceAction, ctx: tools.ExecutionContext
     ) -> tools.ToolResult:
         """
-        Press a named key, or focuses and types a value.
+        Press a named key, or focus and type a value.
         """
         result = None
         try:
@@ -370,7 +370,7 @@ class SystemEventsPressTool:
         self, action: actions.SurfaceAction, ctx: tools.ExecutionContext
     ) -> tools.ToolResult:
         """
-        Focus the target and performs AXPress through System Events.
+        Focus the target and perform AXPress through System Events.
         """
         element: xa11y.Element = ctx.target
         if element is None:
@@ -403,7 +403,7 @@ class SystemEventsPressTool:
                         check=False,
                     )
                     if done.returncode != 0:
-                        # osascript failed.
+                        # The `osascript` command failed.
                         result = tools.ToolResult(
                             status="failed",
                             reason=f"osascript: {done.stderr.strip()[:120]}",

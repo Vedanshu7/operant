@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import types
 from typing import List, Tuple
 
 import operant.application.approval as approval
@@ -167,7 +168,8 @@ def test_already_logged_in_skips_the_login_step(tmp_path: pathlib.Path) -> None:
     result, surface = _run(tmp_path, ParabankSurface(logged_in=True))
     assert result.status == "success", result
     kinds = [a.kind for a in surface.performed]
-    assert kinds == ["launch"]  # the login click was skipped
+    # The login click was skipped.
+    assert kinds == ["launch"]
 
 
 def test_logged_out_runs_the_full_login(tmp_path: pathlib.Path) -> None:
@@ -242,8 +244,9 @@ ADJ_EDGES = [
 
 class LandingSurface(surfaces.GatedFakeSurface):
     """
-    Launch lands on a logged-in menu page that is not the goal page; clicking
-    "Accounts Overview" navigates to the real account page.
+    Launch lands on a logged-in menu page that is not the goal page.
+
+    Clicking "Accounts Overview" navigates to the real account page.
     """
 
     def __init__(self) -> None:
@@ -261,7 +264,8 @@ class LandingSurface(surfaces.GatedFakeSurface):
             )
         return digest.ScreenDigest(
             app=self.app,
-            window_title="Welcome",  # logged-in index keeps the index title
+            # The logged-in index keeps the index title.
+            window_title="Welcome",
             text="Welcome",
             controls=MENU,
         )
@@ -299,7 +303,7 @@ def test_adjacent_landing_navigates_to_goal_via_menu_link(
     )
     assert result.status == "success", result
     kinds = [a.kind for a in surface.performed]
-    # launch, then the menu-link click - never the recorded login click.
+    # Expect the launch and the menu-link click, never the recorded login click.
     assert kinds == ["launch", "click"]
     assert surface.performed[-1].ref == "Accounts Overview"
 
@@ -456,3 +460,71 @@ def test_a_launch_landing_on_another_known_page_resumes_there(
     )
     assert result.status == "success", result
     assert [a.kind for a in surface.performed] == ["launch"]
+
+
+def test_a_home_page_that_passes_as_the_start_skips_ahead(
+    tmp_path: pathlib.Path,
+) -> None:
+    # Fingerprints cannot separate them: the login node holds the whole menu.
+    lookalike = [
+        (
+            node.model_copy(update={"fingerprint": _fp(LOGIN + MENU)})
+            if node.id == "login"
+            else node
+        )
+        for node in DEEP_NODES
+    ]
+    app_graph = graph.AppGraph(
+        vendor_id="parabank", nodes=lookalike, edges=DEEP_EDGES
+    )
+    cap = capab.capability(
+        vendor_id="parabank",
+        start_node="login",
+        goal_node="activity",
+        compiled_path=["e1", "e2", "e3"],
+    )
+    surface = DeepLandingSurface()
+    result = engine.replay_path(
+        cap,
+        app_graph,
+        DEEP_EDGES,
+        surface,
+        ports.quiet_broker(),
+        run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False),
+        redact.Redactor(),
+        timing.fast_replay_options(tenant="t", params={"accountId": "13344"}),
+        approver=approval.ScriptedApprover([]),
+    )
+    assert result.status == "success", result
+    assert [a.ref for a in surface.performed if a.kind == "click"] == [
+        "Accounts Overview",
+        "13344",
+    ]
+
+
+def test_a_brand_link_is_not_a_way_forward(tmp_path: pathlib.Path) -> None:
+    brand = _control("link", "ParaBank", "content>logo>link")
+    branded = [
+        node.model_copy(
+            update={
+                "checks": [graph.TitleMatches(pattern=f"ParaBank {node.id}")],
+                "description": node.id,
+            }
+        )
+        for node in DEEP_NODES
+    ]
+    ctx = types.SimpleNamespace(
+        graph=graph.AppGraph(
+            vendor_id="parabank", nodes=branded, edges=DEEP_EDGES
+        )
+    )
+    hop = capab.edge(
+        {
+            "id": "resume-nav",
+            "from": "activity",
+            "to": "activity",
+            "description": brand.name,
+            "action": {"kind": "click"},
+        }
+    )
+    assert not engine._names_only(ctx, hop, ctx.graph.node("activity"))

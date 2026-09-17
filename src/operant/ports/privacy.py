@@ -1,6 +1,7 @@
 """
-The PII-scrubbing port: mask personal data in free text before it leaves the
-process or is stored.
+The PII-scrubbing port.
+
+Mask personal data in free text before it leaves the process or is stored.
 
 Import as:
 
@@ -26,7 +27,7 @@ class TextScrubber(Protocol):
         """
         Mask every personal-data entity found in ``text``.
 
-        :param text: Free text, e.g. a rendered screen digest.
-        :return: The text with entities replaced, e.g. ``<PERSON>``.
+        :param text: free text, e.g. a rendered screen digest.
+        :return: the text with entities replaced, e.g. ``<PERSON>``.
         """
         ...

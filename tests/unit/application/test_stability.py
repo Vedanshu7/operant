@@ -1,6 +1,8 @@
 """
-Recording replays: an approved capability that keeps failing is degraded and
-audited; a draft, or a failure streak a success breaks, is not.
+Recording replays.
+
+An approved capability that keeps failing is degraded and audited; a
+draft, or a failure streak a success breaks, is not.
 """
 
 import operant.application.stability as apstabil

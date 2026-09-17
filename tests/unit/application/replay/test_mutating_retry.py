@@ -1,7 +1,8 @@
 """
-Replay never repeats a step that changes data: when a submitted mutation's next
-page fails to show, a person checks instead of a retry, which could submit it
-twice.
+Replay never repeats a step that changes data.
+
+When a submitted mutation's next page fails to show, a person checks
+instead of a retry, which could submit it twice.
 """
 
 import threading

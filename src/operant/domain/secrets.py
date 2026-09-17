@@ -152,9 +152,9 @@ def fits_field(secret_name: str, field_text: str) -> bool:
     the field. This keeps a page from collecting a password through a
     field it labels something else.
 
-    :param secret_name: The secret reference name.
-    :param field_text: The target control's name and label.
-    :return:``True`` when the field asks for this kind of credential.
+    :param secret_name: the secret reference name.
+    :param field_text: the target control's name and label.
+    :return: ``True`` when the field asks for this kind of credential.
     """
     secret = "".join(_words(secret_name))
     field = _words(field_text)
