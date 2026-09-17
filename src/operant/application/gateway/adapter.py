@@ -99,8 +99,9 @@ class GatewaySurface:
 
     def screenshot(self, path: pathlib.Path) -> bool:
         """
-        Write a PNG of the bound window to ``path``, sensitive fields blacked
-        out.
+        Write a masked PNG of the bound window to ``path``.
+
+        Sensitive fields are blacked out.
 
         The image goes to the model provider and into evidence, so a
         password or card field never leaves the machine in pixels.

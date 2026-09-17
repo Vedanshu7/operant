@@ -64,7 +64,9 @@ class TtyApprover:
         self._out = out or sys.stdout
 
     def ask(self, request: approval.ApprovalRequest) -> approval.ApprovalDecision:
-        """Prompt and map the answer to a decision (timeout = deny)."""
+        """
+        Prompt and map the answer to a decision (timeout = deny).
+        """
         print(f"\n  {render_request(request)}", file=self._out)
         print(
             "  [y]es once / [a]lways for this process / [N]o  "

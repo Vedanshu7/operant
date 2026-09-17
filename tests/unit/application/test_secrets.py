@@ -29,7 +29,7 @@ def test_resolve_registers_value_with_the_redactor() -> None:
 
 def test_locator_scheme_is_stripped_before_the_store() -> None:
     redactor = redact.Redactor()
-    # keychain:app/user parses to locator "app/user"; the env store won't have
+    # `keychain:app/user` parses to locator "app/user"; the env store won't have
     # it, so this resolves to not-found rather than leaking the scheme.
     resolver = _resolver({"app/user": "john"}, redactor)
     assert resolver.resolve("username") == "john"

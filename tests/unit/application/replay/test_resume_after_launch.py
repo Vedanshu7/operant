@@ -167,7 +167,8 @@ def test_already_logged_in_skips_the_login_step(tmp_path: pathlib.Path) -> None:
     result, surface = _run(tmp_path, ParabankSurface(logged_in=True))
     assert result.status == "success", result
     kinds = [a.kind for a in surface.performed]
-    assert kinds == ["launch"]  # the login click was skipped
+    # The login click was skipped.
+    assert kinds == ["launch"]
 
 
 def test_logged_out_runs_the_full_login(tmp_path: pathlib.Path) -> None:
@@ -242,8 +243,9 @@ ADJ_EDGES = [
 
 class LandingSurface(surfaces.GatedFakeSurface):
     """
-    Launch lands on a logged-in menu page that is not the goal page; clicking
-    "Accounts Overview" navigates to the real account page.
+    Launch lands on a logged-in menu page that is not the goal page.
+
+    Clicking "Accounts Overview" navigates to the real account page.
     """
 
     def __init__(self) -> None:
@@ -261,7 +263,8 @@ class LandingSurface(surfaces.GatedFakeSurface):
             )
         return digest.ScreenDigest(
             app=self.app,
-            window_title="Welcome",  # logged-in index keeps the index title
+            # The logged-in index keeps the index title.
+            window_title="Welcome",
             text="Welcome",
             controls=MENU,
         )
@@ -299,7 +302,7 @@ def test_adjacent_landing_navigates_to_goal_via_menu_link(
     )
     assert result.status == "success", result
     kinds = [a.kind for a in surface.performed]
-    # launch, then the menu-link click - never the recorded login click.
+    # Expect the launch and the menu-link click, never the recorded login click.
     assert kinds == ["launch", "click"]
     assert surface.performed[-1].ref == "Accounts Overview"
 

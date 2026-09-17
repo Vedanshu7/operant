@@ -249,7 +249,8 @@ def test_merge_backfills_fingerprint_onto_older_shared_node() -> None:
     graph, changed, node_remap, _ = merge.merge_recording(
         base, "parabank", fp_nodes, [edge("l2", "login2", "overview2")], []
     )
-    assert changed is True  # backfill is a graph change -> new version
+    # A backfill is a graph change, so it gets a new version.
+    assert changed is True
     assert node_remap["login2"] == "login"
     login = next(n for n in graph.nodes if n.id == "login")
     assert login.fingerprint == ["button|log in||form>button"]

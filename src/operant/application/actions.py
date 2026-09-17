@@ -34,8 +34,8 @@ class ActionPair:
     """
     A surface action paired with the edge action to record.
 
-    :ivar surface: What the gateway executes now.
-    :ivar recorded: What the recorder stores on the edge; ``None`` for
+    :ivar surface: what the gateway executes now.
+    :ivar recorded: what the recorder stores on the edge; ``None`` for
         actions that are performed but not recorded.
     """
 
@@ -52,7 +52,7 @@ class ActionFactory:
     """
     Build action pairs for every primitive.
 
-    :ivar secrets: Resolver used by ``fill_secret``; optional when no
+    :ivar secrets: resolver used by ``fill_secret``; optional when no
         secret fills are needed.
     """
 
@@ -104,13 +104,13 @@ class ActionFactory:
         """
         Build a fill of ``ref`` with a literal or parameterised value.
 
-        :param ref: Target control handle.
-        :param value: Text to type now.
-        :param data_class: Sensitivity tag for the guard.
-        :param export_from: Vendor a cross-app value came from.
-        :param recorded_value: The ``Value`` to store on the edge;
+        :param ref: target control handle.
+        :param value: text to type now.
+        :param data_class: sensitivity tag for the guard.
+        :param export_from: vendor a cross-app value came from.
+        :param recorded_value: the ``Value`` to store on the edge;
             defaults to a literal of ``value``.
-        :param step: Edge id, for the approval question.
+        :param step: edge id, for the approval question.
         """
         pair = ActionPair(
             actions.SurfaceAction(
@@ -135,7 +135,7 @@ class ActionFactory:
         The value is resolved and typed now; only the reference name is
         recorded, so the secret never enters an artifact.
 
-        :raises RuntimeError: If the factory has no secret resolver.
+        :raises RuntimeError: if the factory has no secret resolver.
             operant.domain.errors.SecretNotFoundError: If ``name`` is
             unknown to the tenant or the store.
         """

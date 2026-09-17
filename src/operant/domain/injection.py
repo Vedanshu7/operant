@@ -83,8 +83,8 @@ def fence(rendered: str) -> str:
     """
     Wrap rendered screen text as untrusted data.
 
-    :param rendered: A rendered digest (or any app-provided text).
-    :return: The text inside ``<untrusted_screen>`` tags; tags inside
+    :param rendered: a rendered digest (or any app-provided text).
+    :return: the text inside ``<untrusted_screen>`` tags; tags inside
         the text are defused so the page cannot close the block.
     """
     defused = rendered.replace(_OPEN, "<untrusted-screen>").replace(
@@ -97,8 +97,8 @@ def suspicious(screen: digest.ScreenDigest) -> List[str]:
     """
     Return snippets of screen content that address or instruct the agent.
 
-    :param screen: The screen digest.
-    :return: Up to three short snippets, in screen order; empty when
+    :param screen: the screen digest.
+    :return: up to three short snippets, in screen order; empty when
         nothing looks like an instruction to the agent.
     """
     sources = [screen.text, screen.dialog or ""] + [
@@ -124,8 +124,8 @@ def warning(snippets: List[str]) -> str:
     """
     Render the note the agent sees when the screen tries to instruct it.
 
-    :param snippets: What ``suspicious`` found.
-    :return: A warning block, or ``""`` when nothing was found.
+    :param snippets: what ``suspicious`` found.
+    :return: a warning block, or ``""`` when nothing was found.
     """
     if not snippets:
         return ""

@@ -61,8 +61,8 @@ class LangfuseTracer:
         """
         Wrap a configured client.
 
-        :param client: The Langfuse client.
-        :param content:``"scrubbed"`` or ``"metadata"``.
+        :param client: the Langfuse client.
+        :param content: ``"scrubbed"`` or ``"metadata"``.
         """
         self._client = client
         self._content = content

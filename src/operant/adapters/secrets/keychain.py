@@ -38,9 +38,9 @@ class CommandResult:
     """
     Outcome of one ``security`` invocation.
 
-    :ivar returncode: Process exit status.
-    :ivar stdout: Captured standard output.
-    :ivar stderr: Captured standard error.
+    :ivar returncode: process exit status.
+    :ivar stdout: captured standard output.
+    :ivar stderr: captured standard error.
     """
 
     returncode: int
@@ -87,7 +87,7 @@ class KeychainSecretStore:
     """
     Read and writes generic passwords in the login Keychain.
 
-    :ivar backend: Always ``"keychain"``.
+    :ivar backend: always ``"keychain"``.
     """
 
     backend = "keychain"

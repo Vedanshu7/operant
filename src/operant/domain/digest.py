@@ -37,14 +37,13 @@ def render_digest(
     include_text: bool = True,
 ) -> str:
     """
-    Render the window title, any modal dialog, controls, and visible text as
-    lines.
+    Render the title, any modal, controls, and visible text as lines.
 
-    :param screen: The digest to render.
-    :param max_controls: Controls listed before an ``... N more``
+    :param screen: the digest to render.
+    :param max_controls: controls listed before an ``... N more``
         marker.
-    :param include_text: Whether to append the (trimmed) visible text.
-    :return: The multi-line rendering.
+    :param include_text: whether to append the (trimmed) visible text.
+    :return: the multi-line rendering.
     """
     lines = [_render_control(c) for c in screen.controls[:max_controls]]
     if len(screen.controls) > max_controls:

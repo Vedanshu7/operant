@@ -24,10 +24,10 @@ def expired_runs(
     """
     Return the run directories last written more than ``max_age_days`` ago.
 
-    :param evidence_dir: The directory holding one directory per run.
-    :param max_age_days: Age past which a run is expired.
-    :param now: The current time, in seconds since the epoch.
-    :return: Expired run directories, oldest name first.
+    :param evidence_dir: the directory holding one directory per run.
+    :param max_age_days: age past which a run is expired.
+    :param now: the current time, in seconds since the epoch.
+    :return: expired run directories, oldest name first.
     """
     cutoff = now - max_age_days * time.SECONDS_PER_DAY
     expired = [

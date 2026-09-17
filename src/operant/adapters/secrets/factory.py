@@ -24,8 +24,8 @@ def secret_store(
     ``keychain`` is chained with ``env`` so demo credentials in ``.env``
     keep working while real ones move to the Keychain.
 
-    :param config: The secrets settings group.
-    :return: A ready-to-use store.
+    :param config: the secrets settings group.
+    :return: a ready-to-use store.
     """
     env_store = env.EnvSecretStore()
     store: secrets.SecretStore

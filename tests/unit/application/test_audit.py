@@ -1,6 +1,8 @@
 """
-The audit gate: every invariant fires on a crafted violation, including a
-replica of the shipped goalnative leak (outputs declared, extract empty).
+The audit gate.
+
+Every invariant fires on a crafted violation, including a replica of the
+shipped goalnative leak (outputs declared, extract empty).
 """
 
 import json

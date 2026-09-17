@@ -1,6 +1,8 @@
 """
-Agent-memory tests over an in-memory SQLite store: recall is scoped per app,
-ranked, keeps no values, and skips stale plans.
+Agent-memory tests over an in-memory SQLite store.
+
+Recall is scoped per app, ranked, keeps no values, and skips stale
+plans.
 """
 
 from __future__ import annotations

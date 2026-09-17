@@ -62,15 +62,15 @@ def build_gateway_surface(
     """
     Wire a policy-guarded macOS gateway surface.
 
-    :param app_name: Application to bind.
-    :param window_title_pattern: Window title pattern.
-    :param policy: Policy the guard enforces.
-    :param on_event: Sink for journaled gateway events.
-    :param on_decision: Sink for policy decisions.
-    :param paths: Where the gateway policy and learned tools live.
-    :param browser: Browser knowledge for the launcher.
-    :param fault_injection: Session-expiry fault config, when available.
-    :return:``(surface, registry)``.
+    :param app_name: application to bind.
+    :param window_title_pattern: window title pattern.
+    :param policy: policy the guard enforces.
+    :param on_event: sink for journaled gateway events.
+    :param on_decision: sink for policy decisions.
+    :param paths: where the gateway policy and learned tools live.
+    :param browser: browser knowledge for the launcher.
+    :param fault_injection: session-expiry fault config, when available.
+    :return: ``(surface, registry)``.
     """
     session = mssessio.WindowSession(
         app_name, window_title_pattern, fault_injection
@@ -82,10 +82,12 @@ def build_gateway_surface(
         learned_.LearnedToolsStore(paths.learned_tools)
     )
 
-    # Key each action by app and window for the tool learner.
     def signature_of(
         action: actions.SurfaceAction, screen: Optional[digest.ScreenDigest]
     ) -> str:
+        """
+        Key an action by app and window for the tool learner.
+        """
         return gllearne.signature(action, app_name, screen)
 
     # Assemble the dispatcher, guard, and surface.

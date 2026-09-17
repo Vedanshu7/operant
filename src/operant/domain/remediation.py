@@ -36,12 +36,12 @@ class Remedy:
     """
     A remembered fix for a step error.
 
-    :ivar kind: How the fix was found (``alternate_action``,
+    :ivar kind: how the fix was found (``alternate_action``,
         ``human_steps``, ...).
-    :ivar hint: A short human-readable description replayed to the
+    :ivar hint: a short human-readable description replayed to the
         model.
-    :ivar applied: How many times this remedy was recorded/reinforced.
-    :ivar success: How many of those reinforced a working outcome.
+    :ivar applied: how many times this remedy was recorded/reinforced.
+    :ivar success: how many of those reinforced a working outcome.
     """
 
     kind: str
@@ -72,8 +72,8 @@ def error_signature(text: str) -> str:
     """
     Normalise an error message to a stable, value-free fingerprint.
 
-    :param text: The raw error text.
-    :return: The normalised signature (lower-cased, bounded length).
+    :param text: the raw error text.
+    :return: the normalised signature (lower-cased, bounded length).
     """
     out = _QUOTED.sub("'x'", text)
     out = _HEX.sub("#", out)

@@ -56,11 +56,11 @@ class ToolOutcome:
     """
     What a tool handler produced.
 
-    :ivar reply: Text fed back to the model as the tool result.
-    :ivar finished: A terminal result that ends the run, when any.
-    :ivar status: What happened, for code that reacts to it; the reply
+    :ivar reply: text fed back to the model as the tool result.
+    :ivar finished: a terminal result that ends the run, when any.
+    :ivar status: what happened, for code that reacts to it; the reply
         wording is for the model and may change.
-    :ivar operator_note: The person's own words after an intervention.
+    :ivar operator_note: the person's own words after an intervention.
     """
 
     reply: Optional[str] = None

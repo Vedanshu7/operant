@@ -44,14 +44,14 @@ def surface_for(
     """
     Build the surface and a health-table callable for a run.
 
-    :param app_name: Application to bind.
-    :param window_title_pattern: Window title pattern.
-    :param policy: Policy the guard enforces.
-    :param on_event: Sink for gateway events.
-    :param on_decision: Sink for policy decisions.
-    :param settings: Driver URL, browser knowledge, and paths.
-    :param fault_injection: Session-expiry config, when available.
-    :return:``(surface, health_table)``.
+    :param app_name: application to bind.
+    :param window_title_pattern: window title pattern.
+    :param policy: policy the guard enforces.
+    :param on_event: sink for gateway events.
+    :param on_decision: sink for policy decisions.
+    :param settings: driver URL, browser knowledge, and paths.
+    :param fault_injection: session-expiry config, when available.
+    :return: ``(surface, health_table)``.
     """
     driver = settings.driver
     if driver.url:
@@ -112,8 +112,10 @@ def _in_process_surface(
         fault_injection=fault_injection,
     )
 
-    # Expose each tool's health as table rows.
     def health_table() -> List[Dict[str, Any]]:
+        """
+        Return each tool's health as table rows.
+        """
         rows: List[Dict[str, Any]] = []
         for tool in registry.all():
             health = tool.health()

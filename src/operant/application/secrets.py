@@ -71,7 +71,7 @@ class SecretResolver:
         """
         Bind ``name`` to a locator (``env:X`` / ``keychain:svc/acct``).
 
-        :raises errors.ConfigError: If the locator is malformed.
+        :raises errors.ConfigError: if the locator is malformed.
         """
         secrets.SecretRef.parse(locator)
         self._refs[name] = locator
@@ -82,8 +82,8 @@ class SecretResolver:
 
         A run-held transient value wins over a stored locator.
 
-        :param name: The reference name.
-        :return: The secret value.
+        :param name: the reference name.
+        :return: the secret value.
         """
         value = self._transient.get(name)
         if value is None:

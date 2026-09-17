@@ -79,12 +79,12 @@ def build_system_prompt(
     """
     Fill the template with secret names and the default browser.
 
-    :param secret_names: Secret names the model may reference.
-    :param default_browser: The browser used for URL launches.
-    :param template: A replacement template (prompt optimization); it
+    :param secret_names: secret names the model may reference.
+    :param default_browser: the browser used for URL launches.
+    :param template: a replacement template (prompt optimization); it
         must keep the ``{secret_names}`` and ``{default_browser}``
         slots.
-    :return: The system prompt.
+    :return: the system prompt.
     """
     filled = (template or SYSTEM_PROMPT_TEMPLATE).format(
         secret_names=", ".join(secret_names) or "(none available)",

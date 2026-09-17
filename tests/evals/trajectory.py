@@ -98,8 +98,8 @@ def step(name: str, args: Dict[str, object]) -> str:
     """
     Name one executor tool call as a trajectory step.
 
-    :param name: The tool name.
-    :param args: Its parsed arguments.
+    :param name: the tool name.
+    :param args: its parsed arguments.
     :return: e.g. ``act:click:submit``, ``act:launch`` or ``extract``.
     """
     if name != "act":
@@ -109,7 +109,7 @@ def step(name: str, args: Dict[str, object]) -> str:
         # The target of these is not a control ref.
         token = f"act:{args.get('action')}"
     else:
-        # click / fill / select name the control they act on.
+        # Clicks, fills, and selects name the control they act on.
         token = f"act:{args.get('action')}:{args.get('ref', '')}"
     return token
 
@@ -149,9 +149,9 @@ def in_order_match(reference: Sequence[str], actual: Sequence[str]) -> int:
     """
     Length of the longest in-order match (LCS) of actual against reference.
 
-    :param reference: The ideal steps.
-    :param actual: The steps taken.
-    :return: How many reference steps were taken, in order.
+    :param reference: the ideal steps.
+    :param actual: the steps taken.
+    :return: how many reference steps were taken, in order.
     """
     rows = len(reference) + 1
     cols = len(actual) + 1
@@ -169,7 +169,7 @@ def metrics(run: harness.EvalRun) -> Optional[Dict[str, float]]:
     """
     Score a trial's trajectory against its scenario's reference.
 
-    :param run: The trial.
+    :param run: the trial.
     :return: recall, precision, efficiency, in_order (1.0 when every
         reference step was taken in order), and the step counts;
         ``None`` for a scenario without a reference.
@@ -206,8 +206,8 @@ def verifier_confusion(run: harness.EvalRun) -> Dict[str, int]:
     """
     Label the verifier's verdicts on ``goal_complete`` claims.
 
-    :param run: A multi-agent trial (single-agent trials have none).
-    :return: Counts of true/false accepts and rejects.
+    :param run: a multi-agent trial (single-agent trials have none).
+    :return: counts of true/false accepts and rejects.
     """
     screens = SUCCESS_SCREENS.get(run.scenario.name, frozenset())
     titles = {run.scenario.scene.screens[name].window_title for name in screens}
@@ -245,7 +245,7 @@ def summarize(
 
     :param rows: JSONL result rows that carry
         ``trajectory``/``verifier``.
-    :return: Mean recall/precision/efficiency/in_order, plus confusion
+    :return: mean recall/precision/efficiency/in_order, plus confusion
         totals and the verifier's false-accept and false-reject rates.
     """
     scored = [

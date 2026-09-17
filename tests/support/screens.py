@@ -22,16 +22,16 @@ def control(
     """
     Build a control with sensible defaults for every field.
 
-    :param ref: Ephemeral handle.
-    :param role: Accessibility role.
-    :param name: Accessible name.
-    :param label: Anchoring label text.
-    :param value: Current value.
-    :param enabled: Whether the control accepts interaction.
-    :param path: A11y tree path.
-    :param box: Window-normalised bounds; a small box near the top-left
+    :param ref: ephemeral handle.
+    :param role: accessibility role.
+    :param name: accessible name.
+    :param label: anchoring label text.
+    :param value: current value.
+    :param enabled: whether the control accepts interaction.
+    :param path: a11y tree path.
+    :param box: window-normalised bounds; a small box near the top-left
         when omitted.
-    :return: The control.
+    :return: the control.
     """
     return mddigest.Control(
         ref=ref,
@@ -56,12 +56,12 @@ def digest(
     """
     Build a digest with sensible defaults for every field.
 
-    :param controls: Controls on screen.
-    :param app: Frontmost application name.
-    :param window_title: Window title.
-    :param text: Visible text.
-    :param dialog: Modal dialog text, if one is up.
-    :return: The digest.
+    :param controls: controls on screen.
+    :param app: frontmost application name.
+    :param window_title: window title.
+    :param text: visible text.
+    :param dialog: modal dialog text, if one is up.
+    :return: the digest.
     """
     return mddigest.ScreenDigest(
         app=app,

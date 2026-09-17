@@ -37,9 +37,9 @@ def substitute_strategies(
     substitute ``anchor_text``; structural and region strategies are
     returned unchanged.
 
-    :param strategies: The recorded strategy stack.
-    :param params: Task inputs keyed by placeholder name.
-    :return: A new list of strategies with placeholders substituted.
+    :param strategies: the recorded strategy stack.
+    :param params: task inputs keyed by placeholder name.
+    :return: new strategies with placeholders substituted.
     """
     out: List[targets.TargetStrategy] = []
     for strategy in strategies:
@@ -65,9 +65,9 @@ def substitute_condition(
 
     Title and text conditions are returned unchanged.
 
-    :param cond: The recorded condition.
-    :param params: Task inputs keyed by placeholder name.
-    :return: The condition with placeholders substituted in its target.
+    :param cond: the recorded condition.
+    :param params: task inputs keyed by placeholder name.
+    :return: the condition with placeholders substituted in its target.
     """
     result: graph.Condition
     if isinstance(cond, graph.ElementVisible):
@@ -87,9 +87,9 @@ def substitute_pattern(
     """
     Fill ``{{name}}`` placeholders in a regex with escaped input values.
 
-    :param pattern: A recorded extraction pattern.
-    :param params: Task inputs keyed by placeholder name.
-    :return: The pattern for this run; unknown placeholders are left in
+    :param pattern: a recorded extraction pattern.
+    :param params: task inputs keyed by placeholder name.
+    :return: the pattern for this run; unknown placeholders are left in
         place so a missing input is visible.
     """
     filled = pattern

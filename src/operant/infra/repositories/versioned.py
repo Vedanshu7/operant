@@ -32,7 +32,7 @@ class VersionedDocuments[ModelT: pydantic.BaseModel]:
     """
     Versioned document store for one model type.
 
-    :ivar root: Directory holding one sub-directory per key.
+    :ivar root: directory holding one sub-directory per key.
     """
 
     def __init__(self, root: pathlib.Path, model: type[ModelT]) -> None:
@@ -123,8 +123,8 @@ class VersionedDocuments[ModelT: pydantic.BaseModel]:
         """
         Reserve the next version number under the key's lock.
 
-        :param key: The document key.
-        :param floor: A version number the result must exceed (used when
+        :param key: the document key.
+        :param floor: a version number the result must exceed (used when
             an older layout already reached that version).
         :yield: The version number to write; ``HEAD`` advances on exit.
         """

@@ -29,10 +29,10 @@ class ReplayRequest:
     """
     One replay invocation.
 
-    :ivar capability_id: Capability to replay.
-    :ivar tenant: Tenant override; the capability's default when empty.
-    :ivar inputs: Task inputs by name.
-    :ivar inject_session_expiry_before: Edge id to fault before, for
+    :ivar capability_id: capability to replay.
+    :ivar tenant: tenant override; the capability's default when empty.
+    :ivar inputs: task inputs by name.
+    :ivar inject_session_expiry_before: edge id to fault before, for
         demos.
     """
 
@@ -59,18 +59,18 @@ def execute_replay(
     """
     Load a capability, wires a run, and replays it.
 
-    :param request: What to replay.
-    :param factory: Builds the run context (surface, log, broker).
-    :param artifacts: Where capabilities are stored.
-    :param graphs: Where graph versions are stored.
-    :param profiles: Where app profiles are stored.
-    :param approver: Answers approvals; deny-by-default when ``None``.
-    :param run_identifier: Fixes the run id and evidence directory; the
+    :param request: what to replay.
+    :param factory: builds the run context (surface, log, broker).
+    :param artifacts: where capabilities are stored.
+    :param graphs: where graph versions are stored.
+    :param profiles: where app profiles are stored.
+    :param approver: answers approvals; deny-by-default when ``None``.
+    :param run_identifier: fixes the run id and evidence directory; the
         server passes the id it tracks the run under.
-    :param should_stop: Polled before every step; true cancels the run.
-    :param on_context: Called with the wired context before the run
+    :param should_stop: polled before every step; true cancels the run.
+    :param on_context: called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
-    :return: The typed replay result.
+    :return: the typed replay result.
     """
     capability = artifacts.get(request.capability_id)
     graph = graphs.get(capability.vendor_id, capability.graph_version)

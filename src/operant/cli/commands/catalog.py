@@ -1,5 +1,5 @@
 """
-``operant catalog`` - list, describe, approve, and invoke capabilities.
+``operant catalog`` - list, approve, invoke, and canary capabilities.
 """
 
 from __future__ import annotations

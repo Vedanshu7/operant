@@ -27,8 +27,8 @@ def run_id(kind: str) -> str:
     A short random suffix keeps two runs started in the same second
     apart.
 
-    :param kind: The run kind, e.g. ``"discovery"`` or ``"replay"``.
-    :return: The identifier.
+    :param kind: the run kind, e.g. ``"discovery"`` or ``"replay"``.
+    :return: the identifier.
     """
     identifier = f"{kind}-{time.timestamp_slug()}-{secrets.token_hex(2)}"
     return identifier
@@ -54,9 +54,9 @@ def checked_key(key: str) -> str:
     """
     Return ``key`` when it is safe to use as one file-name segment.
 
-    :param key: A capability, graph or profile id.
-    :return: The same key.
-    :raises errors.InvalidIdError: When it holds a path separator,
+    :param key: a capability, graph or profile id.
+    :return: the same key.
+    :raises errors.InvalidIdError: when it holds a path separator,
         starts with a dot, or uses other characters.
     """
     if not _KEY_RE.fullmatch(key):

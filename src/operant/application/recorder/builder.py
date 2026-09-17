@@ -70,19 +70,19 @@ def build(
     """
     Produce a pure ``Recording`` from the recorder's accumulated state.
 
-    :param recorder: The recorder that observed the run.
-    :param profile: The app profile the run executed under.
-    :param capability_id: Id the capability will be saved under.
-    :param capability_name: Human-readable name.
-    :param goal: The natural-language goal.
-    :param inputs: Task input values by name.
-    :param outputs: Extracted output values by name.
-    :param model: The model that drove discovery (or ``human-
+    :param recorder: the recorder that observed the run.
+    :param profile: the app profile the run executed under.
+    :param capability_id: id the capability will be saved under.
+    :param capability_name: human-readable name.
+    :param goal: the natural-language goal.
+    :param inputs: task input values by name.
+    :param outputs: extracted output values by name.
+    :param model: the model that drove discovery (or ``human-
         demonstration``).
-    :param run_id: Evidence run id for provenance.
-    :param input_classes: Declared sensitivity per input.
-    :param output_classes: Declared sensitivity per output.
-    :return: The recording, ready for ``commit_recording``.
+    :param run_id: evidence run id for provenance.
+    :param input_classes: declared sensitivity per input.
+    :param output_classes: declared sensitivity per output.
+    :return: the recording, ready for ``commit_recording``.
     """
     state = _BuildState(
         params=sorted(
@@ -432,9 +432,9 @@ def _require_used(
     cannot run without it; requiring it lets replay refuse up front with
     a clear precondition failure instead of failing to find a control.
 
-    :param typed: Inputs as recorded.
-    :param texts: The recorded steps (as JSON) and extraction patterns.
-    :return: The inputs, with those the steps use marked required.
+    :param typed: inputs as recorded.
+    :param texts: the recorded steps (as JSON) and extraction patterns.
+    :return: the inputs, with those the steps use marked required.
     """
     used = {
         name

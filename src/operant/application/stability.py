@@ -33,13 +33,13 @@ def record_replay(
     """
     Record one replay and degrade the capability when the gate says so.
 
-    :param capability_id: The capability that was replayed.
-    :param run_id: The replay's run id.
-    :param succeeded: Whether the replay succeeded.
-    :param run_repo: Where the track record and the audit trail live.
-    :param artifact_repo: Where the capability's versions live.
-    :param gate: The governance thresholds.
-    :return: The recent track record, after this replay.
+    :param capability_id: the capability that was replayed.
+    :param run_id: the replay's run id.
+    :param succeeded: whether the replay succeeded.
+    :param run_repo: where the track record and the audit trail live.
+    :param artifact_repo: where the capability's versions live.
+    :param gate: the governance thresholds.
+    :return: the recent track record, after this replay.
     """
     run_repo.record_stability(capability_id, run_id, succeeded=succeeded)
     stability = run_repo.stability(capability_id, window=gate.window)

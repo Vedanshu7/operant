@@ -50,7 +50,7 @@ class Redactor:
         """
         Start with no secrets registered.
 
-        :param scrub: Optional PII scrubber applied to every string leaf
+        :param scrub: optional PII scrubber applied to every string leaf
             by ``redact_deep``, after exact masking.
         """
         self._secrets: List[str] = []
@@ -60,7 +60,7 @@ class Redactor:
         """
         Register a value to mask; ignores empty and very short ones.
 
-        :param value: The secret value, or ``None``.
+        :param value: the secret value, or ``None``.
         """
         if (
             value
@@ -74,8 +74,8 @@ class Redactor:
         """
         Mask every registered secret in the text.
 
-        :param text: Text that may contain secret values.
-        :return: The text with each secret replaced by ``[REDACTED]``.
+        :param text: text that may contain secret values.
+        :return: the text with each secret replaced by ``[REDACTED]``.
         """
         for secret in self._secrets:
             text = text.replace(secret, MASK)
@@ -85,9 +85,9 @@ class Redactor:
         """
         Mask secrets inside any JSON-serialisable structure.
 
-        :param value: A structure of dicts, lists, and scalars; non-JSON
+        :param value: a structure of dicts, lists, and scalars; non-JSON
             values are stringified.
-        :return: An equivalent structure with secrets masked.
+        :return: an equivalent structure with secrets masked.
         """
         restored = json.loads(self.redact(json.dumps(value, default=str)))
         if self._scrub is not None:
@@ -127,9 +127,9 @@ def redactor_from_env(
     The domain never reads the process environment itself; callers pass
     ``os.environ`` (or a test mapping).
 
-    :param environ: Environment variables, typically ``os.environ``.
-    :param scrub: Optional PII scrubber for ``redact_deep``.
-    :return: A redactor holding the value of every variable whose name
+    :param environ: environment variables, typically ``os.environ``.
+    :param scrub: optional PII scrubber for ``redact_deep``.
+    :return: a redactor holding the value of every variable whose name
         looks like a password, secret, token, or API key.
     """
     redactor = Redactor(scrub)

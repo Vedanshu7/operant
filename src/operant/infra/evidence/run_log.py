@@ -50,10 +50,10 @@ class RunLog:
     """
     Implements ``operant.ports.evidence.EvidenceSink`` on disk.
 
-    :ivar run_id: The run being logged.
-    :ivar dir: Directory holding the log and screenshots.
-    :ivar redactor: Applied to every entry before it is written.
-    :ivar listeners: Called with each redacted entry after it is
+    :ivar run_id: the run being logged.
+    :ivar dir: directory holding the log and screenshots.
+    :ivar redactor: applied to every entry before it is written.
+    :ivar listeners: called with each redacted entry after it is
         written; the server uses this to stream events live.
     """
 
@@ -107,7 +107,7 @@ class RunLog:
         """
         Validate ``data`` against the event registry and emits it.
 
-        :raises ValueError: If ``type_`` is unknown or a reserved field
+        :raises ValueError: if ``type_`` is unknown or a reserved field
             was passed - a stray ``type=`` kwarg once destroyed the
             event name of every ``input_declared`` entry.
         """
@@ -161,8 +161,8 @@ def read_entries(log_path: pathlib.Path) -> List[Dict[str, Any]]:
     """
     Load every entry of a run log as dictionaries.
 
-    :param log_path: The ``run-log.jsonl`` file.
-    :return: Entries in file order; malformed lines are skipped with a
+    :param log_path: the ``run-log.jsonl`` file.
+    :return: entries in file order; malformed lines are skipped with a
         warning.
     """
     entries: List[Dict[str, Any]] = []

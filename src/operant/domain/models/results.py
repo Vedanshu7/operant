@@ -42,9 +42,9 @@ class SuccessResult(pydantic.BaseModel):
     """
     The capability reached its goal and extracted its outputs.
 
-    :ivar status: Discriminator, always ``success``.
-    :ivar outputs: Extracted output values keyed by output name.
-    :ivar evidence_dir: Directory holding the run's evidence.
+    :ivar status: discriminator, always ``success``.
+    :ivar outputs: extracted output values keyed by output name.
+    :ivar evidence_dir: directory holding the run's evidence.
     """
 
     status: Literal["success"] = "success"
@@ -61,10 +61,10 @@ class BusinessOutcomeResult(pydantic.BaseModel):
     """
     The application reported a business outcome instead of the goal.
 
-    :ivar status: Discriminator, always ``business_outcome``.
-    :ivar outcome: Outcome name from the matching detector.
-    :ivar detail: Human-readable detail from the detector.
-    :ivar evidence_dir: Directory holding the run's evidence.
+    :ivar status: discriminator, always ``business_outcome``.
+    :ivar outcome: outcome name from the matching detector.
+    :ivar detail: human-readable detail from the detector.
+    :ivar evidence_dir: directory holding the run's evidence.
     """
 
     status: Literal["business_outcome"] = "business_outcome"
@@ -82,10 +82,10 @@ class EscalatedResult(pydantic.BaseModel):
     """
     Control was handed to a human during the run.
 
-    :ivar status: Discriminator, always ``escalated``.
-    :ivar intervention_id: Id of the intervention that took over.
-    :ivar resolution: How the human resolved it.
-    :ivar evidence_dir: Directory holding the run's evidence.
+    :ivar status: discriminator, always ``escalated``.
+    :ivar intervention_id: id of the intervention that took over.
+    :ivar resolution: how the human resolved it.
+    :ivar evidence_dir: directory holding the run's evidence.
     """
 
     status: Literal["escalated"] = "escalated"
@@ -105,11 +105,11 @@ class Failure(pydantic.BaseModel):
     """
     A classified failure at one edge.
 
-    :ivar at_edge: Id of the edge that failed.
-    :ivar failure_class: Closed failure vocabulary entry.
-    :ivar expected: What replay expected to see.
-    :ivar observed: What replay observed instead.
-    :ivar evidence_refs: Evidence files that document the failure.
+    :ivar at_edge: id of the edge that failed.
+    :ivar failure_class: closed failure vocabulary entry.
+    :ivar expected: what replay expected to see.
+    :ivar observed: what replay observed instead.
+    :ivar evidence_refs: evidence files that document the failure.
     """
 
     at_edge: str
@@ -128,9 +128,9 @@ class FailureResult(pydantic.BaseModel):
     """
     The run stopped on a classified failure.
 
-    :ivar status: Discriminator, always ``failure``.
-    :ivar failure: The classified failure.
-    :ivar evidence_dir: Directory holding the run's evidence.
+    :ivar status: discriminator, always ``failure``.
+    :ivar failure: the classified failure.
+    :ivar evidence_dir: directory holding the run's evidence.
     """
 
     status: Literal["failure"] = "failure"

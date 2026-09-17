@@ -13,6 +13,7 @@ import operant.application.gateway.learner as gllearne
 import operant.application.memory as apmemory
 import operant.application.remediation as remem
 import operant.cli.deps as cddeps
+import operant.helpers.time as time
 import operant.infra.repositories.learned_tools as learned_
 import operant.infra.repositories.memory as rmmemory
 import operant.infra.repositories.remediations as rgremed
@@ -160,7 +161,7 @@ def _days(iso: str) -> str:
         return "unknown"
     if then.tzinfo is None:
         then = then.replace(tzinfo=datetime.timezone.utc)
-    days = (datetime.datetime.now(datetime.timezone.utc) - then).days
+    days = (time.utc_now() - then).days
     return f"{days} day(s) ago"
 
 

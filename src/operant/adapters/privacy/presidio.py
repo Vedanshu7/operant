@@ -49,9 +49,9 @@ class PresidioScrubber:
         """
         Load the spaCy model and register the sensitivity value shapes.
 
-        :param spacy_model: An installed spaCy pipeline, e.g.
+        :param spacy_model: an installed spaCy pipeline, e.g.
             ``en_core_web_lg``.
-        :param threshold: Minimum recognizer score to mask an entity.
+        :param threshold: minimum recognizer score to mask an entity.
         """
         nlp = panlpeng.NlpEngineProvider(
             nlp_configuration={

@@ -54,6 +54,9 @@ def run_event_stream(
     """
 
     async def generator() -> collections.abc.AsyncIterator[Dict[str, Any]]:
+        """
+        Yield stored events, then live ones, until the run ends.
+        """
         queue, subscription = await state.hub.subscribe(run_id)
         try:
             seen = after_seq

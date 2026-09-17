@@ -26,13 +26,15 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
-import re
 import sys
 import time
 import urllib.parse
 from typing import Any, Dict, List, Optional, Set
 
 import httpx
+
+import operant.helpers.files as files
+import operant.helpers.text as optext
 
 _ROOT = pathlib.Path(__file__).resolve().parents[1]
 _LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -46,8 +48,8 @@ def _slug(text: str) -> str:
     """
     Make a capability id from a goal.
     """
-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:48]
-    return slug or "live-run"
+    slug = optext.slugify(text, max_length=48)
+    return slug
 
 
 # #############################################################################
@@ -243,9 +245,14 @@ def run(
     """
     Start a discovery or replay and operate it to completion.
 
-    :param attach_after: Operate the first run newer than this id
+    :param client: the HTTP client for the server.
+    :param body: the request body that starts the run.
+    :param operator: the operator that answers the run's requests.
+    :param kind: the run kind, used in the start URL.
+    :param timeout_s: how long to wait for the run.
+    :param attach_after: operate the first run newer than this id
         instead of starting one (the UI starts it).
-    :return: The final run record plus what the operator did.
+    :return: the final run record plus what the operator did.
     """
     if attach_after is not None:
         run_id = _attached(client, attach_after, timeout_s)
@@ -394,7 +401,7 @@ def main() -> int:
     args = parser.parse_args()
     capability = args.capability or _slug(args.goal)
     if args.ui_script is not None:
-        args.ui_script.write_text(_ui_script(args, capability))
+        files.write_text(args.ui_script, _ui_script(args, capability))
         return 0
     clarify = dict(item.split("=", 1) for item in args.clarify)
     client = httpx.Client(

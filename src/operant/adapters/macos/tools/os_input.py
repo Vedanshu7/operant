@@ -65,7 +65,7 @@ class OsInputTool:
         self, action: actions.SurfaceAction, ctx: tools.ExecutionContext
     ) -> tools.ToolResult:
         """
-        Press, clicks, or focuses-and-types via synthesized input.
+        Press, click, or focus and type via synthesized input.
         """
         try:
             self.session.ensure_foreground()

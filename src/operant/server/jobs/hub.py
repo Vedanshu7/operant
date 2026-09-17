@@ -28,15 +28,15 @@ class SseEnvelope:
     """
     One server-sent event.
 
-    :ivar run_id: Run the event belongs to.
-    :ivar seq: Monotonic sequence within the run (``-1`` for server-only
+    :ivar run_id: run the event belongs to.
+    :ivar seq: monotonic sequence within the run (``-1`` for server-only
         events that are not indexed).
     :ivar at: ISO timestamp.
-    :ivar type: Event type name.
-    :ivar summary: One-line human summary.
-    :ivar data: Structured payload.
-    :ivar run_status: The run's status at emit time.
-    :ivar screenshot: Screenshot file name, when the event carries one.
+    :ivar type: event type name.
+    :ivar summary: one-line human summary.
+    :ivar data: structured payload.
+    :ivar run_status: the run's status at emit time.
+    :ivar screenshot: screenshot file name, when the event carries one.
     """
 
     run_id: str
@@ -81,7 +81,7 @@ class EventHub:
         """
         Register a live queue for ``run_id``.
 
-        :return: The queue and a subscription handle that unregisters
+        :return: the queue and a subscription handle that unregisters
             it.
         """
         queue: asyncio.Queue[SseEnvelope] = asyncio.Queue()

@@ -62,18 +62,18 @@ class Policy(pydantic.BaseModel):
     """
     The static allowlists an application runs under.
 
-    :ivar id: Policy document id.
+    :ivar id: policy document id.
     :ivar allowed_apps: OS application names that may be launched.
-    :ivar allowed_url_patterns: Regexes a launched URL must match.
-    :ivar allowed_action_kinds: Surface action kinds that may run.
-    :ivar mutating_control_patterns: Regexes naming controls that mutate
+    :ivar allowed_url_patterns: regexes a launched URL must match.
+    :ivar allowed_action_kinds: surface action kinds that may run.
+    :ivar mutating_control_patterns: regexes naming controls that mutate
         application state, matched as whole words.
-    :ivar safe_control_patterns: Read-only phrases ("sign in", "sort
+    :ivar safe_control_patterns: read-only phrases ("sign in", "sort
         order") blanked out before the mutating match, so a mutating
         word inside them does not count.
-    :ivar strict: Treat a button no pattern names as mutating, for apps
+    :ivar strict: treat a button no pattern names as mutating, for apps
         where an unlisted button can change data.
-    :ivar approval: Which approval gates are on.
+    :ivar approval: which approval gates are on.
     """
 
     id: str
@@ -92,11 +92,11 @@ def registrable_domain(
     """
     Extract the registrable domain of a URL.
 
-    :param url: The URL to inspect.
-    :param local_hosts: Host names returned verbatim instead of being
+    :param url: the URL to inspect.
+    :param local_hosts: host names returned verbatim instead of being
         reduced to a registrable domain; IP literals are always returned
         verbatim.
-    :return: The host's domain under its public suffix (``bank.co.uk``,
+    :return: the host's domain under its public suffix (``bank.co.uk``,
         ``example.com``), the last two labels for a suffix the list does
         not know (``corp.lan``), the host itself for local hosts and IP
         literals, or ``None`` when the URL has no host.
@@ -130,11 +130,11 @@ def propose_scope(
     The whole registrable domain for a URL, the whole scheme for a non-
     HTTP URL, the whole app for a native launch.
 
-    :param action: The blocked action; only ``launch`` proposes
+    :param action: the blocked action; only ``launch`` proposes
         anything.
-    :param reason: Why the agent tried it.
-    :param local_hosts: See ``registrable_domain``.
-    :return: The request, or ``None`` when nothing coarse can be
+    :param reason: why the agent tried it.
+    :param local_hosts: see ``registrable_domain``.
+    :return: the request, or ``None`` when nothing coarse can be
         proposed.
     """
     request: Optional[daapprov.ScopeRequest] = None
@@ -182,9 +182,9 @@ def sensitive_boxes(
     decide: a secure field, a masked value, a sensitive name or label,
     or the policy's own field patterns.
 
-    :param policy: The governing policy.
-    :param screen: The digest the screenshot was taken with.
-    :return: The window-normalised box of every sensitive field.
+    :param policy: the governing policy.
+    :param screen: the digest the screenshot was taken with.
+    :return: the window-normalised box of every sensitive field.
     """
     boxes = [
         control.box
@@ -204,8 +204,7 @@ def sensitive_boxes(
 
 def _whole_words(pattern: str) -> str:
     """
-    Anchor a pattern so it only matches whole words ("post", not "Postal
-    code").
+    Anchor a pattern to whole words ("post", not "Postal code").
     """
     anchored = rf"(?<!\w)(?:{pattern})(?!\w)"
     return anchored
@@ -259,8 +258,8 @@ def _click_text(target_text: str) -> str:
     unless it is empty or generic ("Go", "Submit"), when the label is
     the only description of the action.
 
-    :param target_text: The control's ``"name | label"`` text.
-    :return: The name, or the whole text when the name is uninformative.
+    :param target_text: the control's ``"name | label"`` text.
+    :return: the name, or the whole text when the name is uninformative.
     """
     name = target_text.split(" | ", 1)[0].strip()
     text = target_text if name.lower() in _GENERIC_NAMES else name
@@ -351,11 +350,11 @@ def _mutating_trigger(
     """
     Find what makes the action mutating, if anything.
 
-    :param policy: The governing policy.
-    :param action: The action about to run.
-    :param screen: The current digest, when one is available.
-    :param control: The control a click targets, when resolved.
-    :return:``(what the human would read, matched pattern)`` or
+    :param policy: the governing policy.
+    :param action: the action about to run.
+    :param screen: the current digest, when one is available.
+    :param control: the control a click targets, when resolved.
+    :return: ``(what the human would read, matched pattern)`` or
         ``None``.
     """
     if action.kind == "click":
@@ -376,11 +375,11 @@ def classify_risk(
     """
     Classify an action as ``safe`` or ``mutating``.
 
-    :param policy: The governing policy.
-    :param action: The action about to run.
-    :param digest: The current digest, when one is available.
-    :param control: The control a click targets, when resolved.
-    :return:``mutating`` when a mutating trigger is found, else
+    :param policy: the governing policy.
+    :param action: the action about to run.
+    :param digest: the current digest, when one is available.
+    :param control: the control a click targets, when resolved.
+    :return: ``mutating`` when a mutating trigger is found, else
         ``safe``.
     """
     trigger = _mutating_trigger(policy, action, digest, control)
@@ -438,7 +437,7 @@ def _scope_grants_for(
     A web launch through a browser needs both the browser app and the
     domain; the generated profile allows exactly that pair.
 
-    :return:``(block reason, grants)``: reason ``None`` when not
+    :return: ``(block reason, grants)``: reason ``None`` when not
         blocked; grants ``None`` when no coarse grant can lift the
         block.
     """
@@ -690,14 +689,14 @@ def evaluate_action(
     and select), then the mutating trigger. The first gate that decides
     wins.
 
-    :param policy: The governing policy.
-    :param action: The action about to run.
-    :param grants: Scope grants made earlier in the run.
-    :param digest: The current screen digest, when one is available.
-    :param control: The control the action targets, when resolved.
-    :param app: Application the action targets.
-    :param local_hosts: Host names treated as local by scope proposals.
-    :return: The decision; ``needs_approval`` decisions carry the request.
+    :param policy: the governing policy.
+    :param action: the action about to run.
+    :param grants: scope grants made earlier in the run.
+    :param digest: the current screen digest, when one is available.
+    :param control: the control the action targets, when resolved.
+    :param app: application the action targets.
+    :param local_hosts: host names treated as local by scope proposals.
+    :return: the decision; ``needs_approval`` decisions carry the request.
     """
     if action.kind not in policy.allowed_action_kinds:
         # Action kind is not allowed at all: deny before any other gate.

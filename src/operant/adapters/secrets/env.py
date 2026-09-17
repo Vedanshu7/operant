@@ -23,7 +23,7 @@ class EnvSecretStore:
     """
     Resolve locators as environment variable names.
 
-    :ivar backend: Always ``"env"``.
+    :ivar backend: always ``"env"``.
     """
 
     backend = "env"

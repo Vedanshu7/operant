@@ -1,6 +1,8 @@
 """
-Self-tests for the eval harness: a known-good trace must pass its checks
-and a known-bad trace must fail them, with a scripted model - no API key.
+Self-tests for the eval harness.
+
+A known-good trace must pass its checks and a known-bad trace must fail
+them, with a scripted model and no API key.
 """
 
 from __future__ import annotations

@@ -19,9 +19,9 @@ def model_wiring(settings: issettin.OperantSettings) -> discover.ModelWiring:
     """
     Build every role's client, the token counter, tracer and scrubber.
 
-    :param settings: The loaded settings.
-    :return: The wiring for ``discover.execute_discovery``.
-    :raises errors.ConfigError: When a model, router or tracer setting
+    :param settings: the loaded settings.
+    :return: the wiring for ``discover.execute_discovery``.
+    :raises errors.ConfigError: when a model, router or tracer setting
         is unusable.
     """
     clients = litecli.build_clients(settings.discovery)

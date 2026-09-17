@@ -44,7 +44,7 @@ class GuardedGateway:
     """
     Wrap a dispatcher with the policy gate and scope grants.
 
-    :ivar grants: Human-approved scope widenings for this session;
+    :ivar grants: human-approved scope widenings for this session;
         enforcement stays here, never in the caller.
     """
 

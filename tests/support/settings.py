@@ -13,8 +13,8 @@ def test_settings(root: pathlib.Path) -> settings.OperantSettings:
     """
     Build settings whose data directories all live under ``root``.
 
-    :param root: Usually pytest's ``tmp_path``.
-    :return: Settings with the env backend, no driver URL, and no
+    :param root: usually pytest's ``tmp_path``.
+    :return: settings with the env backend, no driver URL, and no
         ``.env``.
     """
     return settings.OperantSettings(

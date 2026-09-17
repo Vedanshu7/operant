@@ -43,10 +43,10 @@ def locate(
     Prefers content-fingerprint coverage; falls back to node checks when
     no node has a fingerprint (older graphs) or none match by content.
 
-    :param screen: The current screen digest.
-    :param app_graph: The graph to search.
-    :param inputs: Task inputs substituted into parameterised checks.
-    :return: The matching node id, or ``None`` when nothing matches.
+    :param screen: the current screen digest.
+    :param app_graph: the graph to search.
+    :param inputs: task inputs substituted into parameterised checks.
+    :return: the matching node id, or ``None`` when nothing matches.
     """
     values = dict(inputs or {})
     node_id: Optional[str] = None
@@ -62,6 +62,9 @@ def _by_fingerprint(
     screen: digest.ScreenDigest,
     values: Dict[str, str],
 ) -> Optional[str]:
+    """
+    Find the node whose fingerprint matches the screen.
+    """
     screen_fp = set(odfinger.of(screen))
     scored: List[Tuple[float, bool, str]] = []
     for node in nodes:
@@ -82,6 +85,9 @@ def _by_checks(
     screen: digest.ScreenDigest,
     values: Dict[str, str],
 ) -> Optional[str]:
+    """
+    Find the node whose checks pass on the screen.
+    """
     matches: List[Tuple[int, str]] = []
     for node in nodes:
         checks = [params.substitute_condition(c, values) for c in node.checks]

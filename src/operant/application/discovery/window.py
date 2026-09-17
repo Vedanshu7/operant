@@ -38,11 +38,11 @@ class WindowBudget:
     """
     How much history a model call may carry.
 
-    :ivar keep_full_turns: Newest turns whose screen digest is sent in
+    :ivar keep_full_turns: newest turns whose screen digest is sent in
         full; older turns keep only their window title.
-    :ivar budget_ratio: Share of the model's input limit the window may
+    :ivar budget_ratio: share of the model's input limit the window may
         use, leaving room for the reply and estimation error.
-    :ivar max_tokens: The budget when the model's input limit is
+    :ivar max_tokens: the budget when the model's input limit is
         unknown.
     """
 
@@ -94,12 +94,12 @@ class Window:
     """
     One model call's messages, and what was left out to fit.
 
-    :ivar messages: The system turn followed by the windowed history.
-    :ivar tokens: Counted (or estimated) tokens of ``messages``.
-    :ivar limit: The token budget the window had to fit.
-    :ivar kept_full: Turns sent with their full screen digest.
-    :ivar dropped_images: Older screenshots replaced by a note.
-    :ivar forced: The budget cut full digests below the configured
+    :ivar messages: the system turn followed by the windowed history.
+    :ivar tokens: counted (or estimated) tokens of ``messages``.
+    :ivar limit: the token budget the window had to fit.
+    :ivar kept_full: turns sent with their full screen digest.
+    :ivar dropped_images: older screenshots replaced by a note.
+    :ivar forced: the budget cut full digests below the configured
         count.
     """
 
@@ -125,11 +125,11 @@ def build(
     fit with one full turn is returned as-is so the caller can fail the
     run with the numbers instead of silently cutting the goal.
 
-    :param system: The system prompt.
-    :param history: The stored conversation, oldest first.
-    :param budget: The window budget.
-    :param counter: Counts tokens for the model in use.
-    :return: The smallest window the rules allow, or the first that
+    :param system: the system prompt.
+    :param history: the stored conversation, oldest first.
+    :param budget: the window budget.
+    :param counter: counts tokens for the model in use.
+    :return: the smallest window the rules allow, or the first that
         fits.
     """
     model_limit = counter.limit()

@@ -48,17 +48,17 @@ class DiscoverRequest:
     """
     One discovery invocation.
 
-    :ivar goal: The natural-language goal.
-    :ivar capability_id: Id to save the capability under.
-    :ivar name: Human-readable name; defaults to the id.
-    :ivar profile_id: App profile to use; ``None`` selects bootstrap
+    :ivar goal: the natural-language goal.
+    :ivar capability_id: id to save the capability under.
+    :ivar name: human-readable name; defaults to the id.
+    :ivar profile_id: app profile to use; ``None`` selects bootstrap
         mode.
-    :ivar tenant: Tenant to run against.
-    :ivar inputs: Optional pre-seeded task inputs.
-    :ivar screenshots: Whether to send the model screenshots.
-    :ivar max_turns: Override the turn budget; ``None`` uses the
+    :ivar tenant: tenant to run against.
+    :ivar inputs: optional pre-seeded task inputs.
+    :ivar screenshots: whether to send the model screenshots.
+    :ivar max_turns: override the turn budget; ``None`` uses the
         configured default.
-    :ivar agents: Override ``single``/``multi``; ``None`` uses the
+    :ivar agents: override ``single``/``multi``; ``None`` uses the
         configured default.
     """
 
@@ -83,9 +83,9 @@ class DiscoverOutcome:
     """
     A committed discovery.
 
-    :ivar capability: The saved capability.
-    :ivar graph: The graph version it pins.
-    :ivar profile_path: Where the effective profile was written.
+    :ivar capability: the saved capability.
+    :ivar graph: the graph version it pins.
+    :ivar profile_path: where the effective profile was written.
     """
 
     capability: artifact.CapabilityArtifact
@@ -103,14 +103,14 @@ class ModelWiring:
     """
     The models a discovery run talks to, and where their calls are traced.
 
-    :ivar llm: The executor's client.
-    :ivar model_name: The executor's model id, for provenance.
-    :ivar token_counter: Counts prompt tokens for the executor's model;
+    :ivar llm: the executor's client.
+    :ivar model_name: the executor's model id, for provenance.
+    :ivar token_counter: counts prompt tokens for the executor's model;
         an estimate is used when ``None``.
-    :ivar tracer: Where model calls are traced; none when ``None``.
-    :ivar scrubber: Masks personal data in traced text.
-    :ivar role_llms: Clients for the multi-agent roles, by role name.
-    :ivar role_models: Model ids for those roles, for tracing.
+    :ivar tracer: where model calls are traced; none when ``None``.
+    :ivar scrubber: masks personal data in traced text.
+    :ivar role_llms: clients for the multi-agent roles, by role name.
+    :ivar role_models: model ids for those roles, for tracing.
     """
 
     llm: plllm.LlmClient
@@ -145,22 +145,22 @@ def execute_discovery(
     """
     Run discovery, commit the recording, and persist the profile.
 
-    :param request: What to discover.
-    :param factory: Builds the run context.
-    :param artifacts: Capability storage.
-    :param graphs: Graph storage.
-    :param profiles: Profile storage (also the discovery base).
-    :param models: The models the run talks to.
-    :param secret_store: Where secret references resolve.
-    :param clarifier: Answers the agent's clarifying question, if any.
-    :param approver: Answers approvals.
-    :param credential_requester: Asks a person for a credential.
-    :param run_identifier: Fixes the run id and evidence directory; the
+    :param request: what to discover.
+    :param factory: builds the run context.
+    :param artifacts: capability storage.
+    :param graphs: graph storage.
+    :param profiles: profile storage (also the discovery base).
+    :param models: the models the run talks to.
+    :param secret_store: where secret references resolve.
+    :param clarifier: answers the agent's clarifying question, if any.
+    :param approver: answers approvals.
+    :param credential_requester: asks a person for a credential.
+    :param run_identifier: fixes the run id and evidence directory; the
         server passes the id it tracks the run under.
-    :param should_stop: Polled between turns; true cancels the run.
-    :param on_context: Called with the wired context before the run
+    :param should_stop: polled between turns; true cancels the run.
+    :param on_context: called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
-    :return: A committed outcome, or a typed failure.
+    :return: a committed outcome, or a typed failure.
     """
     base = (
         profiles.get(request.profile_id)

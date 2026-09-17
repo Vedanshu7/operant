@@ -69,7 +69,7 @@ class ArtifactRepository(Protocol):
         """
         Store ``document`` as the next version of its id.
 
-        :return: The stored artifact with ``version`` assigned.
+        :return: the stored artifact with ``version`` assigned.
         """
         ...
 
@@ -119,7 +119,7 @@ class GraphRepository(Protocol):
         """
         Store ``document`` as the next version of its vendor.
 
-        :return: The stored graph with ``graph_version`` and timestamps
+        :return: the stored graph with ``graph_version`` and timestamps
             set.
         """
         ...
@@ -133,8 +133,7 @@ class GraphRepository(Protocol):
 @runtime_checkable
 class ProfileRepository(Protocol):
     """
-    Application profiles, and the deny-by-default profile discovery starts
-    from.
+    Store application profiles and the deny-by-default discovery profile.
     """
 
     def exists(self, profile_id: str) -> bool:
@@ -267,7 +266,7 @@ class RunRepository(Protocol):
         """
         Add one replay to a capability's track record.
 
-        :return: The updated track record.
+        :return: the updated track record.
         """
         ...
 
@@ -277,8 +276,8 @@ class RunRepository(Protocol):
         """
         Return the capability's recent track record (zeroes when none).
 
-        :param capability_id: The capability to report on.
-        :param window: How many of the most recent replays to count.
+        :param capability_id: the capability to report on.
+        :param window: how many of the most recent replays to count.
         """
         ...
 

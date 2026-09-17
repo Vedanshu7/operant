@@ -26,7 +26,7 @@ class Tool(Protocol):
     """
     One actuator or observer the gateway can dispatch to.
 
-    :ivar spec: What the tool is and which action kinds it serves.
+    :ivar spec: what the tool is and which action kinds it serves.
     """
 
     spec: tools.ToolSpec
@@ -43,9 +43,9 @@ class Tool(Protocol):
         """
         Perform ``action`` with the session and target in ``ctx``.
 
-        :param action: The resolved action.
-        :param ctx: Session, last digest, and resolved target handle.
-        :return: The outcome; ``unsupported`` lets the chain fall
+        :param action: the resolved action.
+        :param ctx: session, last digest, and resolved target handle.
+        :return: the outcome; ``unsupported`` lets the chain fall
             through.
         """
         ...

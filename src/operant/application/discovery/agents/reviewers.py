@@ -1,6 +1,8 @@
 """
-Fan-out helpers around the executor: regex candidates for a failed extract, and
-advisory reviews of the saved recording.
+Fan-out helpers around the executor.
+
+Provide regex candidates for a failed extract and advisory reviews of the
+saved recording.
 
 Neither touches the screen. Extract candidates are checked by code
 against the visible text; reviews are evidence only and never block or
@@ -37,11 +39,11 @@ def extract_candidates(
     """
     Propose regexes in parallel and keep the best one that matches.
 
-    :param session: The discovery session.
-    :param name: The output being extracted.
-    :param failed: The executor's pattern that did not match.
-    :param turn: The executor turn.
-    :return: A one-group pattern that matches the visible text, or
+    :param session: the discovery session.
+    :param name: the output being extracted.
+    :param failed: the executor's pattern that did not match.
+    :param turn: the executor turn.
+    :return: a one-group pattern that matches the visible text, or
         ``None`` when no candidate does.
     """
     screen = session.state.screen
@@ -76,12 +78,14 @@ def extract_candidates(
 
 def best_pattern(patterns: List[str], text: str) -> Optional[str]:
     """
-    Pick the candidate to keep: it must compile, have one group, and match; one
-    that does not spell out the captured value wins.
+    Pick the candidate to keep.
 
-    :param patterns: Candidate regexes, in proposal order.
-    :param text: The visible text they must match.
-    :return: The chosen pattern, or ``None`` when none qualifies.
+    It must compile, have one group, and match; one that does not spell
+    out the captured value wins.
+
+    :param patterns: candidate regexes, in proposal order.
+    :param text: the visible text they must match.
+    :return: the chosen pattern, or ``None`` when none qualifies.
     """
     valid: List[str] = []
     anchored: List[str] = []
@@ -105,12 +109,13 @@ def review_recording(
     session: loop.DiscoverySession, recording: recdng.Recording, *, turn: int
 ) -> None:
     """
-    Review each recorded step's locator and the typed contract, in parallel,
-    and log the findings as ``compile_review`` events.
+    Review each recorded locator and the typed contract in parallel.
 
-    :param session: The discovery session.
-    :param recording: The recording about to be returned.
-    :param turn: The executor turn of ``goal_complete``.
+    Log the findings as ``compile_review`` events.
+
+    :param session: the discovery session.
+    :param recording: the recording about to be returned.
+    :param turn: the executor turn of ``goal_complete``.
     """
     edges = [e for e in recording.edges if e.target is not None]
     edges = edges[:_MAX_REVIEWED_EDGES]

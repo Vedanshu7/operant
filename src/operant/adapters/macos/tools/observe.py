@@ -126,6 +126,9 @@ def _content_root(window: xa11y.Element) -> xa11y.Element:
     """
 
     def find(element: xa11y.Element, depth: int) -> Optional[xa11y.Element]:
+        """
+        Find the web area in the accessibility tree.
+        """
         if element.role == "web_area":
             return element
         if depth > 8:

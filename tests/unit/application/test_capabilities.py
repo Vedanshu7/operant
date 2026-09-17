@@ -1,5 +1,7 @@
 """
-commit_recording: the recording -> shared graph + path-query capability seam,
+Tests for committing a recording to a graph and capability.
+
+Cover the seam from recording to shared graph and path-query capability,
 including id remapping through the merge and shared-subgraph reuse.
 """
 

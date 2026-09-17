@@ -27,9 +27,9 @@ class RoleStrategy(pydantic.BaseModel):
     """
     Match a control by accessibility role and name.
 
-    :ivar kind: Discriminator, always ``role``.
-    :ivar role: Accessibility role to match.
-    :ivar name: Accessible name to match.
+    :ivar kind: discriminator, always ``role``.
+    :ivar role: accessibility role to match.
+    :ivar name: accessible name to match.
     """
 
     kind: Literal["role"] = "role"
@@ -46,9 +46,9 @@ class LabelProximityStrategy(pydantic.BaseModel):
     """
     Match a control of a role that sits next to anchoring text.
 
-    :ivar kind: Discriminator, always ``labelProximity``.
-    :ivar anchor_text: Nearby text that labels the control.
-    :ivar role: Accessibility role of the control.
+    :ivar kind: discriminator, always ``labelProximity``.
+    :ivar anchor_text: nearby text that labels the control.
+    :ivar role: accessibility role of the control.
     """
 
     kind: Literal["labelProximity"] = "labelProximity"
@@ -65,8 +65,8 @@ class StructuralStrategy(pydantic.BaseModel):
     """
     Match a control by its accessibility tree path.
 
-    :ivar kind: Discriminator, always ``structural``.
-    :ivar path: A11y tree path, e.g.
+    :ivar kind: discriminator, always ``structural``.
+    :ivar path: a11y tree path, e.g.
         ``window>group:1>table>row:3>link``.
     """
 
@@ -83,13 +83,13 @@ class RegionStrategy(pydantic.BaseModel):
     """
     Match a control of a role near a window-normalised position.
 
-    :ivar kind: Discriminator, always ``region``.
-    :ivar role: Accessibility role of the control.
-    :ivar x: Expected left edge, 0..1.
-    :ivar y: Expected top edge, 0..1.
-    :ivar w: Expected width, 0..1.
-    :ivar h: Expected height, 0..1.
-    :ivar tolerance: Allowed positional drift, 0..1.
+    :ivar kind: discriminator, always ``region``.
+    :ivar role: accessibility role of the control.
+    :ivar x: expected left edge, 0..1.
+    :ivar y: expected top edge, 0..1.
+    :ivar w: expected width, 0..1.
+    :ivar h: expected height, 0..1.
+    :ivar tolerance: allowed positional drift, 0..1.
     """
 
     kind: Literal["region"] = "region"
@@ -118,8 +118,8 @@ class Target(pydantic.BaseModel):
     """
     A ranked stack of strategies that names one control.
 
-    :ivar strategies: Strategies tried in order; at least one.
-    :ivar reasoning: Why the recorder chose this stack.
+    :ivar strategies: strategies tried in order; at least one.
+    :ivar reasoning: why the recorder chose this stack.
     """
 
     strategies: List[TargetStrategy] = pydantic.Field(min_length=1)
@@ -141,10 +141,10 @@ class Value(pydantic.BaseModel):
     under that output name (e.g. a balance read in one app, typed into
     another).
 
-    :ivar literal: Fixed text recorded as-is.
-    :ivar param: Name of the task input supplying the text.
-    :ivar secret_ref: Name of the tenant secret supplying the text.
-    :ivar from_output: Name of an earlier output supplying the text.
+    :ivar literal: fixed text recorded as-is.
+    :ivar param: name of the task input supplying the text.
+    :ivar secret_ref: name of the tenant secret supplying the text.
+    :ivar from_output: name of an earlier output supplying the text.
     """
 
     literal: Optional[str] = None

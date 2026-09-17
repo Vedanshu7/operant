@@ -27,10 +27,10 @@ def shortest_path(
     """
     Find the fewest-edge route from ``start`` to ``goal``.
 
-    :param app_graph: The graph to search.
-    :param start: Id of the node to start from.
-    :param goal: Id of the node to reach.
-    :return: The edges to follow in order; empty when ``start`` is
+    :param app_graph: the graph to search.
+    :param start: id of the node to start from.
+    :param goal: id of the node to reach.
+    :return: the edges to follow in order; empty when ``start`` is
         ``goal``; ``None`` when ``goal`` is unreachable.
     """
     if start == goal:
@@ -64,10 +64,10 @@ def compiled_edges(
     """
     Resolve a cached compiled path of edge ids to edges.
 
-    :param app_graph: The graph the ids refer to.
-    :param edge_ids: Ordered edge ids from an artifact's
+    :param app_graph: the graph the ids refer to.
+    :param edge_ids: ordered edge ids from an artifact's
         ``compiled_path``.
-    :return: The edges in order, or ``None`` when any id is missing (the
+    :return: the edges in order, or ``None`` when any id is missing (the
         graph changed, so the caller re-plans).
     """
     by_id = {e.id: e for e in app_graph.edges}

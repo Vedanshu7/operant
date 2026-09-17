@@ -33,17 +33,17 @@ class StartDiscoveryBody(pydantic.BaseModel):
     """
     A request to start an LLM discovery run.
 
-    :ivar goal: Natural-language goal to discover.
-    :ivar capability_id: Id to save the resulting capability under.
-    :ivar name: Human-readable capability name; defaults to the id.
-    :ivar profile_id: Profile to run under; ``None`` bootstraps a
+    :ivar goal: natural-language goal to discover.
+    :ivar capability_id: id to save the resulting capability under.
+    :ivar name: human-readable capability name; defaults to the id.
+    :ivar profile_id: profile to run under; ``None`` bootstraps a
         vendor.
-    :ivar tenant: Tenant to run against.
-    :ivar inputs: Pre-seeded task inputs.
-    :ivar screenshots: Whether to send the model screenshots.
-    :ivar max_turns: Override the turn budget; ``None`` uses the
+    :ivar tenant: tenant to run against.
+    :ivar inputs: pre-seeded task inputs.
+    :ivar screenshots: whether to send the model screenshots.
+    :ivar max_turns: override the turn budget; ``None`` uses the
         default.
-    :ivar agents:``single`` or ``multi`` (planner, executor, verifier);
+    :ivar agents: ``single`` or ``multi`` (planner, executor, verifier);
         ``None`` uses the configured default.
     """
 
@@ -86,10 +86,10 @@ class StartReplayBody(pydantic.BaseModel):
     """
     A request to replay a capability.
 
-    :ivar capability_id: Capability to replay.
-    :ivar tenant: Tenant override; the capability default when empty.
-    :ivar inputs: Task inputs by name.
-    :ivar inject_session_expiry_before: Edge id to fault before, for
+    :ivar capability_id: capability to replay.
+    :ivar tenant: tenant override; the capability default when empty.
+    :ivar inputs: task inputs by name.
+    :ivar inject_session_expiry_before: edge id to fault before, for
         demos.
     """
 
@@ -120,9 +120,9 @@ class ApprovalDecisionBody(pydantic.BaseModel):
     """
     An operator's answer to an approval question.
 
-    :ivar approved: Whether the action is allowed.
-    :ivar remember:``once`` or ``process`` (remember for the run).
-    :ivar note: Optional operator remark.
+    :ivar approved: whether the action is allowed.
+    :ivar remember: ``once`` or ``process`` (remember for the run).
+    :ivar note: optional operator remark.
     """
 
     approved: bool
@@ -139,7 +139,7 @@ class ClarificationAnswerBody(pydantic.BaseModel):
     """
     An operator's answer to a clarifying question.
 
-    :ivar answer: The free-text answer.
+    :ivar answer: the free-text answer.
     """
 
     answer: str
@@ -157,8 +157,8 @@ class CredentialAnswerBody(pydantic.BaseModel):
     Exactly one is set: ``value`` is a literal the operator typed,
     ``locator`` names an ``env:`` / ``keychain:`` source to resolve.
 
-    :ivar value: A typed credential value.
-    :ivar locator: A source locator to resolve instead of a value.
+    :ivar value: a typed credential value.
+    :ivar locator: a source locator to resolve instead of a value.
     """
 
     value: Optional[str] = None
@@ -166,6 +166,9 @@ class CredentialAnswerBody(pydantic.BaseModel):
 
     @pydantic.model_validator(mode="after")
     def _exactly_one(self) -> "CredentialAnswerBody":
+        """
+        Require exactly one of the value and the locator.
+        """
         if (self.value is None) == (self.locator is None):
             raise ValueError("set exactly one of 'value' and 'locator'")
         return self
@@ -180,7 +183,7 @@ class NoteBody(pydantic.BaseModel):
     """
     A note attached to an intervention action.
 
-    :ivar note: Optional operator remark.
+    :ivar note: optional operator remark.
     """
 
     note: str = ""
@@ -195,10 +198,10 @@ class SecretRefBody(pydantic.BaseModel):
     """
     A secret reference's metadata (never a value).
 
-    :ivar name: Reference name used as ``$secret:<name>``.
-    :ivar backend:``env`` or ``keychain``.
-    :ivar locator: Backend locator (env var, or ``service/account``).
-    :ivar description: What the secret is for.
+    :ivar name: reference name used as ``$secret:<name>``.
+    :ivar backend: ``env`` or ``keychain``.
+    :ivar locator: backend locator (env var, or ``service/account``).
+    :ivar description: what the secret is for.
     """
 
     name: str

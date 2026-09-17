@@ -1,6 +1,8 @@
 """
-Replay robustness under UI changes: perturb recorded screens and check what
-replay's two deterministic decisions do with them.
+Replay robustness under UI changes.
+
+Perturb recorded screens and check what replay's two deterministic decisions
+do with them.
 
 Replay uses no model, so this suite costs nothing. For every named
 control on a few realistic screens it builds the strategy stack the
@@ -416,13 +418,13 @@ class Score:
     """
     What one operator did to replay, over every screen and target.
 
-    :ivar targets: Recorded steps resolved.
-    :ivar correct: Resolved to the same control.
-    :ivar wrong: Resolved to a different control.
-    :ivar escalated: Resolved to nothing or to several controls.
-    :ivar coverages: Per changed screen, the coverage of every original
+    :ivar targets: recorded steps resolved.
+    :ivar correct: resolved to the same control.
+    :ivar wrong: resolved to a different control.
+    :ivar escalated: resolved to nothing or to several controls.
+    :ivar coverages: per changed screen, the coverage of every original
         screen's fingerprint on it, and which original it really is.
-    :ivar located: Per changed screen, whether ``localize.locate`` (with
+    :ivar located: per changed screen, whether ``localize.locate`` (with
         the title checks a recorded node carries) named the right
         screen.
     """
@@ -441,9 +443,9 @@ def evaluate(seeds: Sequence[int] = tuple(range(5))) -> Dict[str, Score]:
     """
     Apply every operator to every screen and score replay's decisions.
 
-    :param seeds: Random seeds; each picks different victims for the
+    :param seeds: random seeds; each picks different victims for the
         operators that change one control.
-    :return: A score per operator.
+    :return: a score per operator.
     """
     scores: Dict[str, Score] = {}
     for name, operator in OPERATORS.items():
@@ -494,7 +496,7 @@ def pick(coverages: Dict[str, float], threshold: float) -> str:
     """
     Name the screen coverage alone would pick, as localize ranks it.
 
-    :return: The screen id, ``"tie"`` when the best is shared, or
+    :return: the screen id, ``"tie"`` when the best is shared, or
         ``"none"`` when nothing reaches ``threshold`` (localize then
         falls back to the title checks).
     """

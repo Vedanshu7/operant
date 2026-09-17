@@ -42,15 +42,15 @@ class InterventionRequest:
     """
     A request for a human to take over the live session.
 
-    :ivar run_id: Run that raised the request.
-    :ivar kind:``discovery`` or ``replay``.
-    :ivar capability: Capability id or goal name.
-    :ivar goal: What the run is trying to achieve.
-    :ivar reason: Why a human is needed.
-    :ivar page_title: Window title when raised.
-    :ivar edge_id: Edge the run was on, when replaying.
-    :ivar screenshot_file: Evidence screenshot at escalation.
-    :ivar id: Broker-assigned id (``iv-<n>``); empty until raised.
+    :ivar run_id: run that raised the request.
+    :ivar kind: ``discovery`` or ``replay``.
+    :ivar capability: capability id or goal name.
+    :ivar goal: what the run is trying to achieve.
+    :ivar reason: why a human is needed.
+    :ivar page_title: window title when raised.
+    :ivar edge_id: edge the run was on, when replaying.
+    :ivar screenshot_file: evidence screenshot at escalation.
+    :ivar id: broker-assigned id (``iv-<n>``); empty until raised.
     :ivar raised_at: ISO timestamp the request was raised.
     """
 
@@ -76,9 +76,9 @@ class InterventionResolution:
     """
     How an intervention ended.
 
-    :ivar resolution:``resumed`` (hand back) or ``abandoned``.
-    :ivar note: Operator remark.
-    :ivar human_actions: Actions the human took while in control.
+    :ivar resolution: ``resumed`` (hand back) or ``abandoned``.
+    :ivar note: operator remark.
+    :ivar human_actions: actions the human took while in control.
     """
 
     resolution: Literal["resumed", "abandoned"]
@@ -96,9 +96,9 @@ class PendingApproval:
     """
     An approve/deny question with no control transfer.
 
-    :ivar id: Broker-assigned id (``approval-<n>``).
-    :ivar run_id: Run that raised the question.
-    :ivar request: The question put to the human.
+    :ivar id: broker-assigned id (``approval-<n>``).
+    :ivar run_id: run that raised the question.
+    :ivar request: the question put to the human.
     :ivar raised_at: ISO timestamp the question was raised.
     """
 

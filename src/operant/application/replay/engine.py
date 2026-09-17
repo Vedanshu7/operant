@@ -69,20 +69,20 @@ def replay_path(
     """
     Execute a chosen edge path and reports a typed result.
 
-    :param capability: The capability being replayed.
-    :param app_graph: The graph version it pins.
-    :param path: The compiled edge path to run.
-    :param surface: The actuation surface.
-    :param broker: Control broker for hand-offs.
-    :param log: Evidence sink.
-    :param redactor: Masks sensitive values in evidence.
-    :param opts: Inputs, tenant, and timing.
-    :param invoke_graph: Cross-graph composition hook.
-    :param depth: Composition depth of this run.
-    :param approver: Who answers approvals; denies all when ``None``.
-    :param secret_store: Where secret references resolve; env by
+    :param capability: the capability being replayed.
+    :param app_graph: the graph version it pins.
+    :param path: the compiled edge path to run.
+    :param surface: the actuation surface.
+    :param broker: control broker for hand-offs.
+    :param log: evidence sink.
+    :param redactor: masks sensitive values in evidence.
+    :param opts: inputs, tenant, and timing.
+    :param invoke_graph: cross-graph composition hook.
+    :param depth: composition depth of this run.
+    :param approver: who answers approvals; denies all when ``None``.
+    :param secret_store: where secret references resolve; env by
         default.
-    :return: A success, business-outcome, escalated, or failure result.
+    :return: a success, business-outcome, escalated, or failure result.
     """
     precondition = _check_inputs(capability, opts, log, redactor)
     if precondition is not None:
@@ -128,6 +128,9 @@ def _run(
     """
 
     def run_edge(edge: graph.Edge, *, allow_recovery: bool = True) -> None:
+        """
+        Execute one edge, stopping if the operator cancelled.
+        """
         if ctx.opts.should_stop():
             # The operator cancelled: stop before acting on the screen.
             raise context.Finished(

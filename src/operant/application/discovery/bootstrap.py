@@ -39,12 +39,12 @@ class VendorBootstrap(pydantic.BaseModel):
     """
     The identity derived from a first launch.
 
-    :ivar vendor_id: Graph and profile id for the application.
+    :ivar vendor_id: graph and profile id for the application.
     :ivar app_name: OS application hosting it.
-    :ivar window_title_pattern:``".*"`` for a generated binding - the
+    :ivar window_title_pattern: ``".*"`` for a generated binding - the
         dedicated automation instance hosts only our windows, so the
         app-level pattern need not narrow further.
-    :ivar entry_url: The URL that was opened, when any.
+    :ivar entry_url: the URL that was opened, when any.
     """
 
     vendor_id: str
@@ -74,12 +74,12 @@ def derive_vendor(
     The registrable domain for web targets (the app is just the browser
     hosting it), the application itself for native ones.
 
-    :param app_name: The launched application.
-    :param url: The opened URL, when any.
-    :param browsers: Lower-cased app names treated as browsers.
-    :param local_hosts: Hostnames treated as local (vendor from the
+    :param app_name: the launched application.
+    :param url: the opened URL, when any.
+    :param browsers: lower-cased app names treated as browsers.
+    :param local_hosts: hostnames treated as local (vendor from the
         path).
-    :return: The derived identity.
+    :return: the derived identity.
     """
     if url and app_name.lower() in browsers and url.startswith("http"):
         # Web target: the registrable domain names the vendor, not the browser.
@@ -118,10 +118,10 @@ def profile_for(
     The base discovery policy widened by exactly the scopes a human
     granted.
 
-    :param boot: The derived vendor identity.
-    :param base: The deny-by-default discovery profile.
-    :param grants: Scope grants made during the run.
-    :return: A profile that replays the recording without re-approval.
+    :param boot: the derived vendor identity.
+    :param base: the deny-by-default discovery profile.
+    :param grants: scope grants made during the run.
+    :return: a profile that replays the recording without re-approval.
     """
     app_grants = {g.pattern for g in grants if g.kind == "app"}
     url_grants = {g.pattern for g in grants if g.kind == "url"}

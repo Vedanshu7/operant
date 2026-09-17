@@ -32,9 +32,9 @@ class FaultInjection(pydantic.BaseModel):
     Absent for apps we do not control; fault injection then refuses to
     run.
 
-    :ivar restart_cmd: Command that restarts the backend.
+    :ivar restart_cmd: command that restarts the backend.
     :ivar health_url: URL polled until the backend is back.
-    :ivar timeout_s: How long to wait for the backend to return.
+    :ivar timeout_s: how long to wait for the backend to return.
     """
 
     restart_cmd: List[str]
@@ -51,16 +51,16 @@ class AppProfile(pydantic.BaseModel):
     """
     Per-vendor configuration every capability against the app shares.
 
-    :ivar vendor_id: Application identifier the profile belongs to.
+    :ivar vendor_id: application identifier the profile belongs to.
     :ivar app_name: OS application that hosts the target (e.g. ``Google
         Chrome``).
-    :ivar window_title_pattern: Regex the driven window's title matches.
-    :ivar policy: The policy capabilities against this app run under.
-    :ivar tenants: Tenant bindings keyed by tenant name.
-    :ivar default_tenant: Tenant used when a run names none.
-    :ivar global_outcome_edges: App-wide detectors applied at every
+    :ivar window_title_pattern: regex the driven window's title matches.
+    :ivar policy: the policy capabilities against this app run under.
+    :ivar tenants: tenant bindings keyed by tenant name.
+    :ivar default_tenant: tenant used when a run names none.
+    :ivar global_outcome_edges: app-wide detectors applied at every
         node.
-    :ivar fault_injection: Backend fault injection, when supported.
+    :ivar fault_injection: backend fault injection, when supported.
     """
 
     vendor_id: str

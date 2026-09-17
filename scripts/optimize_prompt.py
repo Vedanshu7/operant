@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import difflib
-import json
 import os
 import pathlib
 import random
@@ -33,6 +32,7 @@ import operant.adapters.llm.litellm_client as litecli
 import operant.adapters.observability.factory as aofactor
 import operant.adapters.privacy.factory as apfactor
 import operant.adapters.secrets.env as env
+import operant.helpers.files as files
 import operant.helpers.logging as logging
 import operant.infra.settings as settings
 import tests.evals.gepa_adapter as gepaadap
@@ -75,8 +75,9 @@ def _split(
     scenarios: List[harness.Scenario], seed: int
 ) -> Tuple[List[harness.Scenario], List[harness.Scenario]]:
     """
-    Split into train and validation with a fixed seed; the ParaBank-like skin
-    is validation only.
+    Split into train and validation with a fixed seed.
+
+    The ParaBank-like skin is validation only.
     """
     held = [s for s in scenarios if s.skin.name == _VAL_ONLY_SKIN]
     rest = [s for s in scenarios if s.skin.name != _VAL_ONLY_SKIN]
@@ -150,19 +151,17 @@ def main() -> int:
     if eval_env.tracer is not None:
         eval_env.tracer.flush()
     best = dict(result.best_candidate)
-    (out / "best_prompts.json").write_text(json.dumps(best, indent=2))
-    (out / "diff.patch").write_text(_diff(seed, best))
-    (out / "pareto.json").write_text(
-        json.dumps(
-            {
-                "best_idx": result.best_idx,
-                "val_aggregate_scores": list(result.val_aggregate_scores),
-                "seed_val_score": result.val_aggregate_scores[0],
-                "best_val_score": result.val_aggregate_scores[result.best_idx],
-                "total_metric_calls": result.total_metric_calls,
-            },
-            indent=2,
-        )
+    files.write_json(out / "best_prompts.json", best)
+    files.write_text(out / "diff.patch", _diff(seed, best))
+    files.write_json(
+        out / "pareto.json",
+        {
+            "best_idx": result.best_idx,
+            "val_aggregate_scores": list(result.val_aggregate_scores),
+            "seed_val_score": result.val_aggregate_scores[0],
+            "best_val_score": result.val_aggregate_scores[result.best_idx],
+            "total_metric_calls": result.total_metric_calls,
+        },
     )
     _LOG.info(
         "wrote %s (best val score %.3f, seed %.3f)",

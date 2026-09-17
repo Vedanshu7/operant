@@ -128,19 +128,18 @@ def split_graph(
     """
     Extract ``extract_nodes`` into a new graph linked by an invoke.
 
-    :param app_graph: The graph to split.
-    :param extract_nodes: Ids of the nodes that move to the new graph.
-    :param new_graph_id: Vendor id of the new graph.
-    :param new_app_name: Surface binding of the new graph; defaults to
-        the original's.
-    :param new_window_title_pattern: Window regex of the new graph;
+    :param app_graph: the graph to split.
+    :param extract_nodes: ids of the nodes that move to the new graph.
+    :param new_graph_id: vendor id of the new graph.
+    :param new_app_name: surface binding of the new graph.
+    :param new_window_title_pattern: window regex of the new graph;
         defaults to the original's.
-    :param entry_node: Node the invoke edge targets inside the new
+    :param entry_node: node the invoke edge targets inside the new
         graph; defaults to the extracted node an outside edge points
         into.
-    :return:``(rewritten_original, new_graph)``. Neither is persisted
+    :return: ``(rewritten_original, new_graph)``. Neither is persisted
         here.
-    :raises ValueError: If any of ``extract_nodes`` is not in the graph.
+    :raises ValueError: if any of ``extract_nodes`` is not in the graph.
     """
     missing = extract_nodes - {n.id for n in app_graph.nodes}
     if missing:

@@ -207,16 +207,16 @@ def merge_recording(
     """
     Fold a recorded flow into ``base`` (or a fresh graph).
 
-    :param base: The current graph version, or ``None`` for a first
+    :param base: the current graph version, or ``None`` for a first
         save.
-    :param vendor_id: Application the graph belongs to.
-    :param nodes: Screen nodes the recording observed.
-    :param edges: Actions the recording took between those nodes.
-    :param outcome_edges: Detectors the recording declared.
-    :param app_name: Surface binding; keeps ``base``'s when empty.
-    :param window_title_pattern: Window regex; keeps ``base``'s when
+    :param vendor_id: application the graph belongs to.
+    :param nodes: screen nodes the recording observed.
+    :param edges: actions the recording took between those nodes.
+    :param outcome_edges: detectors the recording declared.
+    :param app_name: surface binding; keeps ``base``'s when empty.
+    :param window_title_pattern: window regex; keeps ``base``'s when
         empty.
-    :return:``(graph, changed, node_remap, edge_remap)``. The remaps map
+    :return: ``(graph, changed, node_remap, edge_remap)``. The remaps map
         the recording's node/edge ids to the graph's canonical ids (e.g.
         a reused login subgraph) so the caller can point a capability's
         start/goal and compiled path at them. The graph keeps ``base``'s

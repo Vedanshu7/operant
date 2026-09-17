@@ -35,9 +35,9 @@ def resolve_value(
     """
     Resolve a recorded value to the text and tags an edge will use.
 
-    :param value: The recorded value from an edge's action.
-    :param ctx: The active replay context.
-    :return:``(text, data_class, export_from, secret_ref)``.
+    :param value: the recorded value from an edge's action.
+    :param ctx: the active replay context.
+    :return: ``(text, data_class, export_from, secret_ref)``.
         ``export_from`` names the vendor the value was extracted in when
         that is not the graph being executed (typing it here is a cross-
         app export); ``secret_ref`` names the secret reference it was
@@ -129,8 +129,8 @@ def record_outputs(ctx: context.ReplayContext, outputs: Dict[str, str]) -> None:
     The caller still receives the values as the result; only what is
     written to evidence from this moment on is masked.
 
-    :param ctx: The active replay context.
-    :param outputs: Extracted values keyed by output name.
+    :param ctx: the active replay context.
+    :param outputs: extracted values keyed by output name.
     """
     for name, value in outputs.items():
         spec = ctx.capability.outputs.get(name)
@@ -155,8 +155,8 @@ def extract_eagerly(
     Later ``from_output`` steps (dataflow into another app) can then
     read the values; the end-of-run block still validates completeness.
 
-    :param ctx: The active replay context.
-    :param screen: The digest captured at ``extract_at_node``.
+    :param ctx: the active replay context.
+    :param screen: the digest captured at ``extract_at_node``.
     """
     if ctx.capability.extract:
         outputs, _missing = outcomes.run_extraction(extract_specs(ctx), screen)
@@ -170,8 +170,8 @@ def extract_specs(ctx: context.ReplayContext) -> List[artifact.ExtractSpec]:
     Patterns recorded around an input value carry ``{{name}}``; each
     replay reads the record its own inputs name.
 
-    :param ctx: The active replay context.
-    :return: The specs with placeholders replaced by escaped values.
+    :param ctx: the active replay context.
+    :return: the specs with placeholders replaced by escaped values.
     """
     specs = [
         spec.model_copy(

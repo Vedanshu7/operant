@@ -58,18 +58,18 @@ def run_capability(
     """
     Plan a path to the goal and replays it, composing across graphs.
 
-    :param capability: The capability to run.
-    :param app_graph: The pinned graph version.
-    :param surface: The actuation surface.
-    :param broker: Control broker for hand-offs.
-    :param log: Evidence sink.
-    :param redactor: Masks sensitive values in evidence.
-    :param opts: Inputs, tenant, and timing.
-    :param depth: Composition depth of this run.
-    :param graph_store: Loads callee graphs for cross-domain invoke.
-    :param approver: Who answers approvals.
-    :param max_invoke_depth: Composition depth limit.
-    :return: A typed replay result.
+    :param capability: the capability to run.
+    :param app_graph: the pinned graph version.
+    :param surface: the actuation surface.
+    :param broker: control broker for hand-offs.
+    :param log: evidence sink.
+    :param redactor: masks sensitive values in evidence.
+    :param opts: inputs, tenant, and timing.
+    :param depth: composition depth of this run.
+    :param graph_store: loads callee graphs for cross-domain invoke.
+    :param approver: who answers approvals.
+    :param max_invoke_depth: composition depth limit.
+    :return: a typed replay result.
     """
     invoke = _make_invoker(
         capability,
@@ -127,6 +127,9 @@ def _make_invoker(
     def invoke(
         ref: graph.GraphRef, parent_ctx: context.ReplayContext
     ) -> Optional[results.ReplayResult]:
+        """
+        Replay a referenced graph within the depth limit.
+        """
         if depth + 1 > max_invoke_depth:
             raise errors.InvokeDepthExceededError(
                 f"invoke depth exceeded ({max_invoke_depth})"
@@ -229,6 +232,9 @@ def _plan_path(
     log: evidence.EvidenceSink,
     opts: options.ReplayOptions,
 ) -> Union[List[graph.Edge], results.ReplayResult]:
+    """
+    Plan the path from the recorded start to the goal.
+    """
     launch_first = _leading_launch(capability, app_graph)
     planned: Optional[Union[List[graph.Edge], results.ReplayResult]] = None
     if (
@@ -260,6 +266,9 @@ def _plan_from_screen(
     *,
     launch_first: bool,
 ) -> Union[List[graph.Edge], results.ReplayResult]:
+    """
+    Plan the path from the current screen to the goal.
+    """
     screen = surface.snapshot()
     current = localize.locate(screen, app_graph, opts.params)
     log.emit(

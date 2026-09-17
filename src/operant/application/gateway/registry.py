@@ -31,7 +31,7 @@ class GatewayConfig(pydantic.BaseModel):
     """
     The tool chains, keyed by action kind.
 
-    :ivar chains: Ordered tool names to try for each action kind.
+    :ivar chains: ordered tool names to try for each action kind.
     """
 
     chains: Dict[str, List[str]]
@@ -41,8 +41,8 @@ def load_gateway_config(path: pathlib.Path) -> GatewayConfig:
     """
     Load and validate the gateway chain configuration.
 
-    :param path: The gateway policy JSON file.
-    :return: The parsed configuration.
+    :param path: the gateway policy JSON file.
+    :return: the parsed configuration.
     """
     config = files.read_model(path, GatewayConfig)
     return config

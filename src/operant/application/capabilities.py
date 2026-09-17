@@ -41,10 +41,10 @@ def commit_recording(
     """
     Merge a recording into its graph(s) and saves the capability.
 
-    :param recording: The recording to commit.
-    :param graph_store: Versioned graph storage.
-    :param artifact_store: Versioned artifact storage.
-    :return:``(saved capability, the graph version it pins)``.
+    :param recording: the recording to commit.
+    :param graph_store: versioned graph storage.
+    :param artifact_store: versioned artifact storage.
+    :return: ``(saved capability, the graph version it pins)``.
     """
     caller, callees = rssegmen.segment_recording(recording)
     callee_node_remaps: Dict[str, Dict[str, str]] = {}
@@ -60,6 +60,9 @@ def commit_recording(
 
     # Build the capability, remapping its ids into the merged graph.
     def mapped(node_id: str) -> str:
+        """
+        Return the id a node has in the merged graph.
+        """
         return node_remap.get(node_id, node_id)
 
     capability = artifact.CapabilityArtifact(
@@ -150,8 +153,8 @@ def accessibility_of(
     """
     Count how the recorded steps locate their targets.
 
-    :param edges: The recorded steps.
-    :return: Targeted steps, and how many rely on position or path only.
+    :param edges: the recorded steps.
+    :return: targeted steps, and how many rely on position or path only.
     """
     targeted = [e for e in edges if e.action.kind in _TARGETED]
     coordinate = unnamed = 0

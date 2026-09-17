@@ -1,6 +1,7 @@
 """
-Single-vs-multi scorecard: the interval, pass^k and percentile maths, and the
-rendered table.
+Single-vs-multi scorecard tests.
+
+Cover the interval, pass^k and percentile maths, and the rendered table.
 """
 
 from typing import Any, Dict

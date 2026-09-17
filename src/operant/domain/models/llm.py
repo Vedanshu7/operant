@@ -30,9 +30,9 @@ class ContentPart:
     """
     One block of a multimodal user message.
 
-    :ivar type:``text`` or ``image_url``.
-    :ivar text: The text, for ``text`` parts.
-    :ivar image_url: A ``data:`` or https URL, for ``image_url`` parts.
+    :ivar type: ``text`` or ``image_url``.
+    :ivar text: the text, for ``text`` parts.
+    :ivar image_url: a ``data:`` or https URL, for ``image_url`` parts.
     """
 
     type: Literal["text", "image_url"]
@@ -50,8 +50,8 @@ class ToolCall:
     """
     A function call the model asked for.
 
-    :ivar id: Provider-assigned call id; echoed back on the tool reply.
-    :ivar name: Function name from the tool schema.
+    :ivar id: provider-assigned call id; echoed back on the tool reply.
+    :ivar name: function name from the tool schema.
     :ivar arguments: JSON-encoded arguments exactly as the model wrote
         them; the caller parses and validates.
     """
@@ -71,10 +71,10 @@ class ChatMessage:
     """
     One message in the conversation.
 
-    :ivar role: Who is speaking.
-    :ivar content: Text, or content parts for a multimodal user turn.
-    :ivar tool_calls: Calls an assistant turn made.
-    :ivar tool_call_id: For ``tool`` role: the call this message
+    :ivar role: who is speaking.
+    :ivar content: text, or content parts for a multimodal user turn.
+    :ivar tool_calls: calls an assistant turn made.
+    :ivar tool_call_id: for ``tool`` role: the call this message
         answers.
     """
 
@@ -94,8 +94,8 @@ class ToolSchema:
     """
     A function the model may call.
 
-    :ivar name: Function name.
-    :ivar description: What the function does, shown to the model.
+    :ivar name: function name.
+    :ivar description: what the function does, shown to the model.
     :ivar parameters: JSON Schema of the arguments object.
     """
 
@@ -114,13 +114,13 @@ class LlmTurn:
     """
     What the model answered.
 
-    :ivar content: Assistant text, empty when the turn is tool calls
+    :ivar content: assistant text, empty when the turn is tool calls
         only.
-    :ivar tool_calls: Calls made this turn, in order.
-    :ivar model: Model id that produced the turn, when reported.
-    :ivar input_tokens: Prompt tokens billed for the turn, when
+    :ivar tool_calls: calls made this turn, in order.
+    :ivar model: model id that produced the turn, when reported.
+    :ivar input_tokens: prompt tokens billed for the turn, when
         reported.
-    :ivar output_tokens: Completion tokens billed for the turn, when
+    :ivar output_tokens: completion tokens billed for the turn, when
         reported.
     """
 
@@ -142,11 +142,11 @@ class TraceContext:
     Where one model call belongs in the observability backend.
 
     :ivar trace_id: 32 lowercase hex chars; one trace per run.
-    :ivar session_id: Groups traces, e.g. the run id or an eval session.
-    :ivar trace_name: Human-readable trace name.
-    :ivar generation_name: This call's name, e.g. ``executor-turn-3``.
-    :ivar agent: The role that made the call.
-    :ivar tags: Free-form labels (vendor, tenant, eval scenario...).
+    :ivar session_id: groups traces, e.g. the run id or an eval session.
+    :ivar trace_name: human-readable trace name.
+    :ivar generation_name: this call's name, e.g. ``executor-turn-3``.
+    :ivar agent: the role that made the call.
+    :ivar tags: free-form labels (vendor, tenant, eval scenario...).
     """
 
     trace_id: str

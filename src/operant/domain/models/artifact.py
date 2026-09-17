@@ -35,8 +35,8 @@ class ExtractSpec(pydantic.BaseModel):
     """
     One output read from the screen at ``extract_at_node``.
 
-    :ivar output: Output name the value is stored under.
-    :ivar pattern: Regex over the digest text; group 1 (or the whole
+    :ivar output: output name the value is stored under.
+    :ivar pattern: regex over the digest text; group 1 (or the whole
         match) is the value.
     """
 
@@ -53,11 +53,11 @@ class IoField(pydantic.BaseModel):
     """
     A declared capability input.
 
-    :ivar type: Value type.
-    :ivar description: What the input is.
-    :ivar required: Whether a run must supply it.
-    :ivar sensitive: Whether the value is redacted from evidence.
-    :ivar data_class: Sensitivity class of the value.
+    :ivar type: value type.
+    :ivar description: what the input is.
+    :ivar required: whether a run must supply it.
+    :ivar sensitive: whether the value is redacted from evidence.
+    :ivar data_class: sensitivity class of the value.
     """
 
     type: Literal["string", "number", "boolean"] = "string"
@@ -76,9 +76,9 @@ class OutField(pydantic.BaseModel):
     """
     A declared capability output.
 
-    :ivar type: Value type.
-    :ivar description: What the output is.
-    :ivar data_class: Sensitivity class of the value.
+    :ivar type: value type.
+    :ivar description: what the output is.
+    :ivar data_class: sensitivity class of the value.
     """
 
     type: Literal["string", "number", "boolean"] = "string"
@@ -95,10 +95,10 @@ class TenantBinding(pydantic.BaseModel):
     """
     Where one tenant's instance of the application lives.
 
-    :ivar base_url: Root URL of the tenant's instance.
-    :ivar entry_path: Path appended to ``base_url`` on launch, e.g.
+    :ivar base_url: root URL of the tenant's instance.
+    :ivar entry_path: path appended to ``base_url`` on launch, e.g.
         ``/index.htm``.
-    :ivar secret_refs: Ref name -> env var name (never values).
+    :ivar secret_refs: ref name -> env var name (never values).
     """
 
     base_url: str
@@ -115,9 +115,9 @@ class PolicyScope(pydantic.BaseModel):
     """
     What the capability needs the policy to allow.
 
-    :ivar policy_id: Policy document the capability runs under.
-    :ivar required_action_kinds: Action kinds the path performs.
-    :ivar touches_mutating_edges: Whether any edge on the path mutates.
+    :ivar policy_id: policy document the capability runs under.
+    :ivar required_action_kinds: action kinds the path performs.
+    :ivar touches_mutating_edges: whether any edge on the path mutates.
     """
 
     policy_id: str
@@ -138,9 +138,9 @@ class Accessibility(pydantic.BaseModel):
     recorded as a screen position, or on a control with no name or
     label, breaks when the layout changes (ADR 8).
 
-    :ivar steps: Steps that act on a target (click, fill, select).
-    :ivar coordinate_steps: Of those, steps recorded as a screen point.
-    :ivar unnamed_steps: Of those, steps on a control with no name or
+    :ivar steps: steps that act on a target (click, fill, select).
+    :ivar coordinate_steps: of those, steps recorded as a screen point.
+    :ivar unnamed_steps: of those, steps on a control with no name or
         label, located only by tree path or position.
     """
 
@@ -168,10 +168,10 @@ class Provenance(pydantic.BaseModel):
     """
     How the capability came to exist.
 
-    :ivar discovery_run_id: Run that discovered it.
-    :ivar model: Model that drove discovery.
+    :ivar discovery_run_id: run that discovered it.
+    :ivar model: model that drove discovery.
     :ivar recorded_at: ISO timestamp of the recording.
-    :ivar goal: Natural-language goal given to discovery.
+    :ivar goal: natural-language goal given to discovery.
     """
 
     discovery_run_id: str
@@ -189,10 +189,10 @@ class Stability(pydantic.BaseModel):
     """
     Replay track record over the most recent replays.
 
-    :ivar runs: Replays attempted.
-    :ivar successes: Replays that succeeded.
+    :ivar runs: replays attempted.
+    :ivar successes: replays that succeeded.
     :ivar last_run_at: ISO timestamp of the last replay.
-    :ivar consecutive_failures: Failed replays since the last success.
+    :ivar consecutive_failures: failed replays since the last success.
     """
 
     runs: int = 0
@@ -210,32 +210,32 @@ class CapabilityArtifact(pydantic.BaseModel):
     """
     A capability: a path query over the application graph.
 
-    :ivar schema_version: On-disk schema version this document uses.
-    :ivar id: Capability id; also the file stem.
-    :ivar name: Display name.
-    :ivar description: What the capability does.
-    :ivar version: Monotonic version of this artifact.
+    :ivar schema_version: on-disk schema version this document uses.
+    :ivar id: capability id; also the file stem.
+    :ivar name: display name.
+    :ivar description: what the capability does.
+    :ivar version: monotonic version of this artifact.
     :ivar status: ``draft`` until a human approves it; ``degraded``
         once an approved capability keeps failing, until re-approved.
-    :ivar vendor_id: Application graph the capability traverses.
-    :ivar graph_version: Graph version the path was compiled against.
-    :ivar tenants: Tenant bindings keyed by tenant name.
-    :ivar default_tenant: Tenant used when a run names none.
-    :ivar inputs: Declared inputs keyed by name.
-    :ivar outputs: Declared outputs keyed by name.
-    :ivar start_node: Start node id; ``*`` = start wherever we are.
-    :ivar goal_node: Goal node id.
-    :ivar extract_at_node: Where declared outputs are read (default:
+    :ivar vendor_id: application graph the capability traverses.
+    :ivar graph_version: graph version the path was compiled against.
+    :ivar tenants: tenant bindings keyed by tenant name.
+    :ivar default_tenant: tenant used when a run names none.
+    :ivar inputs: declared inputs keyed by name.
+    :ivar outputs: declared outputs keyed by name.
+    :ivar start_node: start node id; ``*`` = start wherever we are.
+    :ivar goal_node: goal node id.
+    :ivar extract_at_node: where declared outputs are read (default:
         goal).
-    :ivar extract: Capability-scoped extraction, read at
+    :ivar extract: capability-scoped extraction, read at
         ``extract_at_node``. Lives on the capability, not on the
         shared graph edges, so different capabilities can read
         different things from the same screen.
-    :ivar compiled_path: Ordered edge ids; empty = plan at run time.
-    :ivar policy_scope: What the policy must allow.
-    :ivar provenance: How the capability was discovered.
-    :ivar stability: Replay track record, once any replay ran.
-    :ivar accessibility: How much the steps rely on the accessibility tree.
+    :ivar compiled_path: ordered edge ids; empty = plan at run time.
+    :ivar policy_scope: what the policy must allow.
+    :ivar provenance: how the capability was discovered.
+    :ivar stability: replay track record, once any replay ran.
+    :ivar accessibility: how much the steps rely on the accessibility tree.
     """
 
     schema_version: graph.ACCEPTED_SCHEMA_VERSIONS = SCHEMA_VERSION

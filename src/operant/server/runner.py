@@ -21,7 +21,7 @@ def run(settings: issettin.OperantSettings) -> None:
     """
     Serve the operator web app.
 
-    :param settings: The loaded settings the server binds to.
+    :param settings: the loaded settings the server binds to.
     """
     _LOG.info(
         "operant serving on http://%s:%s",

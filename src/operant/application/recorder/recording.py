@@ -45,26 +45,26 @@ class Recording:
     Merged into the app graph and turned into a path-query capability by
     ``operant.application.capabilities.commit_recording``.
 
-    :ivar capability_id: Id the capability will be saved under.
-    :ivar capability_name: Human-readable capability name.
-    :ivar goal: The natural-language goal that produced the run.
-    :ivar vendor_id: Application graph the recording belongs to.
+    :ivar capability_id: id the capability will be saved under.
+    :ivar capability_name: human-readable capability name.
+    :ivar goal: the natural-language goal that produced the run.
+    :ivar vendor_id: application graph the recording belongs to.
     :ivar app_name: OS application hosting the target.
-    :ivar window_title_pattern: Pattern binding the session to the window.
-    :ivar tenants: Tenant bindings carried onto the capability.
-    :ivar default_tenant: Tenant used when none is given.
-    :ivar inputs: Typed task inputs, including promoted sensitive literals.
-    :ivar outputs: Typed outputs the capability extracts.
-    :ivar nodes: Screen nodes synthesised from window titles.
-    :ivar edges: Recorded edges in execution order.
-    :ivar outcome_edges: Detectors for exceptional states.
-    :ivar entry_node: Node the run started on.
-    :ivar goal_node: Node the run ended on.
-    :ivar extract_at_node: Node whose screen extraction reads.
-    :ivar extract: Capability-scoped extraction specs.
-    :ivar policy_scope: Policy id and the action kinds the path needs.
-    :ivar provenance: Where the recording came from.
-    :ivar node_bindings: Which app each node belongs to; only populated when
+    :ivar window_title_pattern: pattern binding the session to the window.
+    :ivar tenants: tenant bindings carried onto the capability.
+    :ivar default_tenant: tenant used when none is given.
+    :ivar inputs: typed task inputs, including promoted sensitive literals.
+    :ivar outputs: typed outputs the capability extracts.
+    :ivar nodes: screen nodes synthesised from window titles.
+    :ivar edges: recorded edges in execution order.
+    :ivar outcome_edges: detectors for exceptional states.
+    :ivar entry_node: node the run started on.
+    :ivar goal_node: node the run ended on.
+    :ivar extract_at_node: node whose screen extraction reads.
+    :ivar extract: capability-scoped extraction specs.
+    :ivar policy_scope: policy id and the action kinds the path needs.
+    :ivar provenance: where the recording came from.
+    :ivar node_bindings: which app each node belongs to; only populated when
         the run crossed apps - segmentation splits on it.
     :ivar promoted: ``(edge id, input name, data class)`` for every sensitive
         literal turned into an input instead of persisted in the graph.
@@ -187,9 +187,9 @@ class RecordedStep:
     """
     One recorded edge with the context the builder needs.
 
-    :ivar edge: The edge as recorded.
-    :ivar from_title: Raw window title before the action.
-    :ivar control: The control the action targeted, when resolved.
+    :ivar edge: the edge as recorded.
+    :ivar from_title: raw window title before the action.
+    :ivar control: the control the action targeted, when resolved.
     """
 
     edge: graph.Edge
@@ -251,14 +251,14 @@ class Recorder:
         """
         Append one performed action as an edge.
 
-        :param action: The recorded edge action.
-        :param target_control: The control it targeted, when resolved.
-        :param description: What the action did.
-        :param risk:``safe`` or ``mutating``.
-        :param pre_title: Window title before the action.
-        :param post_title: Window title after the action.
-        :param click_point: Window-normalised point for vision clicks.
-        :param screen: The post-action digest; its control inventory
+        :param action: the recorded edge action.
+        :param target_control: the control it targeted, when resolved.
+        :param description: what the action did.
+        :param risk: ``safe`` or ``mutating``.
+        :param pre_title: window title before the action.
+        :param post_title: window title after the action.
+        :param click_point: window-normalised point for vision clicks.
+        :param screen: the post-action digest; its control inventory
             becomes the destination node's content fingerprint.
         """
         self._counter += 1

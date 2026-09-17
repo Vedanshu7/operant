@@ -1,6 +1,8 @@
 """
-Canary planning: only approved, read-only capabilities with known, non-
-sensitive inputs are replayed.
+Canary planning.
+
+Only approved, read-only capabilities with known, non-sensitive inputs
+are replayed.
 """
 
 from typing import Optional

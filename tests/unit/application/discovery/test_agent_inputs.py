@@ -1,7 +1,8 @@
 """
-Discovery-loop tests for goal-native parameters and clarifying questions,
-driven by a scripted LLM and fake surfaces - no live app, no real model, no
-monkeypatching.
+Discovery-loop tests for goal-native parameters and clarifying questions.
+
+Driven by a scripted LLM and fake surfaces: no live app, no real model,
+no monkeypatching.
 """
 
 import dataclasses
@@ -619,8 +620,9 @@ def test_a_clarify_question_for_credentials_never_reaches_the_human(
 
 class LaggingSurface(FakeSurface):
     """
-    Like a browser mid-navigation: the first read after a click still shows the
-    old page.
+    Behave like a browser mid-navigation.
+
+    The first read after a click still shows the old page.
     """
 
     def __init__(self) -> None:

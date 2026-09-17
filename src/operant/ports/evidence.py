@@ -31,9 +31,9 @@ class EvidenceSink(Protocol):
     """
     Where a run's events and screenshots go.
 
-    :ivar run_id: Id of the run being logged.
-    :ivar dir: Directory the log and screenshots are written to.
-    :ivar redactor: Redacts secrets from everything before it is
+    :ivar run_id: id of the run being logged.
+    :ivar dir: directory the log and screenshots are written to.
+    :ivar redactor: redacts secrets from everything before it is
         written.
     """
 
@@ -51,9 +51,9 @@ class EvidenceSink(Protocol):
         """
         Validate ``data`` against the event registry and emits it.
 
-        :param type_: Event type name. :param **data: Event fields;
+        :param type_: event type name. :param **data: Event fields;
             ``type``, ``seq``, and ``at`` are reserved.
-        :raises ValueError: If ``type_`` is unknown or a reserved field
+        :raises ValueError: if ``type_`` is unknown or a reserved field
             was passed.
         """
         ...
@@ -62,9 +62,9 @@ class EvidenceSink(Protocol):
         """
         Capture the surface to a numbered file in ``dir``.
 
-        :param target: Surface to capture.
-        :param label: What the image shows; becomes part of the name.
-        :return: The saved file name, or ``""`` when no image was
+        :param target: surface to capture.
+        :param label: what the image shows; becomes part of the name.
+        :return: the saved file name, or ``""`` when no image was
             produced (the failure is itself an event).
         """
         ...

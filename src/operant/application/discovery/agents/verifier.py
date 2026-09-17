@@ -35,10 +35,10 @@ def review(
     """
     Run the panel on ``subgoal`` and return every member's verdict.
 
-    :param session: The discovery session.
-    :param subgoal: The subgoal the executor says is done.
-    :param turn: The executor turn of the claim.
-    :return: One verdict per panel member; the subgoal passes only when
+    :param session: the discovery session.
+    :param subgoal: the subgoal the executor says is done.
+    :param turn: the executor turn of the claim.
+    :return: one verdict per panel member; the subgoal passes only when
         all of them pass.
     """
     board = session.team.board if session.team is not None else None
@@ -123,8 +123,8 @@ def leak_audit(session: loop.DiscoverySession) -> mdplan.Verdict:
     """
     Check that no held credential value appears in the executor history.
 
-    :param session: The discovery session.
-    :return: A failing verdict naming how many values leaked, else a
+    :param session: the discovery session.
+    :return: a failing verdict naming how many values leaked, else a
         pass.
     """
     history = "\n".join(_text(m) for m in session.state.messages)

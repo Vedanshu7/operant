@@ -281,9 +281,9 @@ class SqlRunRepository:
         """
         Return the capability's recent track record (zeroes when none).
 
-        :param capability_id: The capability to report on.
-        :param window: How many of the most recent replays to count.
-        :return: Runs and successes over the window, the last replay's
+        :param capability_id: the capability to report on.
+        :param window: how many of the most recent replays to count.
+        :return: runs and successes over the window, the last replay's
             time, and the failures since the last success.
         """
         with self._db.session() as session:
@@ -386,7 +386,7 @@ class SqlRunRepository:
         """
         Return one approval.
 
-        :raises errors.UnknownApprovalError: When no approval has the
+        :raises errors.UnknownApprovalError: when no approval has the
             id.
         """
         with self._db.session() as session:
@@ -434,7 +434,7 @@ class SqlRunRepository:
         """
         Return one intervention.
 
-        :raises errors.UnknownInterventionError: When no intervention
+        :raises errors.UnknownInterventionError: when no intervention
             has the id.
         """
         with self._db.session() as session:
@@ -468,7 +468,7 @@ class SqlRunRepository:
         """
         Return one clarifying question.
 
-        :raises errors.UnknownClarificationError: When no question has
+        :raises errors.UnknownClarificationError: when no question has
             the id.
         """
         with self._db.session() as session:
@@ -536,7 +536,7 @@ class SqlSecretRefRepository:
         """
         Return one reference.
 
-        :raises errors.NotFoundError: When no reference has the name.
+        :raises errors.NotFoundError: when no reference has the name.
         """
         with self._db.session() as session:
             row = session.get(models.SecretRefRow, name)

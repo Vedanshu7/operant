@@ -1,6 +1,8 @@
 """
-Replay under UI changes (no model): it never acts on the wrong control, still
-recognizes the screen, and the recognition threshold is justified.
+Replay under UI changes (no model).
+
+It never acts on the wrong control, still recognizes the screen, and the
+recognition threshold is justified.
 """
 
 import pytest

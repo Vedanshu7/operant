@@ -45,9 +45,9 @@ class Resolution:
     """
     A target stack resolved to exactly one control.
 
-    :ivar control: The matched control.
-    :ivar strategy_index: Position of the strategy that matched.
-    :ivar strategy_kind: Kind of the strategy that matched.
+    :ivar control: the matched control.
+    :ivar strategy_index: position of the strategy that matched.
+    :ivar strategy_kind: kind of the strategy that matched.
     """
 
     control: digest.Control
@@ -65,9 +65,9 @@ class ResolutionFailure:
     """
     No strategy in the stack resolved to exactly one control.
 
-    :ivar error:``not_found`` when nothing matched, ``ambiguous`` when
+    :ivar error: ``not_found`` when nothing matched, ``ambiguous`` when
         some strategy matched more than one control.
-    :ivar tried:``(strategy kind, match count)`` per strategy, in order.
+    :ivar tried: ``(strategy kind, match count)`` per strategy, in order.
     """
 
     error: str
@@ -167,9 +167,9 @@ def resolve_target(
     A strategy matching zero or several controls falls through to the
     next, more structural one.
 
-    :param strategies: The ranked strategy stack.
-    :param screen: The digest to resolve against.
-    :return: A ``Resolution`` on success, else a ``ResolutionFailure``
+    :param strategies: the ranked strategy stack.
+    :param screen: the digest to resolve against.
+    :return: a ``Resolution`` on success, else a ``ResolutionFailure``
         that records what each strategy matched.
     """
     tried: List[Tuple[str, int]] = []

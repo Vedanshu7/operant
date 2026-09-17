@@ -66,11 +66,11 @@ class Problem(pydantic.BaseModel):
     """
     RFC 9457-style error body.
 
-    :ivar type: Dotted error class name, stable for clients to switch
+    :ivar type: dotted error class name, stable for clients to switch
         on.
-    :ivar title: Short human-readable summary.
+    :ivar title: short human-readable summary.
     :ivar status: HTTP status code.
-    :ivar detail: The exception message.
+    :ivar detail: the exception message.
     """
 
     type: str
@@ -88,9 +88,9 @@ class HealthResponse(pydantic.BaseModel):
     """
     Liveness payload.
 
-    :ivar ok: Whether the process considers itself healthy.
-    :ivar version: Package version.
-    :ivar protocol: Wire protocol version, for the driver daemon.
+    :ivar ok: whether the process considers itself healthy.
+    :ivar version: package version.
+    :ivar protocol: wire protocol version, for the driver daemon.
     """
 
     ok: bool = True
@@ -123,12 +123,12 @@ def problem(
     Render a problem+json response.
 
     :param status: HTTP status code.
-    :param detail: What went wrong, for a person.
-    :param title: Short summary; defaults to the status phrase.
-    :param type_: Problem type identifier.
-    :param headers: Extra response headers.
-    :param extensions: Further members a client reads (RFC 9457).
-    :return: The response.
+    :param detail: what went wrong, for a person.
+    :param title: short summary.
+    :param type_: problem type identifier.
+    :param headers: extra response headers.
+    :param extensions: further members a client reads (RFC 9457).
+    :return: the response.
     """
     body = Problem(
         type=type_,
@@ -167,12 +167,18 @@ def install_error_handlers(app: fastapi.FastAPI) -> None:
     async def _handle(
         _request: fastapi.Request, error: errors.OperantError
     ) -> response.JSONResponse:
+        """
+        Render a domain error as problem+json.
+        """
         return problem_response(error)
 
     @app.exception_handler(sexcept.HTTPException)
     async def _handle_http(
         _request: fastapi.Request, error: sexcept.HTTPException
     ) -> response.JSONResponse:
+        """
+        Render an HTTP error as problem+json.
+        """
         return problem(
             error.status_code, str(error.detail), headers=error.headers
         )
@@ -181,6 +187,9 @@ def install_error_handlers(app: fastapi.FastAPI) -> None:
     async def _handle_invalid(
         _request: fastapi.Request, error: fexcept.RequestValidationError
     ) -> response.JSONResponse:
+        """
+        Render a request validation error as problem+json.
+        """
         found = error.errors()
         first = found[0] if found else {}
         where = ".".join(str(part) for part in first.get("loc", ()))
@@ -197,14 +206,17 @@ def bearer_dependency(
     """
     Build a dependency that enforces ``Authorization: Bearer <token>``.
 
-    :param expected: The token to require; ``None`` disables the check,
+    :param expected: the token to require; ``None`` disables the check,
         which is only acceptable for loopback-only development.
-    :return: A FastAPI dependency.
+    :return: a FastAPI dependency.
     """
 
     def _check(
         authorization: Optional[str] = fastapi.Header(default=None),
     ) -> None:
+        """
+        Reject a request without the expected bearer token.
+        """
         if expected is None:
             return
         scheme, _, token = (authorization or "").partition(" ")
@@ -224,9 +236,9 @@ def ensure_token(path: pathlib.Path, configured: Optional[str]) -> str:
     """
     Return the configured token, or a persisted generated one.
 
-    :param path: Where to keep a generated token between starts.
-    :param configured: The token from settings, if any.
-    :return: The token every client must present.
+    :param path: where to keep a generated token between starts.
+    :param configured: the token from settings, if any.
+    :return: the token every client must present.
     """
     if configured:
         # Prefer an explicitly configured token.

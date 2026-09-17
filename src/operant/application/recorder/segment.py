@@ -29,8 +29,8 @@ def segment_recording(
     """
     Split a recording into the caller's flow plus foreign segments.
 
-    :param recording: The (possibly multi-app) recording.
-    :return:``(caller recording, foreign segments)``; the segments list
+    :param recording: the (possibly multi-app) recording.
+    :return: ``(caller recording, foreign segments)``; the segments list
         is empty for a single-app recording.
     """
     bindings = recording.node_bindings
@@ -43,8 +43,10 @@ def segment_recording(
         ),
     )
 
-    # Resolve each node's binding, defaulting to the primary.
     def binding_of(node_id: str) -> recdng.NodeBinding:
+        """
+        Resolve a node's binding, defaulting to the primary.
+        """
         return bindings.get(node_id, primary)
 
     segments: List[recdng.Recording] = []

@@ -8,7 +8,6 @@ import operant.adapters.macos.tools.launcher as launcher
 
 from __future__ import annotations
 
-import json
 import os
 import pathlib
 import plistlib
@@ -22,6 +21,7 @@ from typing import List, Optional
 import operant.adapters.macos.session as mssessio
 import operant.domain.models.actions as actions
 import operant.domain.models.tools as tools
+import operant.helpers.files as files
 import operant.infra.settings as settings
 
 _CHROME_FLAGS = (
@@ -84,8 +84,8 @@ class AppLauncher:
         The next launch then starts logged out. Never touches the user's
         own browser - PID selection is by our ``--user-data-dir``.
 
-        :param profile_dir: The dedicated profile directory.
-        :return: Whether a live instance was found and stopped.
+        :param profile_dir: the dedicated profile directory.
+        :return: whether a live instance was found and stopped.
         """
         profile = profile_dir.expanduser()
         marker = f"--user-data-dir={profile}"
@@ -98,8 +98,9 @@ class AppLauncher:
 
     def health(self) -> tools.ToolHealth:
         """
-        Report always-available health; a bad binary path fails at execute
-        time.
+        Report always-available health.
+
+        A bad binary path fails at execute time.
         """
         report = tools.ToolHealth("ok")
         return report
@@ -161,11 +162,12 @@ class AppLauncher:
 
     def _open_native(self, app_name: str, url: Optional[str]) -> None:
         """
-        Open a native app, resolving the bundle path when the name lookup fails
-        (e.g. WhatsApp ships as ``‎WhatsApp.app`` with a leading left-to-right
-        mark, so ``open -a WhatsApp`` cannot find it).
+        Open a native app, resolving the bundle path if the name lookup fails.
 
-        :raises subprocess.SubprocessError: If the app cannot be
+        For example WhatsApp ships as ``‎WhatsApp.app`` with a leading
+        left-to-right mark, so ``open -a WhatsApp`` cannot find it.
+
+        :raises subprocess.SubprocessError: if the app cannot be
             launched.
         """
         try:
@@ -309,18 +311,15 @@ def _seed_profile_prefs(profile_dir: pathlib.Path) -> None:
     default = profile_dir / "Default"
     prefs = default / "Preferences"
     if not prefs.exists():
-        default.mkdir(parents=True, exist_ok=True)
-        prefs.write_text(
-            json.dumps(
-                {
-                    "credentials_enable_service": False,
-                    "profile": {
-                        "password_manager_enabled": False,
-                        "password_manager_leak_detection": False,
-                    },
-                }
-            ),
-            encoding="utf-8",
+        files.write_json(
+            prefs,
+            {
+                "credentials_enable_service": False,
+                "profile": {
+                    "password_manager_enabled": False,
+                    "password_manager_leak_detection": False,
+                },
+            },
         )
 
 

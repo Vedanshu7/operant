@@ -1,6 +1,7 @@
 """
-Browser-tab housekeeping in the macOS window session, with fake a11y
-elements - no browser needed.
+Browser-tab housekeeping in the macOS window session.
+
+Use fake a11y elements, so no browser is needed.
 """
 
 from __future__ import annotations

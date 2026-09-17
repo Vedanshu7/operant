@@ -111,7 +111,8 @@ class GatedFakeSurface:
     def _digest_or_none(self) -> Optional[digest.ScreenDigest]:
         try:
             return self.snapshot()
-        except Exception:  # no window bound yet
+        except Exception:
+            # No window is bound yet.
             return None
 
 

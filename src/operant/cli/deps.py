@@ -38,11 +38,11 @@ class CliDeps:
     """
     Settings plus the repositories and stores commands share.
 
-    :ivar settings: Loaded settings.
-    :ivar graphs: Graph repository.
-    :ivar artifacts: Artifact repository.
-    :ivar profiles: Profile repository.
-    :ivar secret_store: Configured secret store.
+    :ivar settings: loaded settings.
+    :ivar graphs: graph repository.
+    :ivar artifacts: artifact repository.
+    :ivar profiles: profile repository.
+    :ivar secret_store: configured secret store.
     """
 
     settings: issettin.OperantSettings

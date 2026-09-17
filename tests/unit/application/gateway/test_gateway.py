@@ -152,7 +152,7 @@ def test_unverified_ok_goes_through_shared_verifier():
     outcome = dispatcher.dispatch(
         actions.SurfaceAction(kind="fill", ref="c1", value="x"), CTX
     )
-    # a reported ok but verification failed -> fell through to b
+    # Tool a reported ok but verification failed, so it fell through to b.
     assert outcome.tool == "b"
     assert outcome.attempts[0].status == "failed"
     assert "not verified" in outcome.attempts[0].reason

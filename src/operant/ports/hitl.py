@@ -30,8 +30,8 @@ class Approver(Protocol):
         """
         Block until a decision arrives or the channel times out.
 
-        :param request: What the human is being asked.
-        :return: The decision, including who answered and whether to
+        :param request: what the human is being asked.
+        :return: the decision, including who answered and whether to
             remember it.
         """
         ...
@@ -52,9 +52,9 @@ class Clarifier(Protocol):
         """
         Block until the operator answers or dismisses.
 
-        :param question: The agent's question.
-        :param run_id: Run the question belongs to.
-        :return: The answer, or ``""`` when there is none.
+        :param question: the agent's question.
+        :param run_id: run the question belongs to.
+        :return: the answer, or ``""`` when there is none.
         """
         ...
 
@@ -79,9 +79,9 @@ class CredentialRequester(Protocol):
         The human either types a value or names an env/Keychain source;
         the returned grant never reaches the model, only the runtime.
 
-        :param name: The reference name the model will use.
-        :param run_id: Run the request belongs to.
-        :param reason: Why the agent needs it (for the human).
-        :return: The grant, or ``None`` when the human declines.
+        :param name: the reference name the model will use.
+        :param run_id: run the request belongs to.
+        :param reason: why the agent needs it (for the human).
+        :return: the grant, or ``None`` when the human declines.
         """
         ...

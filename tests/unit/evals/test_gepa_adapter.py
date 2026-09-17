@@ -1,6 +1,8 @@
 """
-GEPA adapter tests with a scripted model: scores, the placeholder guard, and
-the reflective records GEPA reads.
+GEPA adapter tests with a scripted model.
+
+Cover scores, the placeholder guard, and the reflective records GEPA
+reads.
 """
 
 from __future__ import annotations

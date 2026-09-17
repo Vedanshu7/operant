@@ -45,8 +45,8 @@ PERSON_ACTIVE = (
     "rather than act under them"
 )
 _CF_UTF8 = 0x08000100
-# kCGEventSourceStateHIDSystemState counts physical input only, never the
-# events this process posts; kCGAnyInputEventType is every input type.
+# `kCGEventSourceStateHIDSystemState` counts physical input only, never the
+# events this process posts; `kCGAnyInputEventType` is every input type.
 _HID_SYSTEM_STATE = 1
 _ANY_INPUT_EVENT = 0xFFFFFFFF
 # A person counts as done once the mouse and keyboard rest this long.
@@ -80,12 +80,12 @@ class WindowSession:
     """
     Bind to one app window and serves the tools acting on it.
 
-    :ivar app_name: Application currently bound.
-    :ivar window_title_pattern: Pattern the bound window's title must
+    :ivar app_name: application currently bound.
+    :ivar window_title_pattern: pattern the bound window's title must
         match.
-    :ivar fault_injection: How to knock over the app's backend, when
+    :ivar fault_injection: how to knock over the app's backend, when
         configured.
-    :ivar refs: Ephemeral control handles from the last observation.
+    :ivar refs: ephemeral control handles from the last observation.
     """
 
     def __init__(
@@ -120,11 +120,11 @@ class WindowSession:
         """
         Point the session at a different application window.
 
-        :param app_name: The app to bind next.
-        :param window_title_pattern: Its window title pattern.
-        :return: The previous ``(app_name, pattern)`` so the caller can
+        :param app_name: the app to bind next.
+        :param window_title_pattern: its window title pattern.
+        :return: the previous ``(app_name, pattern)`` so the caller can
             restore it after a nested graph completes.
-        :raises errors.DriverError: If ``app_name`` is empty.
+        :raises errors.DriverError: if ``app_name`` is empty.
         """
         if not app_name:
             raise errors.DriverError("Retarget needs a non-empty app name")
@@ -146,7 +146,7 @@ class WindowSession:
         whatever window is in front (in bootstrap discovery, the
         operator console itself) and mistake it for the target.
 
-        :raises RuntimeError: If no target has been launched or bound.
+        :raises RuntimeError: if no target has been launched or bound.
         """
         if self._app is None:
             if self._pid is not None:
@@ -166,7 +166,7 @@ class WindowSession:
         """
         Resolve the bound window, re-selecting a backgrounded tab.
 
-        :raises TimeoutError: If no matching window appears in time.
+        :raises TimeoutError: if no matching window appears in time.
         """
         if screen_locked():
             # Nothing is reachable; searching would only walk a hollow tree.
@@ -196,7 +196,7 @@ class WindowSession:
         close, so another app's tab (a cross-app capability may switch
         back to it) is left alone.
 
-        :return: How many tabs were closed.
+        :return: how many tabs were closed.
         """
         pattern = re.compile(self.window_title_pattern, re.IGNORECASE)
         closed = 0
@@ -225,7 +225,7 @@ class WindowSession:
         """
         Return the element behind a control ref from the last observe.
 
-        :raises errors.DriverError: If the ref is stale or unknown.
+        :raises errors.DriverError: if the ref is stale or unknown.
         """
         element = self.refs.get(ref)
         if element is None:
@@ -242,7 +242,7 @@ class WindowSession:
         pointing or types into what they are typing in, so the run waits
         until the input rests.
 
-        :raises errors.DriverError: With ``PERSON_ACTIVE`` if the person
+        :raises errors.DriverError: with ``PERSON_ACTIVE`` if the person
             is still active after the wait.
         """
         deadline = time.monotonic() + _PERSON_WAIT_S
@@ -274,7 +274,7 @@ class WindowSession:
         picks (usually the user's), and a name-only check would still
         pass while input landed in the wrong window.
 
-        :raises errors.DriverError: If the app never reaches the
+        :raises errors.DriverError: if the app never reaches the
             foreground.
         """
         if not self._foreground_target():
@@ -288,11 +288,11 @@ class WindowSession:
         image - the caller logs it; a silent gap here once left every
         discovery run blind without a trace.
 
-        :return:``True`` when an image landed at ``path``.
-        :raises RuntimeError: With both failure reasons when capture
+        :return: ``True`` when an image landed at ``path``.
+        :raises RuntimeError: with both failure reasons when capture
             failed.
         """
-        # xa11y.screenshot grabs the pixels under the window's bounds, so
+        # `xa11y.screenshot` grabs the pixels under the window's bounds, so
         # the bound window must be ON TOP or an occluding window (the
         # user's own Chrome, same app name) is captured instead. This is
         # true for every run - generic or profile, browser or native -
@@ -343,8 +343,8 @@ class WindowSession:
 
         A real infrastructure event, used by the session-expiry demo.
 
-        :raises RuntimeError: If fault injection is not configured.
-        :raises TimeoutError: If the backend never comes back healthy.
+        :raises RuntimeError: if fault injection is not configured.
+        :raises TimeoutError: if the backend never comes back healthy.
         """
         fault = self.fault_injection
         if fault is None:

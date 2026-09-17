@@ -99,33 +99,33 @@ class DiscoveryDeps:
     """
     What a discovery session is wired with.
 
-    :ivar surface: The actuation surface.
-    :ivar broker: Control broker for give-up interventions.
-    :ivar log: Evidence sink.
-    :ivar llm: The model client.
-    :ivar secret_store: Where secret references resolve.
-    :ivar model_name: Model id recorded in provenance.
-    :ivar approval_timeout_s: Console-approver wait bound.
-    :ivar llm_retries: Attempts per model call.
-    :ivar retry_base_delay_s: Backoff base between attempts.
-    :ivar default_browser: App used when a goal names only a URL.
-    :ivar browsers: Lower-cased app names treated as browsers.
-    :ivar remediation: Cross-run memory of fixes for repeated errors.
-    :ivar window_budget: How much history one model call may carry.
-    :ivar token_counter: Counts prompt tokens for the model in use.
-    :ivar tracer: Where model calls are traced.
-    :ivar scrubber: Masks personal data in what leaves the process.
-    :ivar trace_session: Groups this run's trace under another session
+    :ivar surface: the actuation surface.
+    :ivar broker: control broker for give-up interventions.
+    :ivar log: evidence sink.
+    :ivar llm: the model client.
+    :ivar secret_store: where secret references resolve.
+    :ivar model_name: model id recorded in provenance.
+    :ivar approval_timeout_s: console-approver wait bound.
+    :ivar llm_retries: attempts per model call.
+    :ivar retry_base_delay_s: backoff base between attempts.
+    :ivar default_browser: app used when a goal names only a URL.
+    :ivar browsers: lower-cased app names treated as browsers.
+    :ivar remediation: cross-run memory of fixes for repeated errors.
+    :ivar window_budget: how much history one model call may carry.
+    :ivar token_counter: counts prompt tokens for the model in use.
+    :ivar tracer: where model calls are traced.
+    :ivar scrubber: masks personal data in what leaves the process.
+    :ivar trace_session: groups this run's trace under another session
         (e.g. an eval session); the run id when ``None``.
-    :ivar trace_tags: Extra labels on this run's trace.
-    :ivar role_llms: Model clients for non-executor roles; ``llm`` for
+    :ivar trace_tags: extra labels on this run's trace.
+    :ivar role_llms: model clients for non-executor roles; ``llm`` for
         any role not listed.
-    :ivar role_models: Model ids for those roles, for tracing.
-    :ivar team: Bounds on the multi-agent coordinator.
-    :ivar memory: Cross-run plan and lesson memory, when enabled.
-    :ivar settle: Wait for the screen after navigating actions; ``None``
+    :ivar role_models: model ids for those roles, for tracing.
+    :ivar team: bounds on the multi-agent coordinator.
+    :ivar memory: cross-run plan and lesson memory, when enabled.
+    :ivar settle: wait for the screen after navigating actions; ``None``
         reads it at once (fakes and evals have no page loads).
-    :ivar should_stop: Polled before every turn; true ends the run as
+    :ivar should_stop: polled before every turn; true ends the run as
         cancelled (the operator pressed Cancel).
     """
 
@@ -173,10 +173,10 @@ class DiscoverySession:
     """
     Run one discovery: the loop, its state, and the tool handlers.
 
-    :ivar cfg: The run's contract.
-    :ivar deps: Wiring.
-    :ivar state: Per-run accumulation.
-    :ivar recorder: Accumulates the recording as actions succeed.
+    :ivar cfg: the run's contract.
+    :ivar deps: wiring.
+    :ivar state: per-run accumulation.
+    :ivar recorder: accumulates the recording as actions succeed.
     """
 
     cfg: config.DiscoveryConfig
@@ -426,7 +426,7 @@ class DiscoverySession:
         """
         Recall plans and lessons for this goal and log what was offered.
 
-        :return: The recall, or ``None`` without memory.
+        :return: the recall, or ``None`` without memory.
         """
         memory = self.deps.memory
         if memory is None:
@@ -530,8 +530,9 @@ class DiscoverySession:
 
     def _plan_block(self) -> str:
         """
-        Return the plan context for this turn: the multi-agent plan, or a
-        single agent's recalled memory, if any.
+        Return this turn's plan context, if any.
+
+        It is the multi-agent plan or a single agent's recalled memory.
         """
         if self.team is not None:
             block = f"{self.team.executor_block()}\n\n"

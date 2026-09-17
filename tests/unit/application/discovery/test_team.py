@@ -1,6 +1,8 @@
 """
-Multi-agent coordinator tests with a scripted model per role: plan,
-execute, verify, reject, replan, escalate - no live app, no real model.
+Multi-agent coordinator tests with a scripted model per role.
+
+Cover plan, execute, verify, reject, replan, and escalate, with no live
+app and no real model.
 """
 
 from __future__ import annotations

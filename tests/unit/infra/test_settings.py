@@ -33,5 +33,4 @@ def test_defaults_match_the_documented_ports(tmp_path: pathlib.Path) -> None:
     assert (settings.server.port, settings.driver.port) == (7080, 7411)
     assert settings.governance.min_runs == 3
     assert settings.governance.min_success_rate == 0.8
-    assert settings.browser.allow_applescript_fill is False
     assert settings.secrets.backend == "env"
