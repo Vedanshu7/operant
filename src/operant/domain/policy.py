@@ -23,6 +23,7 @@ import operant.domain.policy as policy
 from __future__ import annotations
 
 import collections.abc
+import dataclasses
 import re
 import urllib.parse
 from typing import Dict, Final, FrozenSet, List, Optional, Tuple
@@ -44,6 +45,7 @@ _TEXT_ROLES: Final = frozenset(
     {"text_field", "text_area", "textfield", "search_field"}
 )
 _SUBMIT_ROLES: Final = frozenset({"button", "link", "menu_item"})
+_FIELD_ROLES: Final = _TEXT_ROLES | {"password_field"}
 _IP_HOST_RE: Final = re.compile(r"[\d.]+")
 # The bundled public-suffix list, never fetched: a policy decision must
 # not depend on the network. Private suffixes (github.io) count, so a
@@ -366,6 +368,130 @@ def _mutating_trigger(
     return trigger
 
 
+def _safe_match(policy: Policy, text: str) -> bool:
+    """
+    Report whether a safe-control pattern names the text.
+    """
+    named = any(
+        re.search(_whole_words(p), text, re.IGNORECASE)
+        for p in policy.safe_control_patterns
+    )
+    return named
+
+
+def _field_filled(screen: Optional[mddigest.ScreenDigest]) -> bool:
+    """
+    Report whether a field on screen holds a value.
+
+    Read from the screen rather than tracked by the caller, so a form
+    the app filled in counts too, and discovery and replay agree.
+    """
+    filled = screen is not None and any(
+        c.enabled and c.role in _FIELD_ROLES and c.value for c in screen.controls
+    )
+    return filled
+
+
+def _unlisted_button(
+    policy: Policy, screen: Optional[mddigest.ScreenDigest]
+) -> Optional[mddigest.Control]:
+    """
+    Return an enabled button no safe pattern names, if one is on screen.
+    """
+    found = None
+    if screen is not None:
+        found = next(
+            (
+                c
+                for c in screen.controls
+                if c.enabled
+                and c.role == "button"
+                and not _safe_match(policy, c.name)
+            ),
+            None,
+        )
+    return found
+
+
+def _unknown_trigger(
+    policy: Policy,
+    action: actions.SurfaceAction,
+    screen: Optional[mddigest.ScreenDigest],
+    control: Optional[mddigest.Control],
+) -> Optional[str]:
+    """
+    Find what makes the action an unknown step, if anything.
+
+    :param policy: the governing policy.
+    :param action: the action about to run.
+    :param screen: the current digest, when one is available.
+    :param control: the control a click targets, when resolved.
+    :return: what the human would read, or ``None``.
+    """
+    what: Optional[str] = None
+    if policy.approval.unknown == "allow":
+        return what
+    if action.kind == "click":
+        if control is None:
+            what = "click that resolves to no control"
+        elif control.role not in _FIELD_ROLES and not _safe_match(
+            policy, _click_text(action.target_text)
+        ):
+            what = f'click unlisted {control.role} "{control.name}"'
+    elif (
+        action.kind == "press"
+        and (action.key or "").lower() in _ENTER_KEYS
+        and _field_filled(screen)
+    ):
+        button = _unlisted_button(policy, screen)
+        if button is not None:
+            what = f'press {action.key} with unlisted button "{button.name}"'
+    return what
+
+
+def _commit_shaped(
+    action: actions.SurfaceAction,
+    screen: Optional[mddigest.ScreenDigest],
+    control: Optional[mddigest.Control],
+) -> bool:
+    """
+    Report whether an unknown step looks like it commits something.
+
+    The shape comes from the screen and the control, never from the
+    model's description of the step.
+    """
+    shaped = action.kind != "click" or (
+        control is None or (control.role == "button" and _field_filled(screen))
+    )
+    return shaped
+
+
+def needs_judgement(
+    policy: Policy,
+    action: actions.SurfaceAction,
+    screen: Optional[mddigest.ScreenDigest],
+    control: Optional[mddigest.Control],
+) -> bool:
+    """
+    Report whether discovery should ask the model judge about this action.
+
+    Only an unknown step the policy would otherwise run qualifies.
+
+    :param policy: the governing policy.
+    :param action: the action about to run.
+    :param screen: the current digest, when one is available.
+    :param control: the control the action targets, when resolved.
+    :return: whether the judge decides if a person is asked.
+    """
+    judged = (
+        policy.approval.unknown == "commit"
+        and _mutating_trigger(policy, action, screen, control) is None
+        and _unknown_trigger(policy, action, screen, control) is not None
+        and not _commit_shaped(action, screen, control)
+    )
+    return judged
+
+
 def classify_risk(
     policy: Policy,
     action: actions.SurfaceAction,
@@ -373,17 +499,22 @@ def classify_risk(
     control: Optional[mddigest.Control] = None,
 ) -> daapprov.Risk:
     """
-    Classify an action as ``safe`` or ``mutating``.
+    Classify an action as ``safe``, ``mutating`` or ``unknown``.
 
     :param policy: the governing policy.
     :param action: the action about to run.
     :param digest: the current digest, when one is available.
     :param control: the control a click targets, when resolved.
-    :return: ``mutating`` when a mutating trigger is found, else
-        ``safe``.
+    :return: ``mutating`` when a mutating trigger is found, ``unknown``
+        when the policy names neither way, else ``safe``.
     """
-    trigger = _mutating_trigger(policy, action, digest, control)
-    risk: daapprov.Risk = "mutating" if trigger else "safe"
+    risk: daapprov.Risk
+    if _mutating_trigger(policy, action, digest, control):
+        risk = "mutating"
+    elif _unknown_trigger(policy, action, digest, control):
+        risk = "unknown"
+    else:
+        risk = "safe"
     return risk
 
 
@@ -639,10 +770,8 @@ def _evaluate_mutating(
     """
     trigger = _mutating_trigger(policy, action, screen, control)
     if trigger is None:
-        # No mutating trigger: the action is safe.
-        decision = daapprov.PolicyDecision(
-            "allow", "safe", "safe action within policy"
-        )
+        # No mutating trigger: the unknown gate decides.
+        decision = _evaluate_unknown(policy, action, screen, control, app=app)
     else:
         # A mutating control is in play.
         what, pattern = trigger
@@ -669,6 +798,62 @@ def _evaluate_mutating(
                     step=action.step,
                 ),
             )
+    return decision
+
+
+def _evaluate_unknown(
+    policy: Policy,
+    action: actions.SurfaceAction,
+    screen: Optional[mddigest.ScreenDigest],
+    control: Optional[mddigest.Control],
+    *,
+    app: str,
+) -> daapprov.PolicyDecision:
+    """
+    Decide the action against the unknown gate.
+    """
+    what = _unknown_trigger(policy, action, screen, control)
+    mode = policy.approval.unknown
+    if what is None:
+        # A listed control, or a policy that does not gate unknowns.
+        decision = daapprov.PolicyDecision(
+            "allow", "safe", "safe action within policy"
+        )
+    elif mode == "deny":
+        # Policy refuses anything it cannot name.
+        decision = daapprov.PolicyDecision(
+            "deny", "unknown", f"unknown step refused by policy: {what}"
+        )
+    elif (
+        mode == "ask"
+        or action.gate_unknown
+        or _commit_shaped(action, screen, control)
+    ):
+        # A person decides. Key on the control, not on its volatile label.
+        identity = f"{control.role}|{control.name}" if control else "no-control"
+        decision = daapprov.PolicyDecision(
+            "needs_approval",
+            "unknown",
+            f"unknown step requires human approval: {what}",
+            approval=daapprov.ApprovalRequest(
+                kind="unknown",
+                summary=what,
+                details={"trigger": what},
+                fingerprint=daapprov.fingerprint(
+                    "unknown",
+                    dataclasses.replace(action, target_text=identity),
+                    app=app,
+                ),
+                action_kind=action.kind,
+                app=app,
+                step=action.step,
+            ),
+        )
+    else:
+        # Exploring: run it, and let replay ask for the review.
+        decision = daapprov.PolicyDecision(
+            "allow", "unknown", f"unknown step allowed while exploring: {what}"
+        )
     return decision
 
 

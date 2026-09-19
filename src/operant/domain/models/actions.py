@@ -56,6 +56,8 @@ class SurfaceAction:
         decision; it replays unattended.
     :ivar step: edge id at replay; names the approval question. Excluded
         from equality.
+    :ivar gate_unknown: the caller wants a person to approve this action
+        if it is an unknown step. It can only tighten the policy.
     """
 
     kind: Literal[
@@ -76,3 +78,4 @@ class SurfaceAction:
     export_from: Optional[str] = None
     secret_ref: Optional[str] = None
     step: str = dataclasses.field(default="", compare=False)
+    gate_unknown: bool = False

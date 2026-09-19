@@ -86,6 +86,7 @@ def test_without_a_router_roles_use_the_per_role_models() -> None:
         "extract": "m-review",
         "critic": "m-review",
         "schema": "m-review",
+        "gate": "m-review",
     }
 
 

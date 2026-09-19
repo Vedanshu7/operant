@@ -21,6 +21,8 @@ FailureClass = Literal[
     "locator_not_found",
     "locator_ambiguous",
     "node_assert_failed",
+    "extraction_missing",
+    "unreviewed_step",
     "precondition_failed",
     "timeout",
     "session_expired",
@@ -50,6 +52,7 @@ class SuccessResult(pydantic.BaseModel):
     status: Literal["success"] = "success"
     outputs: Dict[str, str]
     evidence_dir: str
+    drifted: List[str] = []
 
 
 # #############################################################################

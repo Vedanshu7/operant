@@ -275,6 +275,9 @@ class FakeRunRepository:
         self.samples.setdefault(capability_id, []).append(succeeded)
         return self.stability(capability_id)
 
+    def close_samples(self, capability_id: str) -> None:
+        self.samples.pop(capability_id, None)
+
     def stability(
         self, capability_id: str, window: int = 20
     ) -> artifact.Stability:

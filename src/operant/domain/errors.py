@@ -269,6 +269,17 @@ class VersionConflictError(RepositoryError):
 
 
 # #############################################################################
+# RepinRefusedError
+# #############################################################################
+
+
+class RepinRefusedError(RepositoryError):
+    """
+    A capability's path does not exist on the requested graph version.
+    """
+
+
+# #############################################################################
 # ReplayError
 # #############################################################################
 

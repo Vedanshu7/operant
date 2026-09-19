@@ -20,6 +20,7 @@ from typing import Optional, Tuple
 import operant.application.approval as approval
 import operant.application.recorder.recording as recdng
 import operant.domain.approval as daapprov
+import operant.domain.locate as locate
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
 import operant.domain.models.graph as graph
@@ -98,6 +99,45 @@ def settled_snapshot(
     return last
 
 
+def control_for(
+    action: actions.SurfaceAction, screen: Optional[digest.ScreenDigest]
+) -> Optional[digest.Control]:
+    """
+    Return the control an action targets, by its ref or the point it names.
+    """
+    control: Optional[digest.Control]
+    if action.ref:
+        control = next(
+            (
+                c
+                for c in (screen.controls if screen else ())
+                if c.ref == action.ref
+            ),
+            None,
+        )
+    else:
+        control = locate.control_at(screen, action.x, action.y)
+    return control
+
+
+def risk_probe(
+    action: actions.SurfaceAction, control: Optional[digest.Control]
+) -> actions.SurfaceAction:
+    """
+    Build the action risk is judged on: what the control says.
+
+    An empty ``target_text`` would classify every edge as safe, and the
+    wire action has none until the guard fills it.
+    """
+    probe = dataclasses.replace(
+        actions.SurfaceAction(kind=action.kind, key=action.key),
+        target_text=(
+            f"{control.name} | {control.label}" if control else action.target_text
+        ),
+    )
+    return probe
+
+
 def perform_and_record(
     surface: pssurfac.Surface,
     app_policy: policy.Policy,
@@ -114,6 +154,7 @@ def perform_and_record(
         collections.abc.Callable[[daapprov.ScopeGrant], None]
     ] = None,
     settle: Optional[SettlePolicy] = None,
+    judged: Optional[str] = None,
 ) -> digest.ScreenDigest:
     """
     Perform the action through the approval gate, then record the edge.
@@ -137,14 +178,11 @@ def perform_and_record(
         trip.
     :param settle: when set, a navigating action's screen is read only
         once it settles; ``None`` reads it at once (tests, fakes).
+    :param judged: the model judge's verdict on an unknown step.
     :return: the screen digest after the action.
     """
     pre_title = pre_digest.window_title if pre_digest else ""
-    control: Optional[digest.Control] = None
-    if action.ref and pre_digest:
-        control = next(
-            (c for c in pre_digest.controls if c.ref == action.ref), None
-        )
+    control = control_for(action, pre_digest)
     outcome = approval.perform_gated(
         surface,
         action,
@@ -172,6 +210,7 @@ def perform_and_record(
             after=after,
             pre_digest=pre_digest,
             click_point=click_point,
+            judged=judged,
         )
     return after
 
@@ -188,21 +227,16 @@ def _record(
     after: digest.ScreenDigest,
     pre_digest: Optional[digest.ScreenDigest],
     click_point: Optional[Tuple[float, float]],
+    judged: Optional[str],
 ) -> None:
     """
     Record the performed edge with its classified risk.
     """
     if not pre_title:
         recorder.start(after.window_title, after)
-    # Risk is judged on what the control SAYS, not on the wire action -
-    # an empty `target_text` would classify every recorded edge as safe.
-    probe = dataclasses.replace(
-        actions.SurfaceAction(kind=action.kind, key=action.key),
-        target_text=(
-            f"{control.name} | {control.label}" if control else action.target_text
-        ),
+    risk = policy.classify_risk(
+        app_policy, risk_probe(action, control), pre_digest, control
     )
-    risk = policy.classify_risk(app_policy, probe, pre_digest, control)
     recorder.record(
         action=recorded,
         target_control=control,
@@ -212,4 +246,5 @@ def _record(
         post_title=after.window_title,
         click_point=click_point,
         screen=after,
+        judged=judged,
     )

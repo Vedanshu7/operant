@@ -25,7 +25,7 @@ import operant.domain.approval as approval
 import operant.domain.models.actions as actions
 import operant.domain.models.digest as digest
 
-PROTOCOL_VERSION: Final = "2"
+PROTOCOL_VERSION: Final = "3"
 
 
 def _rebuild[T](cls: type[T], data: Dict[str, Any]) -> T:

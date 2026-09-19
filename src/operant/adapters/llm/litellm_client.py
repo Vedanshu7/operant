@@ -235,6 +235,7 @@ ROLE_GROUPS: Final[Dict[str, str]] = {
     "extract": "reviewer",
     "critic": "reviewer",
     "schema": "reviewer",
+    "gate": "reviewer",
 }
 
 

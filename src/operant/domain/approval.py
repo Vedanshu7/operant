@@ -29,9 +29,12 @@ import pydantic
 
 import operant.domain.models.actions as actions
 
-Risk = Literal["safe", "mutating"]
+Risk = Literal["safe", "mutating", "unknown"]
 Verdict = Literal["allow", "deny", "needs_approval"]
-ApprovalKind = Literal["scope", "mutating", "sensitive_fill", "sensitive_export"]
+ApprovalKind = Literal[
+    "scope", "mutating", "unknown", "sensitive_fill", "sensitive_export"
+]
+UnknownMode = Literal["allow", "commit", "ask", "deny"]
 
 
 # #############################################################################
@@ -44,6 +47,11 @@ class ApprovalPolicy(pydantic.BaseModel):
     Which approval gates a policy turns on.
 
     :ivar mutating: ask before a mutating control is activated.
+    :ivar unknown: how to treat a control neither pattern list names.
+        ``allow`` runs it as safe; ``commit`` lets discovery explore and
+        asks only when the action looks like it commits something, while
+        replay needs the step reviewed; ``ask`` always asks; ``deny``
+        refuses.
     :ivar sensitive_fill: ``literals`` asks for sensitive values the
         model or caller supplied while a value resolved from a policy-
         held secret reference runs unattended (the gate is keyed on
@@ -58,6 +66,7 @@ class ApprovalPolicy(pydantic.BaseModel):
     """
 
     mutating: bool = True
+    unknown: UnknownMode = "allow"
     sensitive_fill: Literal["literals", "always", "off"] = "literals"
     sensitive_export: bool = True
     sensitive_field_patterns: List[str] = []

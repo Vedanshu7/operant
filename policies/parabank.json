@@ -29,8 +29,15 @@
       "update profile",
       "request loan"
     ],
+    "safe_control_patterns": [
+      "log ?in",
+      "log ?out",
+      "accounts overview"
+    ],
+    "strict": false,
     "approval": {
       "mutating": true,
+      "unknown": "commit",
       "sensitive_fill": "literals",
       "sensitive_export": true,
       "sensitive_field_patterns": [
@@ -59,18 +66,14 @@
     }
   },
   "default_tenant": "tenant-b",
-  "fault_injection": {
-    "restart_cmd": ["docker", "restart", "operant-parabank-b"],
-    "health_url": "http://localhost:8081/parabank/index.htm",
-    "timeout_s": 180
-  },
   "global_outcome_edges": [
     {
       "id": "auth-failed",
       "at": "*",
       "when": {
         "kind": "textMatches",
-        "pattern": "could not be verified"
+        "pattern": "could not be verified",
+        "negate": false
       },
       "handle": {
         "type": "business_outcome",
@@ -83,7 +86,8 @@
       "at": "*",
       "when": {
         "kind": "textMatches",
-        "pattern": "(An internal error has occurred|User login required|Server returned 401)"
+        "pattern": "(An internal error has occurred|User login required|Server returned 401)",
+        "negate": false
       },
       "handle": {
         "type": "recover",
@@ -91,5 +95,14 @@
         "max_attempts": 1
       }
     }
-  ]
+  ],
+  "fault_injection": {
+    "restart_cmd": [
+      "docker",
+      "restart",
+      "operant-parabank-b"
+    ],
+    "health_url": "http://localhost:8081/parabank/index.htm",
+    "timeout_s": 180
+  }
 }
