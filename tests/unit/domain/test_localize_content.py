@@ -60,8 +60,8 @@ def _graph() -> graph.AppGraph:
 
 def test_locates_by_content_when_titles_collide() -> None:
     app_graph = _graph()
-    assert localize.locate(_screen(_LOGIN), app_graph) == "login"
-    assert localize.locate(_screen(_OVERVIEW), app_graph) == "overview"
+    assert localize.locate(_screen(_LOGIN), app_graph).node_id == "login"
+    assert localize.locate(_screen(_OVERVIEW), app_graph).node_id == "overview"
 
 
 def test_old_graph_without_fingerprints_falls_back_to_checks() -> None:
@@ -80,4 +80,4 @@ def test_old_graph_without_fingerprints_falls_back_to_checks() -> None:
         ],
         edges=[],
     )
-    assert localize.locate(_screen(_LOGIN), app_graph) == "only"
+    assert localize.locate(_screen(_LOGIN), app_graph).node_id == "only"

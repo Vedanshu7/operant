@@ -29,6 +29,15 @@ import operant.domain.profile as dpprofil
 import operant.domain.sensitivity as sensv
 import operant.helpers.time as time
 
+
+def _may_commit(edge: graph.Edge) -> bool:
+    """
+    Report whether an edge might change data, so a canary must not run it.
+    """
+    unsure = edge.risk == "unknown" and edge.judged != "navigation"
+    return edge.risk == "mutating" or unsure
+
+
 # #############################################################################
 # _BuildState
 # #############################################################################
@@ -139,7 +148,7 @@ def build(
         policy_scope=artifact.PolicyScope(
             policy_id=profile.policy.id,
             required_action_kinds=sorted({e.action.kind for e in state.edges}),
-            touches_mutating_edges=any(e.risk == "mutating" for e in state.edges),
+            touches_mutating_edges=any(_may_commit(e) for e in state.edges),
         ),
         provenance=artifact.Provenance(
             discovery_run_id=run_id,

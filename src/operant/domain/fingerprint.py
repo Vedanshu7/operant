@@ -17,8 +17,10 @@ import operant.domain.fingerprint as odfinger
 from __future__ import annotations
 
 import collections.abc
+import dataclasses
 import re
-from typing import List
+import urllib.parse
+from typing import FrozenSet, List, Optional
 
 import operant.domain.models.digest as digest
 
@@ -28,6 +30,8 @@ import operant.domain.models.digest as digest
 _DIGITS = re.compile(r"\d[\d.,:/]*\d|\d")
 _ROW_INDEX = re.compile(r":\d+")
 _WS = re.compile(r"\s+")
+# Coverage of a node's fingerprint at which a screen counts as that node.
+SAME_SCREEN_COVERAGE = 0.6
 
 
 def normalize(value: str) -> str:
@@ -89,3 +93,64 @@ def coverage(
         present = sum(1 for signature in node_fp if signature in screen_fp)
         fraction = present / len(node_fp)
     return fraction
+
+
+# #############################################################################
+# ScreenViews
+# #############################################################################
+
+
+@dataclasses.dataclass(frozen=True)
+class ScreenViews:
+    """
+    Two independent descriptions of a screen.
+
+    A UI change rarely breaks both: translation rewrites the names and
+    keeps the layout, a redesign moves the layout and keeps the names.
+
+    :ivar text: ``role|name`` of every named control.
+    :ivar structure: ``role|coarse_path`` of every control.
+    """
+
+    text: FrozenSet[str]
+    structure: FrozenSet[str]
+
+
+def views(signatures: collections.abc.Iterable[str]) -> ScreenViews:
+    """
+    Split ``role|name|label|path`` signatures into the two views.
+
+    The label is left out: it is only the text seen before the control, so
+    it changes with the layout around it.
+
+    :param signatures: signatures, stored on a node or from ``of``.
+    :return: both views.
+    """
+    text = set()
+    structure = set()
+    for signature in signatures:
+        parts = signature.split("|")
+        role, name, path = parts[0], parts[1], parts[-1]
+        structure.add(f"{role}|{path}")
+        if name:
+            text.add(f"{role}|{name}")
+    return ScreenViews(text=frozenset(text), structure=frozenset(structure))
+
+
+def url_path(url: Optional[str]) -> str:
+    """
+    Reduce a URL to a value-free page identity.
+
+    Keeps the path and a route fragment. Drops the host, because tenants
+    differ, plus query values and session ids, and masks digits.
+
+    :param url: the full URL.
+    :return: the normalised path, or ``""`` without one.
+    """
+    if not url:
+        return ""
+    parts = urllib.parse.urlsplit(url)
+    path = parts.path.split(";", 1)[0].rstrip("/") or "/"
+    route = parts.fragment if parts.fragment.startswith(("/", "!")) else ""
+    masked = _DIGITS.sub("#", f"{path}#{route}" if route else path).lower()
+    return masked

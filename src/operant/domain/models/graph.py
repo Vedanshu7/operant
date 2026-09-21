@@ -24,7 +24,7 @@ import operant.domain.errors as errors
 import operant.domain.models.results as results
 import operant.domain.models.targets as targets
 
-SCHEMA_VERSION: Final = "2.3"
+SCHEMA_VERSION: Final = "2.4"
 # 2.0 -> 2.1: extraction moved from Edge.extract (shared, leaked across
 # capabilities) to CapabilityArtifact.extract. Old files load fine; the
 # removed edge key is ignored by validation.
@@ -32,7 +32,11 @@ SCHEMA_VERSION: Final = "2.3"
 # defaults to "none" on load.
 # 2.2 -> 2.3: nodes carry a value-free content fingerprint for
 # content-addressed localization; additive, defaults to [] on load.
-ACCEPTED_SCHEMA_VERSIONS = Literal["2.0", "2.1", "2.2", "2.3"]
+# 2.3 -> 2.4: nodes carry `url_paths`, edges `retired_in`, an `unknown` risk
+# and the judge's verdict. Before
+# this, `safe` on a click or key press only meant no pattern matched, so
+# those edges load as `unknown`.
+ACCEPTED_SCHEMA_VERSIONS = Literal["2.0", "2.1", "2.2", "2.3", "2.4"]
 
 
 # #############################################################################
@@ -238,12 +242,16 @@ class Node(pydantic.BaseModel):
     :ivar checks: what must hold to consider us "here"; at least one.
     :ivar fingerprint: value-free content signatures of the screen used
         for content-addressed localization; empty on pre-2.3 graphs.
+    :ivar url_paths: normalised page addresses seen for this screen;
+        they can only veto a match, because index pages repeat across
+        states.
     """
 
     id: str
     description: str
     checks: List[Condition] = pydantic.Field(min_length=1)
     fingerprint: List[str] = pydantic.Field(default_factory=list)
+    url_paths: List[str] = pydantic.Field(default_factory=list)
 
 
 # #############################################################################
@@ -318,7 +326,11 @@ class Edge(pydantic.BaseModel):
     :ivar target: ranked strategies naming the control, when one is
         needed.
     :ivar wait: what to wait for after acting.
-    :ivar risk: ``safe`` or ``mutating``; drives policy and approval.
+    :ivar risk: ``safe``, ``mutating`` or ``unknown``.
+    :ivar judged: the model judge's verdict on an unknown step, when it
+        was asked. Advisory, shown when a person reviews the step.
+    :ivar retired_in: graph version that retired this edge; routes skip
+        it from then on, and older versions keep it.
     """
 
     model_config = pydantic.ConfigDict(populate_by_name=True)
@@ -330,7 +342,9 @@ class Edge(pydantic.BaseModel):
     action: Action
     target: Optional[targets.Target] = None
     wait: Wait = Wait()
-    risk: Literal["safe", "mutating"] = "safe"
+    risk: Literal["safe", "mutating", "unknown"] = "safe"
+    judged: Optional[str] = None
+    retired_in: Optional[int] = None
 
 
 # #############################################################################
@@ -420,11 +434,33 @@ class AppGraph(pydantic.BaseModel):
 
     def edges_from(self, node_id: str) -> List[Edge]:
         """
-        Return every edge leaving the given node.
+        Return every live edge leaving the given node.
 
         :param node_id: id of the source node.
         :return: edges whose ``from_node`` is ``node_id``, in graph
             order.
         """
-        leaving = [e for e in self.edges if e.from_node == node_id]
+        leaving = [
+            e
+            for e in self.edges
+            if e.from_node == node_id and e.retired_in is None
+        ]
         return leaving
+
+    @pydantic.model_validator(mode="after")
+    def _upgrade_edges(self) -> AppGraph:
+        """
+        Load pre-2.4 click and key edges as ``unknown``.
+        """
+        if self.schema_version < "2.4":
+            self.edges = [
+                (
+                    edge.model_copy(update={"risk": "unknown"})
+                    if edge.risk == "safe"
+                    and edge.action.kind in {"click", "press"}
+                    else edge
+                )
+                for edge in self.edges
+            ]
+            self.schema_version = SCHEMA_VERSION
+        return self

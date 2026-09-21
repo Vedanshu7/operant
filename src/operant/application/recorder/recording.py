@@ -24,7 +24,7 @@ import operant.domain.models.graph as graph
 import operant.domain.models.targets as targets
 import operant.helpers.text as text
 
-_DEDUP_COVERAGE = 0.6
+_DEDUP_COVERAGE = odfinger.SAME_SCREEN_COVERAGE
 
 NodeBinding = tuple[str, str, str]
 """
@@ -234,7 +234,7 @@ class Recorder:
         """
         Mark the entry screen.
         """
-        self._current_node = self._node_for(window_title, "entry screen", screen)
+        self._current_node = self._node_for(window_title, screen)
 
     def record(
         self,
@@ -247,6 +247,7 @@ class Recorder:
         post_title: str,
         click_point: Optional[Tuple[float, float]] = None,
         screen: Optional[digest.ScreenDigest] = None,
+        judged: Optional[str] = None,
     ) -> None:
         """
         Append one performed action as an edge.
@@ -254,12 +255,13 @@ class Recorder:
         :param action: the recorded edge action.
         :param target_control: the control it targeted, when resolved.
         :param description: what the action did.
-        :param risk: ``safe`` or ``mutating``.
+        :param risk: ``safe``, ``mutating`` or ``unknown``.
         :param pre_title: window title before the action.
         :param post_title: window title after the action.
         :param click_point: window-normalised point for vision clicks.
         :param screen: the post-action digest; its control inventory
             becomes the destination node's content fingerprint.
+        :param judged: the model judge's verdict on an unknown step.
         """
         self._counter += 1
         same_screen = page_title_pattern(post_title) == page_title_pattern(
@@ -268,7 +270,7 @@ class Recorder:
         to_node = (
             self._current_node
             if same_screen
-            else self._node_for(post_title, description, screen)
+            else self._node_for(post_title, screen)
         )
         if target_control is not None:
             # A resolved control: build its ranked strategy stack.
@@ -289,6 +291,7 @@ class Recorder:
                 "target": target,
                 "wait": graph.Wait(kind="settle", timeout_ms=4000).model_dump(),
                 "risk": risk,
+                "judged": judged,
             }
         )
         self.recorded.append(
@@ -331,7 +334,6 @@ class Recorder:
     def _node_for(
         self,
         window_title: str,
-        description: str,
         screen: Optional[digest.ScreenDigest] = None,
     ) -> str:
         """
@@ -339,6 +341,7 @@ class Recorder:
         """
         pattern = page_title_pattern(window_title)
         fingerprint = odfinger.of(screen) if screen is not None else []
+        path = odfinger.url_path(screen.url) if screen is not None else ""
         for node in self.nodes.values():
             check = node.checks[0]
             if not (
@@ -359,9 +362,10 @@ class Recorder:
         node_id = slug if slug not in self.nodes else f"{slug}-{len(self.nodes)}"
         self.nodes[node_id] = graph.Node(
             id=node_id,
-            description=description,
+            description=window_title.rsplit(" - ", 1)[0].strip() or window_title,
             checks=[graph.TitleMatches(pattern=pattern)],
             fingerprint=fingerprint,
+            url_paths=[path] if path else [],
         )
         if self._binding is not None:
             self.node_bindings[node_id] = self._binding

@@ -86,6 +86,7 @@ class ScreenDigest:
     :ivar text: concatenated visible text of the tree.
     :ivar controls: actionable elements found in the tree.
     :ivar dialog: text of a modal dialog, if one is up.
+    :ivar url: the page address, in a browser that reports it.
     """
 
     app: str
@@ -93,3 +94,4 @@ class ScreenDigest:
     text: str
     controls: Tuple[Control, ...] = ()
     dialog: Optional[str] = None
+    url: Optional[str] = None
