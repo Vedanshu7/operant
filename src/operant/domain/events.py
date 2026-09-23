@@ -664,6 +664,73 @@ class ReplayFinished(BaseEvent):
 
 
 # #############################################################################
+# NodeArrived
+# #############################################################################
+
+
+class NodeArrived(BaseEvent):
+    """
+    A replay verifiably reached a node; raw material for ``graph learn``.
+
+    :ivar type: always ``node_arrived``.
+    :ivar node: the node reached.
+    :ivar vendor_id: the app.
+    :ivar graph_version: the graph version the run used.
+    :ivar fingerprint: the screen's value-free signatures.
+    :ivar url_path: the normalised address, when known.
+    """
+
+    type: Literal["node_arrived"] = "node_arrived"
+    node: str
+    vendor_id: str
+    graph_version: int
+    fingerprint: List[str]
+    url_path: str = ""
+
+
+# #############################################################################
+# ScreenDrifted
+# #############################################################################
+
+
+class ScreenDrifted(BaseEvent):
+    """
+    A verified arrival no longer looks the way the node was recorded.
+
+    :ivar type: always ``screen_drifted``.
+    :ivar node: the node reached.
+    :ivar views_lost: ``text`` and/or ``structure``.
+    :ivar url_disagrees: the address is not one recorded for the node.
+    """
+
+    type: Literal["screen_drifted"] = "screen_drifted"
+    node: str
+    views_lost: List[str]
+    url_disagrees: bool = False
+
+
+# #############################################################################
+# ControlJudged
+# #############################################################################
+
+
+class ControlJudged(BaseEvent):
+    """
+    The model judge classified a control no policy pattern names.
+
+    :ivar type: always ``control_judged``.
+    :ivar role: the control's role.
+    :ivar name: the control's name.
+    :ivar verdict: ``navigation``, ``commit`` or ``unsure``.
+    """
+
+    type: Literal["control_judged"] = "control_judged"
+    role: str
+    name: str
+    verdict: str
+
+
+# #############################################################################
 # Localized
 # #############################################################################
 
@@ -678,11 +745,13 @@ class Localized(BaseEvent):
     :ivar type: always ``localized``.
     :ivar node: node id matched, if any.
     :ivar window: window title observed.
+    :ivar kind: how sure the match is; see ``localize.Localization``.
     """
 
     type: Literal["localized"] = "localized"
     node: Optional[str] = None
     window: str = ""
+    kind: str = ""
 
 
 # #############################################################################
@@ -1306,6 +1375,9 @@ EventUnion = Annotated[
         ReplayStarted,
         ReplayFinished,
         Localized,
+        ControlJudged,
+        NodeArrived,
+        ScreenDrifted,
         ContextCompacted,
         PlanProposed,
         SubgoalStarted,

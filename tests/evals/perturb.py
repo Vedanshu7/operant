@@ -382,6 +382,18 @@ def translated(screen: Screen, rng: random.Random) -> Screen:
     )
 
 
+def rewrapped(screen: Screen, rng: random.Random) -> Screen:
+    """
+    Wrap the page in a new layout level: every path deepens, names stay.
+    """
+    _ = rng
+    moved = [
+        dataclasses.replace(c, path=c.path.replace(">", ">group>", 1))
+        for c in screen.controls
+    ]
+    return _with(screen, moved)
+
+
 def _both(first: Operator, second: Operator) -> Operator:
     """
     Apply two changes, as a redesign does.
@@ -405,6 +417,8 @@ OPERATORS: Dict[str, Operator] = {
     "renamed+banner": _both(renamed, banner),
     "translated+reordered_rows": _both(translated, reordered_rows),
     "translated+resized": _both(translated, resized),
+    "rewrapped": rewrapped,
+    "translated+rewrapped": _both(translated, rewrapped),
 }
 
 
@@ -437,6 +451,7 @@ class Score:
         default_factory=list
     )
     located: List[bool] = dataclasses.field(default_factory=list)
+    wrong_screens: int = 0
 
 
 def evaluate(seeds: Sequence[int] = tuple(range(5))) -> Dict[str, Score]:
@@ -467,7 +482,9 @@ def evaluate(seeds: Sequence[int] = tuple(range(5))) -> Dict[str, Score]:
                         },
                     )
                 )
-                score.located.append(localize.locate(changed[key], known) == key)
+                found = localize.locate(changed[key], known)
+                score.located.append(found.node_id == key)
+                score.wrong_screens += found.node_id not in {None, key}
     return scores
 
 

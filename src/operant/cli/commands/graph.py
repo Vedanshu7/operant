@@ -4,12 +4,14 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, List
 
 import typer
 
+import operant.application.drift as apdrift
 import operant.cli.deps as cddeps
 import operant.domain.errors as errors
+import operant.domain.graph.drift as ogdrift
 
 
 def register(app: typer.Typer) -> None:
@@ -29,6 +31,39 @@ def register(app: typer.Typer) -> None:
             versions = deps.graphs.versions(vendor)
             head = deps.graphs.head(vendor)
             typer.echo(f"  {vendor}: v{head} (versions {versions})")
+
+    @graph.command("learn")
+    def learn(ctx: typer.Context, vendor: str) -> None:
+        """
+        Save a new version with stable cores from verified replays.
+        """
+        deps: cddeps.CliDeps = ctx.obj
+        try:
+            learned = apdrift.learn(
+                vendor, deps.settings.paths.evidence_dir, deps.graphs
+            )
+        except errors.NotFoundError as err:
+            raise typer.BadParameter(str(err)) from err
+        if learned is None:
+            typer.echo(f"  {vendor}: nothing to learn yet")
+        else:
+            typer.echo(
+                f"  {vendor}: saved v{learned.graph_version}; capabilities stay "
+                "pinned until you run `operant catalog repin`"
+            )
+
+    @graph.command("retire")
+    def retire(ctx: typer.Context, vendor: str, edges: List[str]) -> None:
+        """
+        Save a new version with edges that no longer belong retired.
+        """
+        deps: cddeps.CliDeps = ctx.obj
+        try:
+            updated = ogdrift.retire(deps.graphs.get(vendor), set(edges))
+        except errors.NotFoundError as err:
+            raise typer.BadParameter(str(err)) from err
+        saved = deps.graphs.save_new_version(updated)
+        typer.echo(f"  {vendor}: saved v{saved.graph_version}")
 
     @graph.command("show")
     def show(
