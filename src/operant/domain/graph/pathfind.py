@@ -37,7 +37,8 @@ def shortest_path(
         return []
     adjacency: Dict[str, List[graph.Edge]] = {}
     for edge in app_graph.edges:
-        adjacency.setdefault(edge.from_node, []).append(edge)
+        if edge.retired_in is None:
+            adjacency.setdefault(edge.from_node, []).append(edge)
     for edges in adjacency.values():
         edges.sort(key=lambda e: e.id)
     # Explore outward from the start, recording how each node was reached.

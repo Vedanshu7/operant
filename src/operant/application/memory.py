@@ -162,6 +162,42 @@ class AgentMemory:
             graph_version=graph_version,
         )
 
+    def record_steps(
+        self,
+        vendor_id: str,
+        goal: str,
+        steps: collections.abc.Sequence[str],
+        *,
+        safe: collections.abc.Callable[[str], str],
+        graph_version: int = 0,
+    ) -> None:
+        """
+        Remember the steps of a single-agent run that reached its goal.
+
+        A single agent has no planner, so its plan is the steps it took.
+        Step text is written by the model from the screen, so it is
+        cleaned like any other free text.
+
+        :param vendor_id: the app.
+        :param goal: the goal it achieved.
+        :param steps: what each recorded step did, in order.
+        :param safe: the run's redact-then-scrub function.
+        :param graph_version: the app graph version it ran on.
+        """
+        cleaned = [text for text in (_clean(s, safe) for s in steps) if text]
+        if cleaned:
+            subgoals = [
+                mdplan.Subgoal(id=f"s{i}", description=text, success_criteria="")
+                for i, text in enumerate(cleaned, start=1)
+            ]
+            self.record_plan(
+                vendor_id,
+                goal,
+                mdplan.Plan(subgoals=subgoals),
+                safe=safe,
+                graph_version=graph_version,
+            )
+
     def record_failure(
         self, plans: collections.abc.Sequence[mdmemory.PlanMemory]
     ) -> None:

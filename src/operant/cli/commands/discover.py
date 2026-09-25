@@ -49,6 +49,12 @@ def register(app: typer.Typer) -> None:
                 "--agents", help="single or multi (planner/executor/verifier)"
             ),
         ] = None,
+        seed: Annotated[
+            Optional[str],
+            typer.Option(
+                "--seed", help="capability to rediscover from its old route"
+            ),
+        ] = None,
     ) -> None:
         """
         Discover a capability for ``goal`` and commit it.
@@ -69,6 +75,7 @@ def register(app: typer.Typer) -> None:
             screenshots=not no_screenshots,
             max_turns=max_turns,
             agents=agents,
+            seed_capability=seed,
         )
         outcome = uddiscov.execute_discovery(
             request,
