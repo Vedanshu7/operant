@@ -14,7 +14,7 @@ import operant.server.schemas as schemas
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Dict, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import pydantic
 
@@ -45,6 +45,8 @@ class StartDiscoveryBody(pydantic.BaseModel):
         default.
     :ivar agents: ``single`` or ``multi`` (planner, executor, verifier);
         ``None`` uses the configured default.
+    :ivar seed_capability: a capability to rediscover from its old
+        route.
     """
 
     goal: str
@@ -58,6 +60,9 @@ class StartDiscoveryBody(pydantic.BaseModel):
     screenshots: bool = True
     max_turns: Optional[int] = None
     agents: Optional[Literal["single", "multi"]] = None
+    seed_capability: Optional[str] = pydantic.Field(
+        default=None, pattern=ids.KEY_PATTERN
+    )
 
     def to_request(self) -> discover.DiscoverRequest:
         """
@@ -73,6 +78,7 @@ class StartDiscoveryBody(pydantic.BaseModel):
             screenshots=self.screenshots,
             max_turns=self.max_turns,
             agents=self.agents,
+            seed_capability=self.seed_capability,
         )
         return request
 
@@ -109,6 +115,26 @@ class StartReplayBody(pydantic.BaseModel):
             inject_session_expiry_before=self.inject_session_expiry_before,
         )
         return request
+
+
+# #############################################################################
+# ApproveCapabilityBody
+# #############################################################################
+
+
+class ApproveCapabilityBody(pydantic.BaseModel):
+    """
+    A person's approval of a capability.
+
+    :ivar force: approve although the stability gate is not met; it
+        never skips the review of unknown steps.
+    :ivar reviewed_edges: the unknown steps the person was shown.
+    :ivar graph_version: the graph version they were shown them on.
+    """
+
+    force: bool = False
+    reviewed_edges: List[str] = pydantic.Field(default_factory=list)
+    graph_version: Optional[int] = None
 
 
 # #############################################################################

@@ -453,21 +453,25 @@ class RunManager:
             profiles=self._profiles,
             approver=approver,
             run_identifier=handle.run_id,
+            edge_records=self._runs.edge_records,
             should_stop=handle.cancelled.is_set,
             on_context=lambda ctx: self._wire(handle, ctx),
         )
-        if request.capability_id:
+        cancelled = handle.cancelled.is_set()
+        if request.capability_id and replay.counts_toward_stability(
+            result, cancelled=cancelled
+        ):
             apstabil.record_replay(
                 request.capability_id,
                 handle.run_id,
-                succeeded=replay.is_success(result),
+                succeeded=replay.is_stable(result),
                 run_repo=self._runs,
                 artifact_repo=self._artifacts,
                 gate=self._settings.governance.gate(),
             )
         status = (
             "cancelled"
-            if handle.cancelled.is_set()
+            if cancelled
             else _RESULT_STATUS.get(result.status, "failed")
         )
         self._runs.update_status(handle.run_id, status, result=result)

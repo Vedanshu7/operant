@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import types
 from typing import List, Tuple
 
 import operant.application.approval as approval
@@ -459,3 +460,71 @@ def test_a_launch_landing_on_another_known_page_resumes_there(
     )
     assert result.status == "success", result
     assert [a.kind for a in surface.performed] == ["launch"]
+
+
+def test_a_home_page_that_passes_as_the_start_skips_ahead(
+    tmp_path: pathlib.Path,
+) -> None:
+    # Fingerprints cannot separate them: the login node holds the whole menu.
+    lookalike = [
+        (
+            node.model_copy(update={"fingerprint": _fp(LOGIN + MENU)})
+            if node.id == "login"
+            else node
+        )
+        for node in DEEP_NODES
+    ]
+    app_graph = graph.AppGraph(
+        vendor_id="parabank", nodes=lookalike, edges=DEEP_EDGES
+    )
+    cap = capab.capability(
+        vendor_id="parabank",
+        start_node="login",
+        goal_node="activity",
+        compiled_path=["e1", "e2", "e3"],
+    )
+    surface = DeepLandingSurface()
+    result = engine.replay_path(
+        cap,
+        app_graph,
+        DEEP_EDGES,
+        surface,
+        ports.quiet_broker(),
+        run_log.RunLog(tmp_path, "run", redact.Redactor(), echo=False),
+        redact.Redactor(),
+        timing.fast_replay_options(tenant="t", params={"accountId": "13344"}),
+        approver=approval.ScriptedApprover([]),
+    )
+    assert result.status == "success", result
+    assert [a.ref for a in surface.performed if a.kind == "click"] == [
+        "Accounts Overview",
+        "13344",
+    ]
+
+
+def test_a_brand_link_is_not_a_way_forward(tmp_path: pathlib.Path) -> None:
+    brand = _control("link", "ParaBank", "content>logo>link")
+    branded = [
+        node.model_copy(
+            update={
+                "checks": [graph.TitleMatches(pattern=f"ParaBank {node.id}")],
+                "description": node.id,
+            }
+        )
+        for node in DEEP_NODES
+    ]
+    ctx = types.SimpleNamespace(
+        graph=graph.AppGraph(
+            vendor_id="parabank", nodes=branded, edges=DEEP_EDGES
+        )
+    )
+    hop = capab.edge(
+        {
+            "id": "resume-nav",
+            "from": "activity",
+            "to": "activity",
+            "description": brand.name,
+            "action": {"kind": "click"},
+        }
+    )
+    assert not engine._names_only(ctx, hop, ctx.graph.node("activity"))

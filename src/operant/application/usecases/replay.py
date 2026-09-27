@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import collections.abc
 import dataclasses
-from typing import Dict, Optional
+from typing import Dict, Final, Optional
 
 import operant.application.context as accontex
 import operant.application.replay.options as rooption
@@ -42,6 +42,11 @@ class ReplayRequest:
     inject_session_expiry_before: Optional[str] = None
 
 
+_NOT_BREAKAGE: Final = frozenset(
+    {"cancelled", "approval_denied", "unreviewed_step"}
+)
+
+
 def execute_replay(
     request: ReplayRequest,
     *,
@@ -51,6 +56,7 @@ def execute_replay(
     profiles: prepos.ProfileRepository,
     approver: Optional[hitl.Approver] = None,
     run_identifier: Optional[str] = None,
+    edge_records: Optional[prepos.EdgeRecordRepository] = None,
     should_stop: Optional[collections.abc.Callable[[], bool]] = None,
     on_context: Optional[
         collections.abc.Callable[[accontex.RunContext], None]
@@ -67,6 +73,8 @@ def execute_replay(
     :param approver: answers approvals; deny-by-default when ``None``.
     :param run_identifier: fixes the run id and evidence directory; the
         server passes the id it tracks the run under.
+    :param edge_records: people's reviews of unknown steps; ``None``
+        counts every unknown step as unreviewed.
     :param should_stop: polled before every step; true cancels the run.
     :param on_context: called with the wired context before the run
         starts, so a caller can attach evidence and broker listeners.
@@ -94,6 +102,7 @@ def execute_replay(
             settle_short_ms=engine.settle_short_ms,
             goal_poll_s=engine.goal_poll_s,
             should_stop=should_stop or (lambda: False),
+            edge_records=edge_records,
         )
         result = traverse.run_capability(
             capability,
@@ -118,3 +127,33 @@ def is_success(result: results.ReplayResult) -> bool:
     """
     ok = result.status in {"success", "business_outcome"}
     return ok
+
+
+def is_stable(result: results.ReplayResult) -> bool:
+    """
+    Whether a result counts toward a capability's track record.
+
+    A success on a screen that drifted is working for now, but it counts
+    against the capability: a person should look before it breaks.
+    """
+    drifted = isinstance(result, results.SuccessResult) and bool(result.drifted)
+    return is_success(result) and not drifted
+
+
+def counts_toward_stability(
+    result: results.ReplayResult, *, cancelled: bool = False
+) -> bool:
+    """
+    Whether a result says anything about the capability's health.
+
+    A run someone stopped, a step a person refused, and a step nobody
+    has reviewed yet are all decisions, not breakage.
+
+    :param result: the replay's result.
+    :param cancelled: the operator cancelled the run.
+    :return: whether to record it.
+    """
+    decided = isinstance(result, results.FailureResult) and (
+        result.failure.failure_class in _NOT_BREAKAGE
+    )
+    return not (cancelled or decided)

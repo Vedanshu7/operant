@@ -3,7 +3,7 @@ Initial schema.
 
 Revision ID: 0001
 Revises:
-Create Date: 2026-08-23 01:11:34.359657
+Create Date: 2026-09-01 01:11:34.359657
 """
 
 from __future__ import annotations

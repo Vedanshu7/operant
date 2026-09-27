@@ -270,12 +270,14 @@ def _plan_from_screen(
     Plan the path from the current screen to the goal.
     """
     screen = surface.snapshot()
-    current = localize.locate(screen, app_graph, opts.params)
+    found_at = localize.locate(screen, app_graph, opts.params)
+    current = found_at.confirmed
     log.emit(
         events.Localized(
-            node=current,
+            node=found_at.node_id,
             window=screen.window_title,
-            summary=f"localized at node {current!r}",
+            kind=found_at.kind,
+            summary=f"localized at node {found_at.node_id!r} ({found_at.kind})",
         )
     )
     result: Union[List[graph.Edge], results.ReplayResult]

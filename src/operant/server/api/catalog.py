@@ -8,11 +8,14 @@ import operant.server.api.catalog as catalog
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Dict
+from typing import Annotated, Any, Dict, Optional
 
 import fastapi
 
+import operant.application.capabilities as apcapab
+import operant.domain.errors as errors
 import operant.domain.governance as govern
+import operant.domain.graph.review as review
 import operant.domain.models.artifact as artifact
 import operant.domain.profile as profile
 import operant.server.deps as deps
@@ -75,6 +78,23 @@ def get_capability(capability_id: str, state: State) -> Any:
     capability = state.artifacts.get(capability_id)
     detail = capability.model_dump()
     detail.update(_summary(capability, state))
+    pinned = state.graphs.get(capability.vendor_id, capability.graph_version)
+    outstanding = {
+        edge.id
+        for edge in apcapab.outstanding_steps(
+            capability, state.graphs, state.runs.edge_records
+        )
+    }
+    detail["unknown_steps"] = [
+        {
+            "edge": edge.id,
+            "description": edge.description,
+            "judged": edge.judged,
+            "reviewed": edge.id not in outstanding,
+        }
+        for edge in review.unknown_steps(pinned, capability.compiled_path)
+    ]
+    detail["latest_graph_version"] = state.graphs.head(capability.vendor_id)
     return detail
 
 
@@ -90,18 +110,56 @@ def get_capability_graph(capability_id: str, state: State) -> Any:
 
 
 @router.post("/capabilities/{capability_id}/approve")
-def approve_capability(capability_id: str, state: State) -> Any:
+def approve_capability(
+    capability_id: str,
+    state: State,
+    body: Optional[schemas.ApproveCapabilityBody] = None,
+) -> Any:
     """
-    Approve a capability once its stability clears the gate.
+    Approve a capability a person has reviewed, once it clears the gate.
     """
+    request = body or schemas.ApproveCapabilityBody()
     gate = _gate(state)
     stability = state.runs.stability(capability_id, window=gate.window)
-    if not gate.passes(stability.runs, stability.successes):
+    if not request.force and not gate.passes(stability.runs, stability.successes):
         raise fastapi.HTTPException(
             status_code=409, detail="stability gate not met"
         )
+    current = state.artifacts.get(capability_id)
+    outstanding = apcapab.outstanding_steps(
+        current, state.graphs, state.runs.edge_records
+    )
+    unseen = [e.id for e in outstanding if e.id not in request.reviewed_edges]
+    if outstanding and (request.graph_version != current.graph_version or unseen):
+        raise fastapi.HTTPException(
+            status_code=409,
+            detail="review these steps first: "
+            + ", ".join(e.description for e in outstanding),
+        )
     capability = state.artifacts.approve(capability_id)
+    apcapab.review_unknown_steps(
+        capability, state.graphs, state.runs.edge_records, by="api approve"
+    )
     summary = _summary(capability, state)
+    return summary
+
+
+@router.post("/capabilities/{capability_id}/repin")
+def repin_capability(capability_id: str, state: State) -> Any:
+    """
+    Move a capability to the newest graph version, as a draft.
+    """
+    try:
+        moved = apcapab.repin(
+            state.artifacts.get(capability_id),
+            graph_store=state.graphs,
+            artifact_store=state.artifacts,
+            run_repo=state.runs,
+            by="api repin",
+        )
+    except errors.RepinRefusedError as err:
+        raise fastapi.HTTPException(status_code=409, detail=str(err)) from err
+    summary = _summary(moved, state)
     return summary
 
 

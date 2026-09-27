@@ -21,6 +21,8 @@ import collections.abc
 import dataclasses
 from typing import Dict, Optional
 
+import operant.ports.repositories as prepos
+
 # #############################################################################
 # OutputOrigin
 # #############################################################################
@@ -70,6 +72,8 @@ class ReplayOptions:
     :ivar goal_poll_s: time to wait for the goal node at end of run.
     :ivar should_stop: polled before every edge; true ends the replay as
         cancelled (the operator pressed Cancel).
+    :ivar edge_records: where people's reviews of unknown steps live;
+        ``None`` means no step counts as reviewed.
     """
 
     tenant: str
@@ -86,3 +90,4 @@ class ReplayOptions:
     settle_short_ms: int = 2000
     goal_poll_s: float = 6.0
     should_stop: collections.abc.Callable[[], bool] = lambda: False
+    edge_records: Optional[prepos.EdgeRecordRepository] = None

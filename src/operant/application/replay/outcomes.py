@@ -423,6 +423,6 @@ def _handle_recover(
     for prior in ctx.path:
         if prior.id == edge.id:
             break
-        if prior.risk == "safe":
+        if prior.risk != "mutating":
             run_edge(prior)
     retry()

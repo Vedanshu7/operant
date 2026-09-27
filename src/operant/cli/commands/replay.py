@@ -92,18 +92,20 @@ def _run(
                 graphs=deps.graphs,
                 profiles=deps.profiles,
                 approver=approver,
+                edge_records=run_repo.edge_records,
             )
             ok = urreplay.is_success(result)
             successes += ok
             last_status = result.status
-            apstabil.record_replay(
-                capability_id,
-                "cli",
-                succeeded=ok,
-                run_repo=run_repo,
-                artifact_repo=deps.artifacts,
-                gate=deps.settings.governance.gate(),
-            )
+            if urreplay.counts_toward_stability(result):
+                apstabil.record_replay(
+                    capability_id,
+                    "cli",
+                    succeeded=urreplay.is_stable(result),
+                    run_repo=run_repo,
+                    artifact_repo=deps.artifacts,
+                    gate=deps.settings.governance.gate(),
+                )
             typer.echo("\n=== REPLAY RESULT ===")
             typer.echo(result.model_dump_json(indent=2))
         if times > 1:

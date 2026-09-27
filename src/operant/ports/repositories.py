@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import collections.abc
 import pathlib
-from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Optional, Protocol, Tuple, runtime_checkable
 
 import operant.domain.models.artifact as artifact
 import operant.domain.models.graph as graph
@@ -270,6 +270,14 @@ class RunRepository(Protocol):
         """
         ...
 
+    def close_samples(self, capability_id: str) -> None:
+        """
+        Stop counting a capability's replays so far.
+
+        Used when it moves to another graph: they ran on something else.
+        """
+        ...
+
     def stability(
         self, capability_id: str, window: int = ...
     ) -> artifact.Stability:
@@ -284,6 +292,54 @@ class RunRepository(Protocol):
     def audit(self, entry: runs.AuditEntry) -> None:
         """
         Append one line to the governance audit trail.
+        """
+        ...
+
+
+# #############################################################################
+# EdgeRecordRepository
+# #############################################################################
+
+
+@runtime_checkable
+class EdgeRecordRepository(Protocol):
+    """
+    What is known about a graph version's edges: people's reviews of its
+    unknown steps, and how often each edge worked.
+    """
+
+    def is_approved(
+        self, vendor_id: str, graph_version: int, key: Tuple[str, str, str]
+    ) -> bool:
+        """
+        Report whether a person reviewed this step on this graph version.
+        """
+        ...
+
+    def approve(
+        self,
+        vendor_id: str,
+        graph_version: int,
+        keys: collections.abc.Sequence[Tuple[str, str, str]],
+        *,
+        by: str,
+    ) -> None:
+        """
+        Record that a person reviewed these steps.
+        """
+        ...
+
+    def record_outcome(
+        self, vendor_id: str, graph_version: int, edge_id: str, *, passed: bool
+    ) -> None:
+        """
+        Count one run of an edge.
+        """
+        ...
+
+    def failing(self, vendor_id: str) -> collections.abc.Set[str]:
+        """
+        Return edges that failed at least twice on a version and never passed.
         """
         ...
 

@@ -73,6 +73,8 @@ class ReplayContext:
     :ivar intervention_id: broker id of a resumed intervention, once one
         has been handed back; drives the escalated result.
     :ivar escalation_resolution: how the resumed intervention completed.
+    :ivar arrived: nodes already reported as reached this run.
+    :ivar drifted: nodes reached that no longer look as recorded.
     """
 
     capability: artifact.CapabilityArtifact
@@ -97,6 +99,8 @@ class ReplayContext:
     fired_bindings: Set[str] = dataclasses.field(default_factory=set)
     intervention_id: Optional[str] = None
     escalation_resolution: Optional[EscalationResolution] = None
+    arrived: Set[str] = dataclasses.field(default_factory=set)
+    drifted: Set[str] = dataclasses.field(default_factory=set)
 
 
 # #############################################################################
