@@ -58,6 +58,15 @@ _WINDOW_POLL_S = 0.4
 _RAISE_SETTLE_S = 0.4
 _WINDOW_TIMEOUT_S = 5.0
 _SNAPSHOT_TIMEOUT_S = 3.0
+_URL_TIMEOUT_S = 1.0
+# Timeouts in a row before a slow app stops being asked for its address.
+_URL_MAX_TIMEOUTS = 3
+# AppleScript's error when macOS has not granted Automation.
+_NOT_AUTHORIZED = "-1743"
+# Browsers that answer AppleScript for their address; others report none.
+_TAB_URL_APPS = frozenset(
+    {"google chrome", "chromium", "arc", "brave browser", "microsoft edge"}
+)
 # Bringing the app forward: polls of the frontmost app, and the helpers'
 # own time limit.
 _FOREGROUND_TRIES = 10
@@ -102,6 +111,8 @@ class WindowSession:
         self._pid: Optional[int] = None
         self._capture_stop: Optional[threading.Event] = None
         self._capture_thread: Optional[threading.Thread] = None
+        self._url_refused = False
+        self._url_timeouts = 0
 
     def bind_pid(self, pid: int) -> None:
         """
@@ -132,6 +143,8 @@ class WindowSession:
         self.app_name = app_name
         self.window_title_pattern = window_title_pattern
         self._app = None
+        self._url_refused = False
+        self._url_timeouts = 0
         self._pid = None
         self.refs.clear()
         return previous
@@ -220,6 +233,44 @@ class WindowSession:
             # App restarted; re-resolve on the next call.
             self._app = None
         return closed
+
+    def page_url(self, window_title: str) -> Optional[str]:
+        """
+        Return the address of the bound window, when the app reports one.
+
+        macOS exposes no address through the accessibility tree that
+        ``xa11y`` reads, so a browser is asked with AppleScript. AppleScript
+        finds an app by name, and that can be the person's own browser
+        rather than Operant's, so the window is matched by title. A page
+        sets its own title, so the title is passed as an argument and never
+        becomes part of the script.
+
+        :param window_title: the bound window's accessibility title.
+        :return: the address; ``None`` without an answer.
+        """
+        lines = _url_script(self.app_name)
+        if lines is None or self._url_refused:
+            return None
+        page = window_title.split(f" - {self.app_name}", 1)[0]
+        command = ["osascript"]
+        for line in lines:
+            command += ["-e", line]
+        try:
+            done = subprocess.run(
+                [*command, "--", page],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=_URL_TIMEOUT_S,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            self._url_timeouts += 1
+            self._url_refused = self._url_timeouts >= _URL_MAX_TIMEOUTS
+            return None
+        self._url_timeouts = 0
+        self._url_refused = _NOT_AUTHORIZED in done.stderr
+        url = done.stdout.strip() if done.returncode == 0 else ""
+        return url or None
 
     def element_for(self, ref: str) -> xa11y.Element:
         """
@@ -486,6 +537,31 @@ class WindowSession:
             raise errors.DriverError(
                 f"xa11y: {primary}; mss fallback: {fallback}"
             ) from fallback
+
+
+def _url_script(app_name: str) -> Optional[Tuple[str, ...]]:
+    """
+    Return the AppleScript lines that read a titled window's address, if any.
+
+    The app name is one of this module's known browsers, never page
+    text.
+    """
+    name = app_name.lower()
+    target: Optional[str] = None
+    if name in _TAB_URL_APPS:
+        # Chromium family: the address belongs to the window's active tab.
+        target = "URL of active tab of (first window whose title is page)"
+    elif name == "safari":
+        # Safari: the address belongs to the document.
+        target = "URL of (first document whose name is page)"
+    if target is None:
+        return None
+    return (
+        "on run argv",
+        "set page to item 1 of argv",
+        f'tell application "{app_name}" to return {target}',
+        "end run",
+    )
 
 
 def screen_locked() -> bool:
