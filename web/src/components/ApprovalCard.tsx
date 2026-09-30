@@ -19,6 +19,7 @@ export interface ApprovalCardProps {
 const KIND_HELP: Record<Approval["kind"], string> = {
   scope: "The agent wants to go beyond the allowed apps or URLs.",
   mutating: "This action changes data in the target application.",
+  unknown: "No policy pattern names this control, and it may change data.",
   sensitive_fill: "A sensitive value will be typed into the application.",
   sensitive_export: "Sensitive data would leave the application (copy, download, output).",
 };

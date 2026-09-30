@@ -166,7 +166,18 @@ export function useApproveCapability(id: string) {
   return useMutation({
     mutationFn: (body: CapabilityApproveBody) =>
       fetchJson<CapabilityDetail>(`/capabilities/${id}/approve`, { method: "POST", body }),
-    onSuccess: () => {
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: keys.capability(id) });
+      void qc.invalidateQueries({ queryKey: keys.capabilities });
+    },
+  });
+}
+
+export function useRepinCapability(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => fetchJson<CapabilityDetail>(`/capabilities/${id}/repin`, { method: "POST" }),
+    onSettled: () => {
       void qc.invalidateQueries({ queryKey: keys.capability(id) });
       void qc.invalidateQueries({ queryKey: keys.capabilities });
     },

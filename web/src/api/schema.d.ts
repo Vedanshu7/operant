@@ -683,6 +683,12 @@ export interface components {
              */
             mutating: boolean;
             /**
+             * Unknown
+             * @default allow
+             * @enum {string}
+             */
+            unknown: "allow" | "commit" | "ask" | "deny";
+            /**
              * Sensitive Fill
              * @default literals
              * @enum {string}
@@ -802,7 +808,7 @@ export interface components {
              * Failure Class
              * @enum {string}
              */
-            failure_class: "locator_not_found" | "locator_ambiguous" | "node_assert_failed" | "precondition_failed" | "timeout" | "session_expired" | "unexpected_dialog" | "app_error" | "launch_failed" | "policy_violation" | "approval_denied" | "cancelled";
+            failure_class: "locator_not_found" | "locator_ambiguous" | "node_assert_failed" | "extraction_missing" | "unreviewed_step" | "precondition_failed" | "timeout" | "session_expired" | "unexpected_dialog" | "app_error" | "launch_failed" | "policy_violation" | "approval_denied" | "cancelled";
             /**
              * Message
              * @default
@@ -1149,6 +1155,8 @@ export interface components {
             max_turns?: number | null;
             /** Agents */
             agents?: ("single" | "multi") | null;
+            /** Seed Capability */
+            seed_capability?: string | null;
         };
         /**
          * StartReplayBody

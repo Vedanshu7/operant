@@ -2070,6 +2070,17 @@
             "title": "Mutating",
             "default": true
           },
+          "unknown": {
+            "type": "string",
+            "enum": [
+              "allow",
+              "commit",
+              "ask",
+              "deny"
+            ],
+            "title": "Unknown",
+            "default": "allow"
+          },
           "sensitive_fill": {
             "type": "string",
             "enum": [
@@ -2250,6 +2261,8 @@
               "locator_not_found",
               "locator_ambiguous",
               "node_assert_failed",
+              "extraction_missing",
+              "unreviewed_step",
               "precondition_failed",
               "timeout",
               "session_expired",
@@ -2786,6 +2799,18 @@
               }
             ],
             "title": "Agents"
+          },
+          "seed_capability": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed Capability"
           }
         },
         "type": "object",

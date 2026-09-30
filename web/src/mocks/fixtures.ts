@@ -264,6 +264,8 @@ export const capabilityFixtures: CapabilityDetail[] = [
     },
     start_node: "n_login",
     goal_node: "n_transfer_done",
+    unknown_steps: [],
+    latest_graph_version: null,
     compiled_path: ["n_login", "n_home", "n_transfer_form", "n_transfer_done"],
     tenants: {
       demo: {
@@ -307,6 +309,8 @@ export const capabilityFixtures: CapabilityDetail[] = [
     outputs: { statement_path: { description: "Saved PDF path", data_class: "financial" } },
     start_node: "n_login",
     goal_node: "n_statement_saved",
+    unknown_steps: [],
+    latest_graph_version: null,
     compiled_path: ["n_login", "n_home", "n_accounts", "n_statement_saved"],
     tenants: {
       demo: {

@@ -301,7 +301,19 @@ export const handlers = [
         { status: 409 },
       );
     }
+    const outstanding = cap.unknown_steps.filter((step) => !step.reviewed);
+    if (outstanding.some((step) => !body.reviewed_edges?.includes(step.edge))) {
+      return HttpResponse.json({ detail: "review these steps first" }, { status: 409 });
+    }
     cap.status = "approved";
+    cap.unknown_steps = cap.unknown_steps.map((step) => ({ ...step, reviewed: true }));
+    return HttpResponse.json(cap);
+  }),
+  http.post<PathParams<"id">>(`${BASE}/capabilities/:id/repin`, ({ params }) => {
+    const cap = state.capabilities.find((c) => c.id === params.id);
+    if (!cap) return notFound("capability not found");
+    cap.graph_version = cap.latest_graph_version ?? cap.graph_version;
+    cap.status = "draft";
     return HttpResponse.json(cap);
   }),
   http.post<PathParams<"id">>(`${BASE}/capabilities/:id/invoke`, async ({ params, request }) => {

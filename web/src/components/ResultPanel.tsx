@@ -29,6 +29,12 @@ function ReplayResultView({
         <div>
           <h3 className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Outputs</h3>
           <KeyValueTable rows={result.outputs} emptyLabel="No outputs" />
+          {result.drifted && result.drifted.length > 0 && (
+            <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+              These screens no longer look as recorded: {result.drifted.join(", ")}. The run worked,
+              but it counts against stability.
+            </p>
+          )}
         </div>
       );
     case "business_outcome":
