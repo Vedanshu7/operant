@@ -141,6 +141,18 @@ uv run operant doctor   # reports whether the scrubber is ready
 - `OPERANT_PRIVACY__EVIDENCE_RETENTION_DAYS=30` sets how long
   `operant evidence prune` keeps a run's evidence.
 
+## Docker
+
+`docker compose up -d --build` starts the server and ParaBank `tenant-b` on port
+8081. `tenant-a` is opt-in with `--profile tenant-a` and needs port 8080 free.
+While the container runs, read the database with `docker exec`, never from the
+Mac: it uses write-ahead logging, which isn't safe across the file mount.
+
+The image has no optional extras. If `.env` sets
+`OPERANT_OBSERVABILITY__BACKEND=langfuse`, discovery stops with a config error
+unless the image is built with `--build-arg OPERANT_EXTRAS="observability"` and
+the `observability` profile is running.
+
 ## Commands
 
 Tests run anywhere, with no macOS, model or target app. The server tests
@@ -157,7 +169,10 @@ cd web && pnpm install && pnpm test    # web tests
 uv run operant doctor                     # check config, permissions, tools
 uv run operant catalog list               # list capabilities, stability, gate
 uv run operant catalog canary             # replay approved read-only capabilities once
+uv run operant catalog repin <id>         # move a capability to a newer graph, as a draft
 uv run operant graph list                 # list saved app graphs
+uv run operant graph learn <vendor>       # save stable screen cores from verified replays
+uv run operant graph retire <vendor> <edge>...  # retire edges that record a mistake
 uv run operant evidence prune --days 30  # delete evidence runs older than 30 days
 uv run operant audit --strict --evidence  # cross-check disk against the database
 uv run i lint                             # run the linter (the coding standard)
@@ -172,3 +187,47 @@ from cron:
 ```bash
 0 * * * * cd /path/to/operant && uv run operant catalog canary
 ```
+
+## Unknown controls
+
+A control on neither the mutating list nor the safe list is `unknown`
+([ADR 12](adr/0012-unknown-action-level.md)). `approval.unknown` in a policy
+sets what happens:
+
+| Setting | Behaviour |
+|---|---|
+| `commit` | Discovery explores. A commit-shaped step asks, and a model judges the rest. Replay needs each step reviewed once |
+| `ask` | Every unknown control asks |
+| `deny` | Every unknown control is refused |
+| `allow` | Unknown controls run as safe |
+
+`catalog approve` lists the unknown steps and asks you to confirm, or takes
+`--yes`. The web UI shows them above the Approve button. Add phrases to
+`safe_control_patterns` to reduce prompts. Only safe-list what never changes
+data.
+
+## UI changes
+
+`operant replay` reports a `drifted` list when a screen no longer looks as
+recorded ([ADR 13](adr/0013-screen-identity-and-drift.md)). Such a success counts
+against stability, while cancelled runs and refused steps don't. After at least
+3 verified replays:
+
+```bash
+uv run operant graph learn <vendor>      # save a new graph version
+uv run operant catalog repin <id>        # move a capability to it, as a draft
+uv run operant replay <id> --times 3     # build a new track record
+uv run operant catalog approve <id>      # review and approve
+```
+
+`repin` refuses, and says why, when the path no longer exists on that version.
+
+To rebuild a broken capability from its old route
+([ADR 14](adr/0014-graph-reuse-in-rediscovery.md)):
+
+```bash
+uv run operant discover --goal "<goal>" --capability <id> --seed <id>
+```
+
+macOS asks for Automation permission the first time Operant reads a browser's
+address. Without it, runs continue with no URL.

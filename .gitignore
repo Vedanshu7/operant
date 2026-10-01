@@ -17,3 +17,6 @@ web/dist/
 linter_warnings.txt
 **/.HEAD.lock
 .coverage
+
+# File locks written beside policies while saving.
+policies/.*.lock

@@ -89,7 +89,7 @@ Two layers: a blackboard for each run and a store that lasts across runs.
   multi-agent runs only; single-agent runs rely on the context layer
   (ADR 6).
 
-## Revision 1 (2026-10-22): keep conclusions, not reactions
+## Revision 1 (2026-09-13): keep conclusions, not reactions
 
 ### Why
 

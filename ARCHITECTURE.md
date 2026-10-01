@@ -54,14 +54,18 @@ read or where data is stored.
    macOS the Surface reads the accessibility tree, not the DOM, so it works
    on apps with no clean markup and on native apps.
 3. If the app already has a graph, the loop localizes the live screen
-   against it. When the screen matches a mapped state, it tells the model
-   "you are already at known state X; skip the steps that lead here" and
-   lists the moves already recorded from there. It also records this as a
-   `localized` evidence event.
+   against it. On a clean match it tells the model "you are already at known
+   state X; skip the steps that lead here", and gives the recorded route toward
+   the goal as data. A screen that is drifted, ambiguous, or unknown gets no
+   hint ([ADR 13](docs/adr/0013-screen-identity-and-drift.md)). It also records
+   this as a `localized` evidence event.
 4. The loop sends the snapshot and the goal to the LLM and asks for one
    action.
-5. Before any action runs, the policy checks it. Safe reads pass. Risky,
-   mutating, or sensitive steps stop and ask a human to approve.
+5. Before any action runs, the policy checks it. Safe reads pass. Mutating or
+   sensitive steps stop and ask a human to approve. A control no policy names
+   is `unknown`: discovery explores it unless it looks like a commit, a model
+   judge can raise it to a person, and replay needs it reviewed once
+   ([ADR 12](docs/adr/0012-unknown-action-level.md)).
 6. The action runs through the Surface. The recorder writes down the step,
    how the target control was found, and the reasoning.
 7. When the goal is reached, the recorder compiles the steps into a graph and
@@ -99,9 +103,10 @@ Optional (`--agents multi`). See
 3. Replay resumes from the live app state. Each graph node carries a
    value-free structural fingerprint of its screen (the accessibility
    control inventory with digits and values stripped). After the launch
-   step the engine re-localizes the live screen by how much of a node's
-   fingerprint it covers — content, not the title or URL, which repeat
-   across states. If the app is already past the recorded start (for
+   step the engine re-localizes the live screen by what is unique to a node,
+   in a text view and a structure view, and gets an explicit `match`,
+   `drifted`, `ambiguous`, or `unknown` — content first, not the title or URL,
+   which repeat across states. If the app is already past the recorded start (for
    example still logged in) it path-finds straight to the goal and skips
    the steps already done, instead of failing on absent login fields. When
    the content matches the goal but the page is a shared look-alike (a menu
@@ -175,7 +180,8 @@ only waits for a yes or no.
 ## Safety in short
 
 - The policy is an allowlist of apps, URLs, and action kinds.
-- Risky, mutating, and sensitive steps need a human to approve.
+- Mutating and sensitive steps need a human to approve, and an unknown step
+  needs a human's review before it can replay unattended.
 - Secrets are referenced by name. The model never sees a value, and values
   never reach a log or an artifact.
 - The web API and the driver daemon both require a bearer token.
