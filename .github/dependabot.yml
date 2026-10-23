@@ -4,15 +4,31 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # One pull request per ecosystem, so the updates are reviewed together.
+    groups:
+      all:
+        patterns: ["*"]
   - package-ecosystem: npm
     directory: /web
     schedule:
       interval: weekly
+    # One pull request per ecosystem, so the updates are reviewed together.
+    groups:
+      all:
+        patterns: ["*"]
   - package-ecosystem: npm
     directory: /desktop
     schedule:
       interval: weekly
+    # One pull request per ecosystem, so the updates are reviewed together.
+    groups:
+      all:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    # One pull request per ecosystem, so the updates are reviewed together.
+    groups:
+      all:
+        patterns: ["*"]

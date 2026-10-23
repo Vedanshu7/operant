@@ -281,4 +281,4 @@ def test_a_result_row_records_time_and_usage_per_role(
     executor = row["roles"]["executor"]
     assert executor["calls"] == len(run.llm.turns) == row["turns"]
     assert executor["tokens_in"] == row["tokens_in"]
-    assert executor["seconds"] >= 0 and row["duration_s"] >= executor["seconds"]
+    assert 0 <= executor["seconds"] <= row["duration_s"]
