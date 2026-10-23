@@ -50,7 +50,7 @@ i = "invoke.main:program.run"
 [dependency-groups]
 dev = [
     "mypy>=1.17.0",
-    "pre-commit>=4.2.0",
+    "pre-commit>=4.7.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.1.0",
     # Vendored amp linter (src/operant/dev/linters): the driver shells out to
