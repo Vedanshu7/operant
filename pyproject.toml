@@ -24,7 +24,7 @@ dependencies = [
 [project.optional-dependencies]
 macos = [
     "mss>=10.2.0",
-    "pillow>=12.3.0",
+    "pillow>=13.0.0",
     "xa11y>=0.13.0",
 ]
 capture = [
@@ -67,7 +67,7 @@ dev = [
     "pydocstyle",
     "pylint",
     "pyment",
-    "pillow>=12.3.0",
+    "pillow>=13.0.0",
     "pytest-timeout>=2.4.0",
     "pytest-cov>=7.1.0",
 ]
